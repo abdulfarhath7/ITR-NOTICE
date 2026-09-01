@@ -46,8 +46,12 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   (proceedings) and `div.card-container.matCard` (notices). Navigation between
   pages uses the portal's own "Back" button and same-document hash changes
   only. Parsers TESTED against card text captured verbatim from the account.
-  The end-to-end automated walk has still not been run in one go - that is
-  what remains of step 1.
+  Reaching the list is a hash change plus `_wait_for_list()` - the URL changes
+  instantly but Angular paints later, and waiting on the URL alone made the
+  first live sync "skip" every tab and report success with 0 proceedings.
+  A run that finds no tab now raises instead of finishing clean.
+  The end-to-end automated walk has still not completed - that is what remains
+  of step 1.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
   holder on `EventHub` (`set_credentials` / `credentials` / `has_credentials` /
   `clear_credentials`). POST /api/credentials stores the login and starts the
@@ -183,6 +187,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   and HEADLESS (gitignored; never commit it).
 - Never overwrite a portal-sourced due date with a Claude one; Claude dates
   are always tagged due_date_source='claude' and shown with the badge.
+- A sync that scrapes nothing is a failure, not a success. Never let a missing
+  tab, an unrendered list or an empty walk report "Sync done" - raise, so the
+  failure path screenshots the screen and the dashboard says so.
 - Once a notice PDF is stored, never re-download it; once Claude has answered
   for a ref_id, never re-ask (cost + consistency).
 - No third-party services beyond the portal itself and the Anthropic API.

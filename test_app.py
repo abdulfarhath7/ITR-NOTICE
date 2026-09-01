@@ -68,6 +68,7 @@ async def fake_run_sync(session, events):
     return {"proceedings": 1, "notices": 2, "downloaded": 0, "skipped_cached": 2}
 
 
+REAL_RUN_SYNC = scraper.run_sync      # the fake below shadows it for the API tests
 main.PortalSession = FakeSession
 scraper.run_sync = fake_run_sync
 main.settings.hold_on_error = 0     # no 15-second pause inside the tests
@@ -514,6 +515,85 @@ err, _ = settle(pg)
 check("a rejected password is still never retried",
       isinstance(err, WrongPasswordError) and pg.continue_clicks == 0,
       f"{type(err).__name__}, {pg.continue_clicks} clicks")
+
+
+# 12 - the first live sync: tabs missing, yet it reported success ------------
+# The hash change routes instantly and Angular had not painted, so every tab
+# was "not on this account" and the run finished as done with 0 proceedings.
+scraper.LIST_READY_SECONDS = 0.4        # keep the test quick
+
+
+class BlankPage:
+    """A list page that never paints: no cards, no tabs, no empty state."""
+
+    def __init__(self):
+        self.url = "https://eportal.incometax.gov.in/iec/foservices/#/dashboard/eProceedings"
+        self.evaluated = 0
+
+    async def evaluate(self, script, *args):
+        self.evaluated += 1
+        return []
+
+    def locator(self, selector):
+        return FakeLoc(0, False)
+
+    def get_by_role(self, role, name=None, exact=None):
+        return FakeLoc(0, False)
+
+    def get_by_text(self, text, exact=None):
+        return FakeLoc(0, False)
+
+    async def wait_for_timeout(self, ms):
+        await asyncio.sleep(0)
+
+
+class StubSession:
+    def __init__(self, page):
+        self.page = page
+
+    async def ensure_alive(self):
+        return None
+
+
+blank = BlankPage()
+ev = FakeEvents()
+err = None
+try:
+    asyncio.run(REAL_RUN_SYNC(StubSession(blank), ev))
+except Exception as e:                                   # noqa: BLE001
+    err = e
+check("an unpainted list page raises instead of reporting a clean sync",
+      isinstance(err, RuntimeError), repr(err))
+check("the error says nothing was scraped",
+      err is not None and "nothing was scraped" in str(err), str(err)[:90])
+check("no 'Sync done' line is logged when nothing was found",
+      not any("Sync done" in m for m in ev.logs), str(ev.logs[-1:]))
+
+# a visible tab is found through any of the three shapes it takes
+class TabPage(BlankPage):
+    def __init__(self, where):
+        super().__init__()
+        self.where = where
+
+    def get_by_role(self, role, name=None, exact=None):
+        if self.where == role and name == "Self":
+            return FakeLoc(1, True, "Self")
+        return FakeLoc(0, False)
+
+    def get_by_text(self, text, exact=None):
+        if self.where == "text" and text == "Self":
+            return FakeLoc(1, True, "Self")
+        return FakeLoc(0, False)
+
+
+for where in ("button", "tab", "text"):
+    found = asyncio.run(scraper._find_tab(TabPage(where), "Self"))
+    check(f"tab found when it is a {where}", found is not None)
+
+check("a hidden tab is not treated as present",
+      asyncio.run(scraper._find_tab(BlankPage(), "Self")) is None)
+
+scraper.LIST_READY_SECONDS = 30
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

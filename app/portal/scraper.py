@@ -28,13 +28,14 @@ that writes to the portal. Those buttons sit on the same notice card as the
 PDF button, so every click goes through _click(), which refuses them.
 """
 import re
+import time
 from pathlib import Path
 
 from playwright.async_api import TimeoutError as PWTimeout
 
 from .. import db
 from ..config import settings
-from .session import PortalSession
+from .session import PortalSession, first_visible
 
 LIST_HASH = "#/dashboard/eProceedings"
 PROCEEDING_CARD = "div.card-container.matCardRow"
@@ -46,6 +47,11 @@ TABS = {
     "auth_rep": "As Authorized Representative",
 }
 SUB_TABS = {"action": "For your Action", "information": "For your Information"}
+
+# Moving the hash routes instantly, but Angular still has to paint. Waiting
+# for the URL alone found an empty page and "skipped" every tab in under a
+# second, then called that a successful sync.
+LIST_READY_SECONDS = 30
 
 # Never clicked. "View Response" and "Seek/View Adjournment" live on the very
 # same notice card as the PDF button, so this is enforced, not just documented.
@@ -69,17 +75,69 @@ async def _click_back(page, events) -> None:
         await _click(back, "Back")
     except PWTimeout:
         await events.log("No in-page Back button found - returning via the URL")
-        await _goto_list(page)
+        await _goto_list(page, events)
 
 
-async def _goto_list(page) -> None:
+async def _goto_list(page, events=None) -> bool:
     """Same-document hash change: what an in-app link does, so the portal's
-    refresh guard never fires."""
+    refresh guard never fires. Returns True once the list has actually
+    rendered - the URL changing is not enough."""
     await page.evaluate("hash => { window.location.hash = hash; }", LIST_HASH)
-    for _ in range(40):
+    if await _wait_for_list(page):
+        return True
+
+    # The hash route did not paint. Fall back to clicking the menu.
+    if events:
+        await events.log("  list did not render - trying the Pending Actions menu")
+    try:
+        await page.get_by_text("Pending Actions", exact=False).first.click()
+        await page.wait_for_timeout(1200)
+        await page.get_by_text(re.compile(r"e-?Proceedings", re.I)).first.click()
+    except Exception:
+        pass
+    return await _wait_for_list(page)
+
+
+async def _wait_for_list(page) -> bool:
+    """Rendered means a proceeding card, a tab, or an explicit empty state."""
+    deadline = time.monotonic() + LIST_READY_SECONDS
+    while time.monotonic() < deadline:
         if "eProceedings" in page.url and "viewNotices" not in page.url:
-            return
-        await page.wait_for_timeout(250)
+            if await page.locator(PROCEEDING_CARD).count():
+                return True
+            for label in TABS.values():
+                if await _find_tab(page, label):
+                    return True
+            for empty in ("No records", "no records found", "No Data"):
+                if await first_visible(page.get_by_text(empty)):
+                    return True
+        await page.wait_for_timeout(500)
+    return False
+
+
+async def _find_tab(page, label):
+    """The tabs are buttons on the list page but Material tabs elsewhere, and
+    only a visible one counts."""
+    for candidate in (page.get_by_role("button", name=label, exact=True),
+                      page.get_by_role("tab", name=label, exact=False),
+                      page.get_by_text(label, exact=True)):
+        hit = await first_visible(candidate)
+        if hit:
+            return hit
+    return None
+
+
+async def _visible_button_names(page) -> list[str]:
+    """Only used to explain a failure."""
+    try:
+        return await page.evaluate(r"""
+        () => [...document.querySelectorAll('button, [role=tab]')]
+            .filter(e => { const r = e.getBoundingClientRect();
+                           return r.width > 0 && r.height > 0; })
+            .map(e => (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40))
+            .filter(Boolean).slice(0, 25)""")
+    except Exception:
+        return []
 
 
 async def run_sync(session: PortalSession, events) -> dict:
@@ -88,15 +146,21 @@ async def run_sync(session: PortalSession, events) -> dict:
 
     with db.connect() as con:
         await session.ensure_alive()
-        await _goto_list(page)
+        if not await _goto_list(page, events):
+            raise RuntimeError(
+                "The e-Proceedings list never rendered - nothing was scraped. "
+                f"Visible controls: {await _visible_button_names(page)}")
 
+        tabs_walked = 0
         for tab_key, tab_label in TABS.items():
-            tab = page.get_by_role("button", name=tab_label, exact=True).first
-            if not await tab.count() or not await tab.is_visible():
+            tab = await _find_tab(page, tab_label)
+            if not tab:
                 await events.log(f"Tab '{tab_label}' not on this account - skipped")
                 continue
+            tabs_walked += 1
             await _click(tab, tab_label)
             await page.wait_for_timeout(1500)
+            await _wait_for_list(page)
 
             for sub_key, sub_label in SUB_TABS.items():
                 sub = page.get_by_role("tab", name=sub_label, exact=False).first
@@ -111,6 +175,13 @@ async def run_sync(session: PortalSession, events) -> dict:
 
                 await _set_page_size_max(page, events)
                 await _walk_pages(session, events, con, tab_key, sub_key, stats)
+
+        # Reporting "0 proceedings" as a clean run is how the first live sync
+        # hid this exact failure. If no tab matched, the run failed.
+        if tabs_walked == 0:
+            raise RuntimeError(
+                "No e-Proceedings tab was found, so nothing could be scraped. "
+                f"Visible controls: {await _visible_button_names(page)}")
 
     await events.log(
         f"Sync done: {stats['proceedings']} proceedings, {stats['notices']} notices, "
