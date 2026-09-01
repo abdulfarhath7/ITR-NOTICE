@@ -215,10 +215,11 @@ LOGIN = "https://eportal.incometax.gov.in/iec/foservices/#/login"
 
 
 class FakeLoc:
-    def __init__(self, count=0, visible=False, text=""):
+    def __init__(self, count=0, visible=False, text="", children=None):
         self._count, self._visible, self._text = count, visible, text
         self.clicked = False
         self.filled = None
+        self._children = children or {}
 
     @property
     def first(self):
@@ -233,7 +234,7 @@ class FakeLoc:
     async def inner_text(self):
         return self._text
 
-    async def click(self):
+    async def click(self, timeout=None):
         self.clicked = True
 
     async def fill(self, value):
@@ -244,6 +245,9 @@ class FakeLoc:
 
     async def input_value(self):
         return self._text
+
+    def get_by_role(self, role, name=None, exact=None):
+        return self._children.get(name, FakeLoc())
 
     def or_(self, other):
         return self if self._count else other
@@ -594,6 +598,50 @@ check("a hidden tab is not treated as present",
       asyncio.run(scraper._find_tab(BlankPage(), "Self")) is None)
 
 scraper.LIST_READY_SECONDS = 30
+
+
+# 13 - the back/refresh modal ------------------------------------------------
+# Live failure: "#securityReasonPopup intercepts pointer events" - the modal
+# swallows every click underneath it, and its YES button logs the session out.
+from app.portal.session import dismiss_security_popup                # noqa: E402
+
+
+class PopupPage:
+    def __init__(self, visible=True):
+        self.url = "https://x/#/dashboard/eProceedings"
+        self.no = FakeLoc(1, True, "No")
+        self.yes = FakeLoc(1, True, "YES")
+        self.popup = FakeLoc(1 if visible else 0, visible, "back disabled",
+                             children={"No": self.no, "YES": self.yes})
+        self.waited = 0
+
+    def locator(self, selector):
+        return self.popup if selector == "#securityReasonPopup" else FakeLoc()
+
+    async def wait_for_timeout(self, ms):
+        self.waited += 1
+
+
+pg = PopupPage()
+ev = FakeEvents()
+check("the back/refresh modal is dismissed", asyncio.run(dismiss_security_popup(pg, ev)))
+check("it is dismissed with No", pg.no.clicked)
+check("YES is never pressed (it logs the session out)", not pg.yes.clicked)
+check("no modal on screen means nothing to do",
+      not asyncio.run(dismiss_security_popup(PopupPage(visible=False))))
+
+for label in ("YES", "Yes", "Logout"):
+    c = Clickable()
+    try:
+        asyncio.run(scraper._click(c, label))
+        check(f"guardrail refuses {label!r}", False, "it clicked")
+    except RuntimeError:
+        check(f"guardrail refuses {label!r}", not c.clicked)
+
+# the navigation that caused it must be gone for good
+_scraper_src = pathlib.Path("app/portal/scraper.py").read_text()
+check("nothing changes the URL any more (that is what raised the modal)",
+      "location.hash" not in _scraper_src.split('"""', 2)[2])
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

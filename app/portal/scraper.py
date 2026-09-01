@@ -9,8 +9,12 @@ not against screenshots. What the real site forced:
     one stray click away from ending the session. Every return trip now uses
     the page's own "Back" button, which was verified to land back on the
     notices list and then the proceedings list with no dialog at all.
-  - For the same reason we never goto()/reload the list. Moving the URL hash
-    is a same-document navigation, exactly what an in-app link does.
+  - The same modal (#securityReasonPopup) also fires for ANY url or hash
+    change, not just the Back button - an early version moved
+    window.location.hash to reach the list and the portal answered with the
+    popup, which then swallowed every click underneath it and timed the sync
+    out. Navigation is therefore by clicking the portal's own menu and Back
+    buttons, only. Nothing here touches the URL.
   - Cards: proceedings are div.card-container.matCardRow, notices are
     div.card-container.matCard - note the different class. The old
     locator("div", has_text=...) matched 663 elements on the real page.
@@ -35,9 +39,8 @@ from playwright.async_api import TimeoutError as PWTimeout
 
 from .. import db
 from ..config import settings
-from .session import PortalSession, first_visible
+from .session import PortalSession, dismiss_security_popup, first_visible
 
-LIST_HASH = "#/dashboard/eProceedings"
 PROCEEDING_CARD = "div.card-container.matCardRow"
 NOTICE_CARD = "div.card-container.matCard"
 
@@ -57,50 +60,82 @@ LIST_READY_SECONDS = 30
 # same notice card as the PDF button, so this is enforced, not just documented.
 FORBIDDEN = ("submit response", "view response", "file appeal",
              "seek video conferencing", "seek/view adjournment",
-             "e-verify", "withdraw", "pay now")
+             "e-verify", "withdraw", "pay now",
+             # the back/refresh modal's YES logs the session out
+             "yes", "logout")
 
 
-async def _click(locator, label: str) -> None:
+async def _click(locator, label: str, timeout: int | None = None) -> None:
     """The only way this module clicks anything."""
     if any(bad in label.lower() for bad in FORBIDDEN):
         raise RuntimeError(f"read-only guardrail: refused to click {label!r}")
-    await locator.click()
+    await locator.click(**({"timeout": timeout} if timeout else {}))
+
+
+async def _safe_click(page, locator, label: str, events=None,
+                      timeout: int = 15000) -> None:
+    """Click, but clear the portal's back/refresh modal first - while it is up
+    it intercepts pointer events and a plain click just times out."""
+    await dismiss_security_popup(page, events)
+    try:
+        await _click(locator, label, timeout=timeout)
+    except PWTimeout:
+        if not await dismiss_security_popup(page, events):
+            raise
+        await _click(locator, label, timeout=timeout)
 
 
 async def _click_back(page, events) -> None:
     """The portal's own Back button. Never page.go_back() - see module docs."""
     back = page.get_by_role("button", name="Back", exact=True).first
     try:
+        await dismiss_security_popup(page, events)
         await back.wait_for(state="visible", timeout=10000)
-        await _click(back, "Back")
+        await _safe_click(page, back, "Back", events)
     except PWTimeout:
         await events.log("No in-page Back button found - returning via the URL")
         await _goto_list(page, events)
 
 
 async def _goto_list(page, events=None) -> bool:
-    """Same-document hash change: what an in-app link does, so the portal's
-    refresh guard never fires. Returns True once the list has actually
-    rendered - the URL changing is not enough."""
-    await page.evaluate("hash => { window.location.hash = hash; }", LIST_HASH)
-    if await _wait_for_list(page):
-        return True
+    """Reach the e-Proceedings list the way a person does: through the menu.
 
-    # The hash route did not paint. Fall back to clicking the menu.
-    if events:
-        await events.log("  list did not render - trying the Pending Actions menu")
-    try:
-        await page.get_by_text("Pending Actions", exact=False).first.click()
-        await page.wait_for_timeout(1200)
-        await page.get_by_text(re.compile(r"e-?Proceedings", re.I)).first.click()
-    except Exception:
-        pass
-    return await _wait_for_list(page)
+    Never by URL. Any url/hash change makes the portal throw up
+    #securityReasonPopup, which then blocks every click on the page.
+    """
+    await dismiss_security_popup(page, events)
+    if "eProceedings" in page.url and "viewNotices" not in page.url:
+        if await _wait_for_list(page, seconds=3):
+            return True
+
+    for attempt in range(1, 4):
+        if events:
+            await events.log(f"  opening Pending Actions -> e-Proceedings ({attempt}/3)")
+        try:
+            await dismiss_security_popup(page, events)
+            menu = page.get_by_role("menuitem", name="Pending Actions",
+                                    exact=False).first
+            if not await menu.count():
+                menu = page.get_by_text("Pending Actions", exact=False).first
+            await _safe_click(page, menu, "Pending Actions", events, timeout=10000)
+            await page.wait_for_timeout(1200)
+
+            item = page.get_by_role("menuitem", name="e-Proceedings",
+                                    exact=False).first
+            if not await item.count():
+                item = page.get_by_text(re.compile(r"e-?Proceedings", re.I)).first
+            await _safe_click(page, item, "e-Proceedings", events, timeout=10000)
+        except Exception as e:
+            if events:
+                await events.log(f"  menu attempt {attempt} failed ({e!r})")
+        if await _wait_for_list(page):
+            return True
+    return False
 
 
-async def _wait_for_list(page) -> bool:
+async def _wait_for_list(page, seconds: float | None = None) -> bool:
     """Rendered means a proceeding card, a tab, or an explicit empty state."""
-    deadline = time.monotonic() + LIST_READY_SECONDS
+    deadline = time.monotonic() + (LIST_READY_SECONDS if seconds is None else seconds)
     while time.monotonic() < deadline:
         if "eProceedings" in page.url and "viewNotices" not in page.url:
             if await page.locator(PROCEEDING_CARD).count():
@@ -158,7 +193,7 @@ async def run_sync(session: PortalSession, events) -> dict:
                 await events.log(f"Tab '{tab_label}' not on this account - skipped")
                 continue
             tabs_walked += 1
-            await _click(tab, tab_label)
+            await _safe_click(page, tab, tab_label, events)
             await page.wait_for_timeout(1500)
             await _wait_for_list(page)
 
@@ -167,7 +202,7 @@ async def run_sync(session: PortalSession, events) -> dict:
                 if not await sub.count():
                     continue
                 count = _count_from_label(await sub.inner_text())
-                await _click(sub, sub_label)
+                await _safe_click(page, sub, sub_label, events)
                 await page.wait_for_timeout(1500)
                 await events.log(f"{tab_label} / {sub_label}: {count} item(s)")
                 if count == 0:
@@ -222,7 +257,7 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
     if not await view.count():
         return
 
-    await _click(view, "View Notices/Orders")
+    await _safe_click(page, view, "View Notices/Orders", events)
     try:
         await page.wait_for_url(re.compile(r"viewNotices"), timeout=20000)
     except PWTimeout:
@@ -257,12 +292,12 @@ async def _download(session, events, ref_id) -> str | None:
     """Notice card -> 'Notice/Letter pdf' -> detail page -> Download -> back."""
     page = session.page
     pdf = page.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
-    await _click(pdf, "Notice/Letter Pdf")
+    await _safe_click(page, pdf, "Notice/Letter Pdf", events)
     try:
         await page.wait_for_url(re.compile(r"viewDetailedNotice"), timeout=20000)
         async with page.expect_download(timeout=30000) as dl:
-            await _click(page.get_by_role("button", name="Download",
-                                          exact=False).first, "Download")
+            await _safe_click(page, page.get_by_role(
+                "button", name="Download", exact=False).first, "Download", events)
         download = await dl.value
         dest = Path(settings.notices_dir) / f"{ref_id}.pdf"
         dest.parent.mkdir(parents=True, exist_ok=True)

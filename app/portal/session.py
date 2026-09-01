@@ -50,6 +50,40 @@ MAX_CONTINUE_RETRIES = 2
 FORCE_LOGIN_LABELS = ("Login Here", "Force Login", "Continue Login", "Yes")
 
 
+SECURITY_POPUP = "#securityReasonPopup"
+
+
+async def dismiss_security_popup(page, events=None) -> bool:
+    """The portal answers Back / Forward / Refresh - and any URL or hash change
+    - with a modal: "For security reasons, we have disabled Back, Forward and
+    Refresh actions of the browser. Are you sure you want to Logout?" with
+    YES / No. While it is up it swallows every click on the page underneath.
+
+    YES logs the session out, so it is never pressed. We answer No.
+    """
+    popup = page.locator(SECURITY_POPUP)
+    try:
+        if not await popup.count() or not await popup.first.is_visible():
+            return False
+    except Exception:
+        return False
+    for label in ("No", "NO", "Cancel"):
+        btn = popup.first.get_by_role("button", name=label, exact=True).first
+        try:
+            if await btn.count() and await btn.is_visible():
+                await btn.click(timeout=5000)
+                if events:
+                    await events.log(
+                        f"Dismissed the portal's back/refresh warning ('{label}')")
+                await page.wait_for_timeout(600)
+                return True
+        except Exception:
+            continue
+    if events:
+        await events.log("Back/refresh warning is up and would not dismiss")
+    return False
+
+
 async def first_visible(locator):
     """Return the first match only if a human could actually see it.
 

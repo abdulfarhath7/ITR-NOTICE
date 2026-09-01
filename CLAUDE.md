@@ -85,11 +85,18 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - **The browser Back button is a trap.** The portal answers Back / Forward /
   Refresh with "For security reasons, we have disabled Back, Forward and
   Refresh actions of the browser. Are you sure you want to Logout?" with
-  YES / No. Never call `page.go_back()` and never `goto()`/reload a route.
-  Every page carries its own "Back" button (`get_by_role("button",
-  name="Back", exact=True)`), verified to walk detail → notices → list with
-  no dialog. To reach the list, move `window.location.hash` instead - a
-  same-document navigation, exactly what an in-app link does.
+  YES / No, and its markup is `div#securityReasonPopup.modal.fade.show`.
+  **It fires for ANY url or hash change, not only the Back button** — writing
+  `window.location.hash` to reach a route raised it in a live run (verified
+  2026-09-01), and while it is up it intercepts pointer events, so every
+  click underneath just times out. So: never `page.go_back()`, never
+  `goto()`/reload a route, never touch `location.hash`. Navigate only by
+  clicking the portal's own menu, and return only via each page's own "Back"
+  button (`get_by_role("button", name="Back", exact=True)`), verified to walk
+  detail → notices → list with no dialog.
+  When the modal does appear, answer **No** — `session.dismiss_security_popup()`
+  does this and is called before every click. Its YES logs the session out, so
+  "yes" and "logout" are in the scraper's FORBIDDEN tuple.
 - An expired session lands on `#/sessionExpire` (not `/login`), and the
   password page has its own route, `#/login/password`.
 - The password page sometimes answers a CORRECT password with
@@ -107,8 +114,10 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   improvement: parse it instead of the internal clock in `session.py`.
 - e-Proceedings URL: .../#/dashboard/eProceedings
   Tabs: "Self", "Of Other PAN/TAN", "As Authorized Representative" (third tab
-  CONFIRMED absent on this company account — skip if missing); they are
-  buttons. Sub-tabs are Angular Material tabs with `role="tab"`: "For your
+  CONFIRMED absent on this company account — skip if missing). They are
+  `mat-button-toggle`s: the clickable text lives in
+  `span.mat-button-toggle-label-content`, so a `role=button` lookup alone
+  misses them — `_find_tab()` tries button, tab and text. Sub-tabs are Angular Material tabs with `role="tab"`: "For your
   Action (40)", "For your Information (24)" on this account. Top right: search box, "Filter" button,
   "Excel Download". Pagination: "Items per Page" select.
 - Filter panel contains: Proceeding Status radios (Open/Pending, Closed,
