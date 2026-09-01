@@ -15,7 +15,9 @@ done is skipped, so later runs start in about a second. Ctrl+C stops it.
 
     RUN_DEV=1 ./run.sh          # same, plus uvicorn --reload
 
-Hit "Sync now". The dashboard asks for your portal user ID and password the
+Hit "Sync now". The "Download at most" box next to it caps how many new PDFs
+that run fetches - handy for a quick test. Leave it blank for every notice.
+A capped run stops cleanly and the next Sync picks up where it left off. The dashboard asks for your portal user ID and password the
 first time; they are held in the server's memory for as long as it runs and
 are never written to disk. Restarting the
 server asks again, and the "Change login" link in the header forgets them.

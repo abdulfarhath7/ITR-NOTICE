@@ -17,7 +17,7 @@ login resumes on the very same open browser page.
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -42,6 +42,8 @@ class EventHub:
         self._credentials: dict[str, str] | None = None
         # credentials_required | idle | running | otp_required | failed
         self.state = "credentials_required"
+        # How many NEW PDFs a run may fetch. None = every notice.
+        self.download_limit: int | None = None
 
     # ------------------------------------------------------- credentials
     def set_credentials(self, user_id: str, password: str) -> None:
@@ -110,7 +112,7 @@ async def _run_sync() -> None:
     try:
         await session.start()
         await session.login()
-        stats = await scraper.run_sync(session, hub)
+        stats = await scraper.run_sync(session, hub, limit=hub.download_limit)
         message = str(stats)
     except WrongPasswordError as e:
         # Hard rule: never retry. Drop the bad login and ask again.
@@ -151,6 +153,10 @@ async def _after_failure(session) -> None:
         await asyncio.sleep(settings.hold_on_error)
 
 
+class SyncIn(BaseModel):
+    limit: int | None = None      # None (or 0) means every notice
+
+
 def _start_sync_task() -> None:
     async def guarded():
         async with _sync_lock:
@@ -160,7 +166,7 @@ def _start_sync_task() -> None:
 
 
 @app.post("/api/sync")
-async def start_sync():
+async def start_sync(body: SyncIn | None = Body(default=None)):
     if _sync_lock.locked():
         return JSONResponse({"error": "a sync is already running"}, status_code=409)
     if not hub.has_credentials():
@@ -168,14 +174,16 @@ async def start_sync():
         await hub._broadcast({"type": "credentials_required", "error": None})
         return {"state": "credentials_required"}
 
+    hub.download_limit = (body.limit or None) if body else None
     _start_sync_task()
-    return {"started": True}
+    return {"started": True, "limit": hub.download_limit}
 
 
 # --------------------------------------------------------------- credentials
 class CredentialsIn(BaseModel):
     user_id: str
     password: str
+    limit: int | None = None
 
 
 @app.post("/api/credentials")
@@ -189,8 +197,9 @@ async def store_credentials(body: CredentialsIn):
             {"error": "user id and password are both required"}, status_code=400)
 
     hub.set_credentials(body.user_id.strip(), body.password)
+    hub.download_limit = body.limit or None
     _start_sync_task()
-    return {"stored": True, "started": True}
+    return {"stored": True, "started": True, "limit": hub.download_limit}
 
 
 @app.delete("/api/credentials")

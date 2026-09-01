@@ -67,7 +67,11 @@ class FakeSession:
         return False
 
 
-async def fake_run_sync(session, events):
+LIMITS_SEEN = []
+
+
+async def fake_run_sync(session, events, limit=None):
+    LIMITS_SEEN.append(limit)
     return {"proceedings": 1, "notices": 2, "downloaded": 0, "skipped_cached": 2}
 
 
@@ -130,7 +134,7 @@ with TestClient(main.app) as client:
     r = post(client, "/api/credentials",
              json={"user_id": USER_ID, "password": PASSWORD})
     check("POST /api/credentials accepted",
-          r.status_code == 200 and r.json() == {"stored": True, "started": True},
+          r.status_code == 200 and r.json()["stored"] and r.json()["started"],
           r.text)
     state = wait_idle(client)
     s = FakeSession.instances[0] if FakeSession.instances else None
@@ -144,7 +148,7 @@ with TestClient(main.app) as client:
     FakeSession.instances.clear()
     r = post(client, "/api/sync")
     check("second sync starts without re-asking",
-          r.json() == {"started": True}, r.text)
+          r.json().get("started") is True, r.text)
     wait_idle(client)
     check("second sync reused the remembered login",
           bool(FakeSession.instances)
@@ -648,6 +652,41 @@ for label in ("YES", "Yes", "Logout"):
 _scraper_src = pathlib.Path("app/portal/scraper.py").read_text()
 check("nothing changes the URL any more (that is what raised the modal)",
       "location.hash" not in _scraper_src.split('"""', 2)[2])
+
+
+# 14 - the download limit ----------------------------------------------------
+check("limit stops the walk once the cap is met",
+      scraper._limit_reached({"limit": 3, "downloaded": 3}))
+check("limit does not stop the walk early",
+      not scraper._limit_reached({"limit": 3, "downloaded": 2}))
+check("no limit means every notice",
+      not scraper._limit_reached({"limit": None, "downloaded": 99}))
+check("a limit of 0 is treated as no limit",
+      not scraper._limit_reached({"limit": 0, "downloaded": 99}))
+
+with TestClient(main.app) as client:
+    reset()
+    LIMITS_SEEN.clear()
+    r = client.post("/api/credentials",
+                    json={"user_id": USER_ID, "password": PASSWORD, "limit": 3})
+    check("credentials accept a limit", r.json().get("limit") == 3, r.text)
+    wait_idle(client)
+    check("the limit reaches the walk", LIMITS_SEEN[-1:] == [3], str(LIMITS_SEEN))
+
+    LIMITS_SEEN.clear()
+    client.post("/api/sync", json={"limit": 5})
+    wait_idle(client)
+    check("sync can change the limit per run", LIMITS_SEEN[-1:] == [5], str(LIMITS_SEEN))
+
+    LIMITS_SEEN.clear()
+    client.post("/api/sync", json={"limit": None})
+    wait_idle(client)
+    check("blank means all", LIMITS_SEEN[-1:] == [None], str(LIMITS_SEEN))
+
+    LIMITS_SEEN.clear()
+    client.post("/api/sync")
+    wait_idle(client)
+    check("a sync with no body still works", LIMITS_SEEN[-1:] == [None], str(LIMITS_SEEN))
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

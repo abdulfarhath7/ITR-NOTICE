@@ -52,6 +52,12 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   A run that finds no tab now raises instead of finishing clean.
   The end-to-end automated walk has still not completed - that is what remains
   of step 1.
+- Download limit: the dashboard's "Download at most" box caps how many NEW
+  PDFs one run may fetch (blank = every notice). It rides on POST /api/sync
+  and POST /api/credentials as `limit`, is held on `hub.download_limit`, and
+  the walk raises `DownloadLimitReached` the moment the cap is met. Everything
+  already stored stays stored, so pressing Sync again carries on where the
+  capped run stopped - the notice cache makes that free.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
   holder on `EventHub` (`set_credentials` / `credentials` / `has_credentials` /
   `clear_credentials`). POST /api/credentials stores the login and starts the

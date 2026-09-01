@@ -56,6 +56,10 @@ SUB_TABS = {"action": "For your Action", "information": "For your Information"}
 # second, then called that a successful sync.
 LIST_READY_SECONDS = 30
 
+
+class DownloadLimitReached(Exception):
+    """Raised to unwind the walk once the requested number of PDFs is in."""
+
 # Never clicked. "View Response" and "Seek/View Adjournment" live on the very
 # same notice card as the PDF button, so this is enforced, not just documented.
 FORBIDDEN = ("submit response", "view response", "file appeal",
@@ -175,53 +179,70 @@ async def _visible_button_names(page) -> list[str]:
         return []
 
 
-async def run_sync(session: PortalSession, events) -> dict:
+async def run_sync(session: PortalSession, events, limit: int | None = None) -> dict:
+    """limit: stop after this many NEW PDFs. None means every notice."""
     page = session.page
-    stats = {"proceedings": 0, "notices": 0, "downloaded": 0, "skipped_cached": 0}
+    stats = {"proceedings": 0, "notices": 0, "downloaded": 0, "skipped_cached": 0,
+             "limit": limit, "stopped_early": False}
 
-    with db.connect() as con:
-        await session.ensure_alive()
-        if not await _goto_list(page, events):
-            raise RuntimeError(
-                "The e-Proceedings list never rendered - nothing was scraped. "
-                f"Visible controls: {await _visible_button_names(page)}")
+    if limit:
+        await events.log(f"Download limit: {limit} new PDF(s) this run")
 
-        tabs_walked = 0
-        for tab_key, tab_label in TABS.items():
-            tab = await _find_tab(page, tab_label)
-            if not tab:
-                await events.log(f"Tab '{tab_label}' not on this account - skipped")
-                continue
-            tabs_walked += 1
-            await _safe_click(page, tab, tab_label, events)
-            await page.wait_for_timeout(1500)
-            await _wait_for_list(page)
+    try:
+      with db.connect() as con:
+          await session.ensure_alive()
+          if not await _goto_list(page, events):
+              raise RuntimeError(
+                  "The e-Proceedings list never rendered - nothing was scraped. "
+                  f"Visible controls: {await _visible_button_names(page)}")
 
-            for sub_key, sub_label in SUB_TABS.items():
-                sub = page.get_by_role("tab", name=sub_label, exact=False).first
-                if not await sub.count():
-                    continue
-                count = _count_from_label(await sub.inner_text())
-                await _safe_click(page, sub, sub_label, events)
-                await page.wait_for_timeout(1500)
-                await events.log(f"{tab_label} / {sub_label}: {count} item(s)")
-                if count == 0:
-                    continue
+          tabs_walked = 0
+          for tab_key, tab_label in TABS.items():
+              tab = await _find_tab(page, tab_label)
+              if not tab:
+                  await events.log(f"Tab '{tab_label}' not on this account - skipped")
+                  continue
+              tabs_walked += 1
+              await _safe_click(page, tab, tab_label, events)
+              await page.wait_for_timeout(1500)
+              await _wait_for_list(page)
 
-                await _set_page_size_max(page, events)
-                await _walk_pages(session, events, con, tab_key, sub_key, stats)
+              for sub_key, sub_label in SUB_TABS.items():
+                  sub = page.get_by_role("tab", name=sub_label, exact=False).first
+                  if not await sub.count():
+                      continue
+                  count = _count_from_label(await sub.inner_text())
+                  await _safe_click(page, sub, sub_label, events)
+                  await page.wait_for_timeout(1500)
+                  await events.log(f"{tab_label} / {sub_label}: {count} item(s)")
+                  if count == 0:
+                      continue
 
-        # Reporting "0 proceedings" as a clean run is how the first live sync
-        # hid this exact failure. If no tab matched, the run failed.
-        if tabs_walked == 0:
-            raise RuntimeError(
-                "No e-Proceedings tab was found, so nothing could be scraped. "
-                f"Visible controls: {await _visible_button_names(page)}")
+                  await _set_page_size_max(page, events)
+                  await _walk_pages(session, events, con, tab_key, sub_key, stats)
+
+          # Reporting "0 proceedings" as a clean run is how the first live sync
+          # hid this exact failure. If no tab matched, the run failed.
+          if tabs_walked == 0:
+              raise RuntimeError(
+                  "No e-Proceedings tab was found, so nothing could be scraped. "
+                  f"Visible controls: {await _visible_button_names(page)}")
+
+    except DownloadLimitReached:
+        stats["stopped_early"] = True
+        await events.log(
+            f"Download limit of {limit} reached - stopping here. "
+            "Run Sync again to continue from where this left off.")
 
     await events.log(
         f"Sync done: {stats['proceedings']} proceedings, {stats['notices']} notices, "
         f"{stats['downloaded']} new PDFs, {stats['skipped_cached']} already held")
     return stats
+
+
+def _limit_reached(stats) -> bool:
+    limit = stats.get("limit")
+    return bool(limit) and stats["downloaded"] >= limit
 
 
 async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
@@ -287,6 +308,12 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
             if n["pdf_path"]:
                 stats["downloaded"] += 1
         db.upsert_notice(con, n)
+
+        # Stop the moment the cap is met: the point of a limit is a short run.
+        # Everything already stored stays stored, so the next Sync carries on.
+        if _limit_reached(stats):
+            await _click_back(page, events)
+            raise DownloadLimitReached
 
     await _click_back(page, events)            # back to the proceedings list
     await page.wait_for_timeout(1500)

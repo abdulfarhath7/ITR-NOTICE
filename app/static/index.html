@@ -33,6 +33,8 @@
                border-radius:8px;width:210px}
   #credserr{color:#b91c1c;font-size:13px;margin:0 0 10px}
   #credserr:empty{display:none}
+  header input#limit{font:inherit;width:74px;padding:6px 8px;border-radius:8px;
+                     border:1px solid var(--line)}
   .link{background:none;border:0;padding:0;color:var(--blue);cursor:pointer;
         font-size:13px;text-decoration:underline}
   #log{padding:14px 20px;max-height:180px;overflow-y:auto;
@@ -53,6 +55,10 @@
 <body>
 <header>
   <h1>ITR notice tool</h1>
+  <label class="mut" for="limit">Download at most</label>
+  <input id="limit" type="number" min="1" step="1" placeholder="all"
+         title="Leave blank to download every notice"
+         aria-label="How many new PDFs to download this run">
   <button id="sync" class="primary">Sync now</button>
   <span id="state" class="mut">idle</span>
   <button id="changelogin" class="link">Change login</button>
@@ -123,12 +129,21 @@ ws.onmessage = ev => {
   if (d.type === 'sync_finished') { state(d.status); loadNotices(); }
 };
 
+const limitValue = () => {
+  const v = parseInt(document.getElementById('limit').value, 10);
+  return Number.isFinite(v) && v > 0 ? v : null;
+};
+
 document.getElementById('sync').onclick = async () => {
-  const r = await fetch('/api/sync', {method:'POST'});
+  const limit = limitValue();
+  const r = await fetch('/api/sync', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({limit})});
   if (r.status === 409) { log('A sync is already running.'); return; }
   const d = await r.json();
   if (d.state === 'credentials_required') { showCreds(); return; }
-  state('running'); log('Sync started');
+  state('running');
+  log(limit ? `Sync started (at most ${limit} new PDFs)` : 'Sync started (all notices)');
 };
 
 document.getElementById('credsend').onclick = async () => {
@@ -141,7 +156,7 @@ document.getElementById('credsend').onclick = async () => {
   }
   const r = await fetch('/api/credentials', {method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({user_id, password})});
+    body: JSON.stringify({user_id, password, limit: limitValue()})});
   pwdBox.value = '';                 // never leave the password in the DOM
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
