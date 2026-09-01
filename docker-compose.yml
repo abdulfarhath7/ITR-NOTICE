@@ -1,0 +1,10 @@
+services:
+  itr-tool:
+    build: .
+    ports: ["8000:8000"]
+    env_file: .env
+    environment:
+      - HEADLESS=true
+    volumes:
+      - ./data:/srv/data
+    restart: unless-stopped
