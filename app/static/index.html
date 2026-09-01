@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITR notice tool</title>
+<style>
+  :root{--ink:#1c2733;--mut:#6b7683;--line:#e3e7ec;--bg:#f6f8fa;--card:#fff;
+        --blue:#1a56db;--amber:#b45309;--amberbg:#fef3c7;--claude:#7c3aed;--claudebg:#ede9fe}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+       color:var(--ink);background:var(--bg)}
+  header{display:flex;align-items:center;gap:16px;padding:18px 28px;
+         background:var(--card);border-bottom:1px solid var(--line)}
+  h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.2px}
+  button{font:inherit;border:1px solid var(--line);background:var(--card);
+         border-radius:8px;padding:8px 14px;cursor:pointer}
+  button:hover{background:var(--bg)}
+  .primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .primary:hover{background:#1648b8}
+  .primary:disabled{opacity:.5;cursor:default}
+  main{max-width:1060px;margin:24px auto;padding:0 20px;display:grid;gap:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+  #otp{display:none;padding:16px 20px;background:var(--amberbg);
+       border-color:#fcd34d;align-items:center;gap:12px}
+  #otp.show{display:flex}
+  #otp input{font:inherit;padding:8px 12px;border:1px solid #fcd34d;
+             border-radius:8px;width:130px;letter-spacing:3px}
+  #creds{display:none;padding:16px 20px}
+  #creds.show{display:block}
+  #creds .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  #creds input{font:inherit;padding:8px 12px;border:1px solid var(--line);
+               border-radius:8px;width:210px}
+  #credserr{color:#b91c1c;font-size:13px;margin:0 0 10px}
+  #credserr:empty{display:none}
+  .link{background:none;border:0;padding:0;color:var(--blue);cursor:pointer;
+        font-size:13px;text-decoration:underline}
+  #log{padding:14px 20px;max-height:180px;overflow-y:auto;
+       font-family:ui-monospace,monospace;font-size:13px;color:var(--mut);
+       white-space:pre-wrap}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:12px 16px;border-top:1px solid var(--line);
+        vertical-align:top}
+  th{color:var(--mut);font-weight:500;font-size:12.5px;border-top:0}
+  .mut{color:var(--mut);font-size:12.5px}
+  .tag{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;
+       background:var(--claudebg);color:var(--claude);margin-left:6px}
+  .empty{color:var(--amber);background:var(--amberbg);font-size:12.5px;
+         padding:2px 9px;border-radius:99px}
+  .overdue{color:#b91c1c;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>ITR notice tool</h1>
+  <button id="sync" class="primary">Sync now</button>
+  <span id="state" class="mut">idle</span>
+  <button id="changelogin" class="link">Change login</button>
+</header>
+
+<main>
+  <div id="creds" class="card">
+    <p id="credserr"></p>
+    <strong>Portal login</strong>
+    <p class="mut" style="margin:6px 0 12px">Kept in this server's memory only -
+       never written to disk. Restarting the server asks again.</p>
+    <div class="row">
+      <input id="uid" placeholder="PAN / AADHAAR / OTHER USER ID"
+             autocomplete="off" aria-label="Portal user ID">
+      <input id="pwd" type="password" placeholder="Portal password"
+             autocomplete="off" aria-label="Portal password">
+      <button id="credsend" class="primary">Save &amp; sync</button>
+    </div>
+  </div>
+
+  <div id="otp" class="card">
+    <strong>Portal is asking for an OTP</strong>
+    <input id="otpcode" inputmode="numeric" maxlength="6" placeholder="6 digits"
+           aria-label="One time password">
+    <button id="otpsend" class="primary">Send to portal</button>
+  </div>
+
+  <div class="card"><div id="log">Ready.</div></div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>Notice</th><th>Proceeding</th><th>Issued</th><th>Due date</th><th>Doc</th>
+      </tr></thead>
+      <tbody id="rows"><tr><td colspan="5" class="mut">No notices yet - run a sync.</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const log = m => { const el = document.getElementById('log');
+  el.textContent += "\n" + m; el.scrollTop = el.scrollHeight; };
+const state = s => document.getElementById('state').textContent = s;
+
+const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')
+                         + location.host + '/ws');
+const creds = document.getElementById('creds');
+function showCreds(err) {
+  creds.classList.add('show');
+  document.getElementById('credserr').textContent = err || '';
+  state('login needed');
+  document.getElementById('uid').focus();
+}
+function hideCreds() {
+  creds.classList.remove('show');
+  document.getElementById('credserr').textContent = '';
+}
+
+ws.onmessage = ev => {
+  const d = JSON.parse(ev.data);
+  if (d.type === 'log') log(d.msg);
+  if (d.type === 'state') { state(d.state);
+    if (d.state === 'credentials_required') showCreds(); }
+  if (d.type === 'credentials_required') showCreds(d.error);
+  if (d.type === 'otp_required') {
+    document.getElementById('otp').classList.add('show'); state('waiting for OTP');
+  }
+  if (d.type === 'sync_finished') { state(d.status); loadNotices(); }
+};
+
+document.getElementById('sync').onclick = async () => {
+  const r = await fetch('/api/sync', {method:'POST'});
+  if (r.status === 409) { log('A sync is already running.'); return; }
+  const d = await r.json();
+  if (d.state === 'credentials_required') { showCreds(); return; }
+  state('running'); log('Sync started');
+};
+
+document.getElementById('credsend').onclick = async () => {
+  const user_id = document.getElementById('uid').value.trim();
+  const pwdBox = document.getElementById('pwd');
+  const password = pwdBox.value;
+  if (!user_id || !password) {
+    document.getElementById('credserr').textContent =
+      'Enter both the user ID and the password.'; return;
+  }
+  const r = await fetch('/api/credentials', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user_id, password})});
+  pwdBox.value = '';                 // never leave the password in the DOM
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    document.getElementById('credserr').textContent =
+      e.error || 'Could not store the login.'; return;
+  }
+  hideCreds(); state('running');
+  log('Login sent (server memory only). Sync started');
+};
+
+document.getElementById('changelogin').onclick = async () => {
+  await fetch('/api/credentials', {method:'DELETE'});
+  document.getElementById('uid').value = '';
+  document.getElementById('pwd').value = '';
+  log('Login forgotten.');
+  showCreds();
+};
+
+document.getElementById('otpsend').onclick = async () => {
+  const code = document.getElementById('otpcode').value.trim();
+  if (!/^\d{4,8}$/.test(code)) { log('Enter the numeric OTP first.'); return; }
+  await fetch('/api/otp', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({code})});
+  document.getElementById('otp').classList.remove('show');
+  document.getElementById('otpcode').value = '';
+  state('running');
+};
+
+async function loadNotices() {
+  const d = await (await fetch('/api/notices')).json();
+  if (d.state === 'credentials_required') showCreds(); else state(d.state);
+  const tb = document.getElementById('rows');
+  if (!d.notices.length) return;
+  tb.innerHTML = d.notices.map(n => {
+    const due = n.due_date
+      ? `<span class="${new Date(n.due_date) < new Date() ? 'overdue' : ''}">${n.due_date}</span>`
+        + (n.due_date_source === 'claude' ? '<span class="tag">by Claude</span>' : '')
+      : '<span class="empty">no due date</span>';
+    const doc = n.pdf_path
+      ? `<a href="/api/notices/${n.ref_id}/pdf"><button>Download</button></a>`
+      : '<span class="mut">-</span>';
+    return `<tr>
+      <td>${n.notice_us || '-'}<div class="mut">${n.description || ''}<br>DIN ${n.ref_id || ''}</div></td>
+      <td>${n.proceeding_name || '-'}<div class="mut">${n.pan || ''} · AY ${n.assessment_year || '-'}</div></td>
+      <td>${n.issued_on || '-'}</td>
+      <td>${due}</td><td>${doc}</td></tr>`;
+  }).join('');
+}
+loadNotices();
+</script>
+</body>
+</html>
