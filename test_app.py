@@ -241,6 +241,9 @@ class FakeLoc:
     async def wait_for(self, state=None, timeout=None):
         return None
 
+    async def input_value(self):
+        return self._text
+
     def or_(self, other):
         return self if self._count else other
 
@@ -249,13 +252,16 @@ class FakePage:
     """Just enough Page for _settle_post_password."""
 
     def __init__(self, error=None, force_label=None, force=None, otp=None,
-                 dashboard_after=None):
+                 dashboard_after=None, transient=None):
         self._url = LOGIN
         self.error = error                    # FakeLoc for a password error
         self.force_label, self.force = force_label, force
         self.otp = otp
+        self.transient = transient            # FakeLoc for "not authenticated"
         self.dashboard_after = dashboard_after
         self.reads = 0
+        self.continue_clicks = 0
+        self.pwd_field = FakeLoc(1, True, "")
 
     @property
     def url(self):
@@ -267,14 +273,30 @@ class FakePage:
     def get_by_text(self, text):
         if self.error is not None and text in session_mod.PASSWORD_ERRORS:
             return self.error
+        if self.transient is not None and text in session_mod.TRANSIENT_ERRORS:
+            return self.transient
         return FakeLoc()
 
     def get_by_role(self, role, name=None):
+        if name == "Continue":
+            page = self
+
+            class ContinueBtn(FakeLoc):
+                @property
+                def first(self):
+                    return self
+
+                async def click(self):
+                    page.continue_clicks += 1
+
+            return ContinueBtn(1, True, "Continue")
         if self.force is not None and name == self.force_label:
             return self.force
         return FakeLoc()
 
     def get_by_placeholder(self, text):
+        if text == "Password":
+            return self.pwd_field
         return self.otp if self.otp is not None else FakeLoc()
 
     def locator(self, selector):
@@ -458,6 +480,40 @@ _calls = [l for l in _src.splitlines()
           and '"""' not in l]
 check("no page.go_back() call remains (it triggers the portal logout dialog)",
       not _calls, str(_calls))
+
+
+# 11 - "Request is not authenticated": press Continue again, never a retry ----
+# Seen live on the password page with a correct password. It must NOT be
+# mistaken for a rejection, and it must not press Continue forever.
+pg = FakePage(transient=FakeLoc(1, True, "Error : Request is not authenticated"),
+              dashboard_after=3)
+err, events = settle(pg)
+check("transient error does not raise WrongPasswordError",
+      not isinstance(err, WrongPasswordError), repr(err))
+check("transient error presses Continue again", pg.continue_clicks >= 1,
+      f"{pg.continue_clicks} clicks")
+check("transient error is logged in the portal's own words",
+      any("Request is not authenticated" in m for m in events.logs),
+      str(events.logs[-1:]))
+
+# it must give up rather than hammer the login
+pg = FakePage(transient=FakeLoc(1, True, "Request is not authenticated"),
+              dashboard_after=None)
+session_mod.SETTLE_SECONDS = 2          # do not sit here for a minute
+err, _ = settle(pg)
+session_mod.SETTLE_SECONDS = 60
+check("Continue is pressed at most MAX_CONTINUE_RETRIES times",
+      pg.continue_clicks <= session_mod.MAX_CONTINUE_RETRIES,
+      f"{pg.continue_clicks} clicks")
+check("a stuck login times out instead of claiming a wrong password",
+      err is not None and not isinstance(err, WrongPasswordError), repr(err))
+
+# a real rejection still aborts on the first sighting
+pg = FakePage(error=FakeLoc(1, True, "Invalid password"), dashboard_after=99)
+err, _ = settle(pg)
+check("a rejected password is still never retried",
+      isinstance(err, WrongPasswordError) and pg.continue_clicks == 0,
+      f"{type(err).__name__}, {pg.continue_clicks} clicks")
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

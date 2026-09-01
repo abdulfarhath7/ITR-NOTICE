@@ -39,6 +39,14 @@ ERROR_GRACE_SECONDS = 3.0
 
 PASSWORD_ERRORS = ("Invalid password", "incorrect password",
                    "Please enter valid password")
+
+# Seen live on the password page: the portal sometimes answers a perfectly
+# good password with "Request is not authenticated" and simply wants the
+# Continue button pressed again. This is NOT a rejected password - it never
+# raises WrongPasswordError - but each press is still a login attempt, so it
+# is capped and it only ever fires on this exact wording.
+TRANSIENT_ERRORS = ("Request is not authenticated",)
+MAX_CONTINUE_RETRIES = 2
 FORCE_LOGIN_LABELS = ("Login Here", "Force Login", "Continue Login", "Yes")
 
 
@@ -134,14 +142,46 @@ class PortalSession:
         self._login_time = time.monotonic()
         await self.events.log("Logged in")
 
+    async def _resubmit_password(self) -> None:
+        """Press Continue again after a transient portal error. Re-types the
+        password only if the portal blanked the field."""
+        page = self.page
+        field = page.get_by_placeholder("Password").or_(
+            page.locator("input[type=password]")).first
+        try:
+            if await field.count() and not (await field.input_value()):
+                await field.fill(self._password)
+        except Exception:
+            pass
+        await page.get_by_role("button", name="Continue").first.click()
+
     async def _settle_post_password(self) -> None:
         page = self.page
         started = time.monotonic()
         deadline = started + SETTLE_SECONDS
         otp_relayed = False       # one relay per prompt, not one per poll
+        retries = 0
         while time.monotonic() < deadline:
             if DASHBOARD_MARKER in page.url:
                 return
+
+            # transient portal hiccup: same password, press Continue again
+            if retries < MAX_CONTINUE_RETRIES:
+                hiccup = None
+                for err in TRANSIENT_ERRORS:
+                    hiccup = await first_visible(page.get_by_text(err))
+                    if hiccup:
+                        break
+                if hiccup:
+                    retries += 1
+                    words = (await hiccup.inner_text()).strip()
+                    await self.events.log(
+                        f"Portal said {words!r} - pressing Continue again "
+                        f"({retries}/{MAX_CONTINUE_RETRIES})")
+                    await self._resubmit_password()
+                    started = time.monotonic()   # the grace period starts over
+                    await asyncio.sleep(POLL_SECONDS)
+                    continue
 
             # hard rule: wrong password -> abort, never retry.
             # Held off for the first few seconds: see ERROR_GRACE_SECONDS.

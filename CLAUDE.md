@@ -88,6 +88,12 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   same-document navigation, exactly what an in-app link does.
 - An expired session lands on `#/sessionExpire` (not `/login`), and the
   password page has its own route, `#/login/password`.
+- The password page sometimes answers a CORRECT password with
+  "Error : Request is not authenticated" and just wants Continue pressed
+  again (owner confirmed live). `TRANSIENT_ERRORS` in session.py handles it:
+  press Continue again, at most `MAX_CONTINUE_RETRIES` (2) times, resetting
+  the error grace period each time. This is not a password retry and must
+  never be widened into one — a rejection message still aborts on sight.
 - Playwright 1.62 raises InvalidSelectorError for
   `get_by_role(name=re.compile(...))` when the pattern contains "/". Every
   notice-level locator here used to. Use plain substring names with
@@ -167,7 +173,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   File Appeal, Seek Video Conferencing, Seek/View Adjournment, or anything
   that writes. The FORBIDDEN tuple in scraper.py documents this.
 - NEVER retry a rejected password — the portal locks accounts. The
-  WrongPasswordError flow must stay a hard stop.
+  WrongPasswordError flow must stay a hard stop. The one permitted re-press of
+  Continue is for the exact transient wording in `TRANSIENT_ERRORS`, capped at
+  `MAX_CONTINUE_RETRIES`; do not add rejection wording to that list.
 - Portal credentials are memory-only: typed into the dashboard, held on the
   EventHub for the life of the process, never written to SQLite or any file,
   never logged, never echoed in a response body. A server restart forgetting
