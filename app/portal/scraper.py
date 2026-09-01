@@ -241,6 +241,9 @@ async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
             p = await _parse_proceeding(card, tab_key, sub_key)
             pid = db.upsert_proceeding(con, p)
             stats["proceedings"] += 1
+            await events.log(
+                f"  card {i + 1}/{total}: {p['proceeding_name'] or '(unnamed)'}"
+                f" AY {p['assessment_year'] or '-'}")
             await _collect_notices(session, events, con, i, pid, stats)
 
         if not await _next_page(page):
@@ -266,6 +269,7 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
     await page.wait_for_timeout(1500)
 
     total = await page.locator(NOTICE_CARD).count()
+    await events.log(f"    {total} notice(s) on this proceeding")
     for j in range(total):
         notice = page.locator(NOTICE_CARD).nth(j)
         n = await _parse_notice(notice, proceeding_id)
@@ -377,31 +381,54 @@ def _count_from_label(label: str) -> int:
 
 
 async def _set_page_size_max(page, events) -> None:
-    """Items per Page is a mat-select. Choosing the largest value puts every
-    proceeding on one page, which is far less fragile than paging."""
+    """Items per Page is a mat-select, and Material lays an aria-hidden
+    `div.mat-mdc-paginator-touch-target` right on top of it, which intercepts
+    pointer events - a live run spent 30 seconds retrying the click while the
+    page scrolled up and down. So open it from the keyboard instead; the
+    options overlay itself has nothing on top of it and clicks normally.
+    """
     try:
-        trigger = page.locator(
-            ".mat-mdc-paginator-page-size-select [role=combobox], "
-            ".mat-mdc-paginator-page-size-select mat-select").first
-        if not await trigger.count():
+        sel = page.locator(
+            ".mat-mdc-paginator-page-size-select mat-select, "
+            ".mat-mdc-paginator-page-size-select [role=combobox]").first
+        if not await sel.count():
             return
-        await trigger.click()
-        await page.wait_for_timeout(700)
+        try:
+            await sel.scroll_into_view_if_needed(timeout=5000)
+        except Exception:
+            pass
+
+        opened = False
+        try:
+            await sel.focus()
+            await page.keyboard.press("Enter")
+            await page.wait_for_timeout(700)
+            opened = await page.get_by_role("option").count() > 0
+        except Exception:
+            opened = False
+        if not opened:
+            # force=True skips the actionability checks the overlay fails
+            await sel.click(force=True, timeout=8000)
+            await page.wait_for_timeout(700)
+
         options = page.get_by_role("option")
         sizes = []
         for k in range(await options.count()):
             label = (await options.nth(k).inner_text()).strip()
             if label.isdigit():
-                sizes.append((int(label), label))
+                sizes.append(int(label))
         if not sizes:
             await page.keyboard.press("Escape")
+            await events.log("  page size menu did not open - paging instead")
             return
-        biggest = max(sizes)[1]
-        await page.get_by_role("option", name=biggest, exact=True).first.click()
+
+        biggest = str(max(sizes))
+        await page.get_by_role("option", name=biggest,
+                               exact=True).first.click(timeout=8000)
         await page.wait_for_timeout(2000)
         await events.log(f"  showing {biggest} per page")
     except Exception as e:                     # never fail a sync over paging
-        await events.log(f"  could not change the page size ({e!r})")
+        await events.log(f"  could not change the page size ({e!r}) - paging instead")
         try:
             await page.keyboard.press("Escape")
         except Exception:

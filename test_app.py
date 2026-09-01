@@ -63,6 +63,9 @@ class FakeSession:
     async def save_debug_screenshot(self, tag="fail"):
         return f"data/debug/{tag}-test.png"
 
+    def page_closed(self):
+        return False
+
 
 async def fake_run_sync(session, events):
     return {"proceedings": 1, "notices": 2, "downloaded": 0, "skipped_cached": 2}
@@ -291,7 +294,7 @@ class FakePage:
                 def first(self):
                     return self
 
-                async def click(self):
+                async def click(self, timeout=None):
                     page.continue_clicks += 1
 
             return ContinueBtn(1, True, "Continue")
@@ -324,6 +327,7 @@ def settle(page, grace=0.0):
     """Run the loop against a fake page, fast."""
     session_mod.POLL_SECONDS = 0.01
     session_mod.ERROR_GRACE_SECONDS = grace
+    session_mod.RETRY_PAUSE_SECONDS = 0        # the real 2s pause is not the point here
     events = FakeEvents()
     s = PortalSession(events, USER_ID, PASSWORD)
     s.page = page
@@ -507,6 +511,8 @@ pg = FakePage(transient=FakeLoc(1, True, "Request is not authenticated"),
 session_mod.SETTLE_SECONDS = 2          # do not sit here for a minute
 err, _ = settle(pg)
 session_mod.SETTLE_SECONDS = 60
+check("the retry cap allows more than the two the owner ran out of",
+      session_mod.MAX_CONTINUE_RETRIES >= 3, str(session_mod.MAX_CONTINUE_RETRIES))
 check("Continue is pressed at most MAX_CONTINUE_RETRIES times",
       pg.continue_clicks <= session_mod.MAX_CONTINUE_RETRIES,
       f"{pg.continue_clicks} clicks")

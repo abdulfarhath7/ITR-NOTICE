@@ -46,7 +46,8 @@ PASSWORD_ERRORS = ("Invalid password", "incorrect password",
 # raises WrongPasswordError - but each press is still a login attempt, so it
 # is capped and it only ever fires on this exact wording.
 TRANSIENT_ERRORS = ("Request is not authenticated",)
-MAX_CONTINUE_RETRIES = 2
+MAX_CONTINUE_RETRIES = 5          # the owner needed a 3rd press by hand once
+RETRY_PAUSE_SECONDS = 2.0         # the portal wants a breath between presses
 FORCE_LOGIN_LABELS = ("Login Here", "Force Login", "Continue Login", "Yes")
 
 
@@ -135,6 +136,9 @@ class PortalSession:
             accept_downloads=True,
         )
         self.page = await ctx.new_page()
+        # Nothing should sit for Playwright's 30s default: a blocked click has
+        # to surface fast enough to be retried or reported.
+        self.page.set_default_timeout(15000)
 
     async def stop(self) -> None:
         try:
@@ -177,9 +181,17 @@ class PortalSession:
         await self.events.log("Logged in")
 
     async def _resubmit_password(self) -> None:
-        """Press Continue again after a transient portal error. Re-types the
-        password only if the portal blanked the field."""
+        """Press Continue again after a transient portal error. Re-ticks the
+        secure-access box and re-types the password only if the portal blanked
+        them, then waits a moment - pressing instantly just repeats the error.
+        """
         page = self.page
+        try:
+            box = page.locator("input[type=checkbox]").first
+            if await box.count() and not await box.is_checked():
+                await box.check()
+        except Exception:
+            pass
         field = page.get_by_placeholder("Password").or_(
             page.locator("input[type=password]")).first
         try:
@@ -187,7 +199,9 @@ class PortalSession:
                 await field.fill(self._password)
         except Exception:
             pass
-        await page.get_by_role("button", name="Continue").first.click()
+        await asyncio.sleep(RETRY_PAUSE_SECONDS)
+        button = page.get_by_role("button", name="Continue").first
+        await button.click(timeout=15000)
 
     async def _settle_post_password(self) -> None:
         page = self.page
@@ -278,6 +292,13 @@ class PortalSession:
             return str(dest)
         except Exception:
             return None      # a screenshot failing must never mask the real error
+
+    def page_closed(self) -> bool:
+        """True once the window is gone - closing it by hand ends the run."""
+        try:
+            return self.page is None or self.page.is_closed()
+        except Exception:
+            return True
 
     # ------------------------------------------------------------- keepalive
     def seconds_left(self) -> float:

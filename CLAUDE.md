@@ -102,8 +102,11 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - The password page sometimes answers a CORRECT password with
   "Error : Request is not authenticated" and just wants Continue pressed
   again (owner confirmed live). `TRANSIENT_ERRORS` in session.py handles it:
-  press Continue again, at most `MAX_CONTINUE_RETRIES` (2) times, resetting
-  the error grace period each time. This is not a password retry and must
+  press Continue again, at most `MAX_CONTINUE_RETRIES` (5) times with
+  `RETRY_PAUSE_SECONDS` (2s) between presses, re-ticking the secure-access box
+  and resetting the error grace period each time. Two presses with no pause
+  was not enough in a live run — the owner had to press it a third time by
+  hand. This is not a password retry and must
   never be widened into one — a rejection message still aborts on sight.
 - Playwright 1.62 raises InvalidSelectorError for
   `get_by_role(name=re.compile(...))` when the pattern contains "/". Every

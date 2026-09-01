@@ -120,7 +120,10 @@ async def _run_sync() -> None:
         await hub.clear_credentials(str(e))
     except Exception as e:
         status, message = "failed", repr(e)
-        await hub.log(f"Sync failed: {e!r}")
+        if "closed" in str(e).lower() and session.page_closed():
+            await hub.log("Sync stopped: the browser window was closed")
+        else:
+            await hub.log(f"Sync failed: {e!r}")
         await _after_failure(session)
     finally:
         await session.stop()
@@ -136,6 +139,9 @@ async def _run_sync() -> None:
 async def _after_failure(session) -> None:
     """A failed run must not vanish. Leave a screenshot behind, and optionally
     the browser window itself, so the actual portal screen can be read."""
+    if session.page_closed():
+        await hub.log("The browser window is gone - no screenshot to take")
+        return
     shot = await session.save_debug_screenshot()
     if shot:
         await hub.log(f"Screenshot of the failure: {shot}")
