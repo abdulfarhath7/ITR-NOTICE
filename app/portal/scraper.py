@@ -1,18 +1,31 @@
 """e-Proceedings scraper. Read-only by design.
 
-Walk order (from the recon screenshots):
-  Pending Actions -> E-Proceedings
-    for tab in [Self, Of Other PAN/TAN, As Authorized Representative*]:
-      for sub_tab in [For your Action, For your Information]:
-        for each proceeding card:  store metadata
-          click "View Notices/Orders" -> for each notice card: store fields
-            if notice not cached: click "Notice/Letter Pdf" -> detail page
-                                  -> click Download -> save PDF -> back
-  (* tab may be absent on some accounts - we skip what isn't there)
+Rewritten against the live portal (recon dumps under data/debug/recon*/),
+not against screenshots. What the real site forced:
+
+  - The browser Back button is a trap. The portal answers it with "For
+    security reasons, we have disabled Back, Forward and Refresh actions of
+    the browser. Are you sure you want to Logout?" - so page.go_back() was
+    one stray click away from ending the session. Every return trip now uses
+    the page's own "Back" button, which was verified to land back on the
+    notices list and then the proceedings list with no dialog at all.
+  - For the same reason we never goto()/reload the list. Moving the URL hash
+    is a same-document navigation, exactly what an in-app link does.
+  - Cards: proceedings are div.card-container.matCardRow, notices are
+    div.card-container.matCard - note the different class. The old
+    locator("div", has_text=...) matched 663 elements on the real page.
+  - get_by_role(name=re.compile(...)) raises InvalidSelectorError when the
+    pattern contains "/" in Playwright 1.62, which every notice-level
+    locator here used to do. Plain substring names, matched case-insensitively
+    against the accessible name, work: the button reads "Notice/Letter pdf"
+    with a lowercase p, so exact=False matters twice over.
+  - Items per Page is an Angular mat-select, not a <select>. This account had
+    40 items shown 10 at a time, so without it three quarters were missed.
 
 HARD GUARDRAIL: this module never clicks Submit Response, View Response,
 File Appeal, Seek Video Conferencing, Seek/View Adjournment or any control
-that writes to the portal. Only navigation, reads and PDF downloads.
+that writes to the portal. Those buttons sit on the same notice card as the
+PDF button, so every click goes through _click(), which refuses them.
 """
 import re
 from pathlib import Path
@@ -23,9 +36,10 @@ from .. import db
 from ..config import settings
 from .session import PortalSession
 
-EPROCEEDINGS_URL = (
-    "https://eportal.incometax.gov.in/iec/foservices/#/dashboard/eProceedings"
-)
+LIST_HASH = "#/dashboard/eProceedings"
+PROCEEDING_CARD = "div.card-container.matCardRow"
+NOTICE_CARD = "div.card-container.matCard"
+
 TABS = {
     "self": "Self",
     "other_pan": "Of Other PAN/TAN",
@@ -33,8 +47,39 @@ TABS = {
 }
 SUB_TABS = {"action": "For your Action", "information": "For your Information"}
 
-FORBIDDEN = ("Submit Response", "File Appeal", "Seek Video Conferencing",
-             "Seek/View Adjournment", "View Response")  # never clicked - see guardrail
+# Never clicked. "View Response" and "Seek/View Adjournment" live on the very
+# same notice card as the PDF button, so this is enforced, not just documented.
+FORBIDDEN = ("submit response", "view response", "file appeal",
+             "seek video conferencing", "seek/view adjournment",
+             "e-verify", "withdraw", "pay now")
+
+
+async def _click(locator, label: str) -> None:
+    """The only way this module clicks anything."""
+    if any(bad in label.lower() for bad in FORBIDDEN):
+        raise RuntimeError(f"read-only guardrail: refused to click {label!r}")
+    await locator.click()
+
+
+async def _click_back(page, events) -> None:
+    """The portal's own Back button. Never page.go_back() - see module docs."""
+    back = page.get_by_role("button", name="Back", exact=True).first
+    try:
+        await back.wait_for(state="visible", timeout=10000)
+        await _click(back, "Back")
+    except PWTimeout:
+        await events.log("No in-page Back button found - returning via the URL")
+        await _goto_list(page)
+
+
+async def _goto_list(page) -> None:
+    """Same-document hash change: what an in-app link does, so the portal's
+    refresh guard never fires."""
+    await page.evaluate("hash => { window.location.hash = hash; }", LIST_HASH)
+    for _ in range(40):
+        if "eProceedings" in page.url and "viewNotices" not in page.url:
+            return
+        await page.wait_for_timeout(250)
 
 
 async def run_sync(session: PortalSession, events) -> dict:
@@ -42,108 +87,126 @@ async def run_sync(session: PortalSession, events) -> dict:
     stats = {"proceedings": 0, "notices": 0, "downloaded": 0, "skipped_cached": 0}
 
     with db.connect() as con:
+        await session.ensure_alive()
+        await _goto_list(page)
+
         for tab_key, tab_label in TABS.items():
-            await session.ensure_alive()
-            await page.goto(EPROCEEDINGS_URL, wait_until="domcontentloaded")
-            tab = page.get_by_role("button", name=tab_label).or_(
-                page.get_by_text(tab_label, exact=True))
-            if not await tab.count():
+            tab = page.get_by_role("button", name=tab_label, exact=True).first
+            if not await tab.count() or not await tab.is_visible():
                 await events.log(f"Tab '{tab_label}' not on this account - skipped")
                 continue
-            await tab.first.click()
+            await _click(tab, tab_label)
+            await page.wait_for_timeout(1500)
 
             for sub_key, sub_label in SUB_TABS.items():
-                sub = page.get_by_text(re.compile(rf"{re.escape(sub_label)} \(\d+\)"))
+                sub = page.get_by_role("tab", name=sub_label, exact=False).first
                 if not await sub.count():
                     continue
-                count = _count_from_label(await sub.first.inner_text())
-                await sub.first.click()
+                count = _count_from_label(await sub.inner_text())
+                await _click(sub, sub_label)
+                await page.wait_for_timeout(1500)
                 await events.log(f"{tab_label} / {sub_label}: {count} item(s)")
                 if count == 0:
                     continue
 
-                await _set_items_per_page_max(page)
-                cards = await _proceeding_cards(page)
-                for card in cards:
-                    p = await _parse_proceeding(card, tab_key, sub_key)
-                    pid = db.upsert_proceeding(con, p)
-                    stats["proceedings"] += 1
-                    await _collect_notices(session, events, con, card, pid, stats)
+                await _set_page_size_max(page, events)
+                await _walk_pages(session, events, con, tab_key, sub_key, stats)
 
     await events.log(
-        f"Sync done: {stats['proceedings']} proceedings, "
-        f"{stats['downloaded']} new PDFs, {stats['skipped_cached']} cached")
+        f"Sync done: {stats['proceedings']} proceedings, {stats['notices']} notices, "
+        f"{stats['downloaded']} new PDFs, {stats['skipped_cached']} already held")
     return stats
 
 
-# -------------------------------------------------------------- notice level
-async def _collect_notices(session, events, con, card, proceeding_id, stats):
+async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
     page = session.page
-    view = card.get_by_role("button", name=re.compile(r"View Notices/Orders"))
+    seen_pages = 0
+    while seen_pages < 50:                     # a sane ceiling, not a real limit
+        cards = page.locator(PROCEEDING_CARD)
+        total = await cards.count()
+        await events.log(f"  page {seen_pages + 1}: {total} proceeding card(s)")
+
+        for i in range(total):
+            await session.ensure_alive()
+            # Re-locate every time: opening a notice list re-renders the page.
+            card = page.locator(PROCEEDING_CARD).nth(i)
+            if not await card.count():
+                break
+            p = await _parse_proceeding(card, tab_key, sub_key)
+            pid = db.upsert_proceeding(con, p)
+            stats["proceedings"] += 1
+            await _collect_notices(session, events, con, i, pid, stats)
+
+        if not await _next_page(page):
+            return
+        seen_pages += 1
+        await page.wait_for_timeout(1500)
+
+
+# -------------------------------------------------------------- notice level
+async def _collect_notices(session, events, con, card_index, proceeding_id, stats):
+    page = session.page
+    card = page.locator(PROCEEDING_CARD).nth(card_index)
+    view = card.get_by_role("button", name="View Notices/Orders", exact=False).first
     if not await view.count():
         return
-    await session.ensure_alive()
-    await view.first.click()
-    await page.wait_for_url(re.compile(r"viewNotices"), timeout=20000)
 
-    for notice_card in await _notice_cards(page):
-        n = await _parse_notice(notice_card, proceeding_id)
+    await _click(view, "View Notices/Orders")
+    try:
+        await page.wait_for_url(re.compile(r"viewNotices"), timeout=20000)
+    except PWTimeout:
+        await events.log("  notice list did not open - skipping this proceeding")
+        return
+    await page.wait_for_timeout(1500)
+
+    total = await page.locator(NOTICE_CARD).count()
+    for j in range(total):
+        notice = page.locator(NOTICE_CARD).nth(j)
+        n = await _parse_notice(notice, proceeding_id)
+        if not n["ref_id"]:
+            continue
         stats["notices"] += 1
 
         if db.notice_exists(con, n["ref_id"]):
-            stats["skipped_cached"] += 1          # cache rule: never re-scrape
+            stats["skipped_cached"] += 1       # cache rule: never fetch twice
             continue
 
-        pdf_btn = notice_card.get_by_role(
-            "button", name=re.compile(r"Notice/Letter Pdf", re.I))
-        if await pdf_btn.count():
-            n["pdf_path"] = await _download_from_detail(session, events,
-                                                        pdf_btn.first, n["ref_id"])
+        pdf = notice.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
+        if await pdf.count():
+            n["pdf_path"] = await _download(session, events, n["ref_id"])
             if n["pdf_path"]:
                 stats["downloaded"] += 1
         db.upsert_notice(con, n)
 
-    await page.go_back(wait_until="domcontentloaded")
+    await _click_back(page, events)            # back to the proceedings list
+    await page.wait_for_timeout(1500)
 
 
-async def _download_from_detail(session, events, pdf_btn, ref_id) -> str | None:
-    """Notice card -> 'Notice/Letter Pdf' -> detail page -> Download -> save."""
+async def _download(session, events, ref_id) -> str | None:
+    """Notice card -> 'Notice/Letter pdf' -> detail page -> Download -> back."""
     page = session.page
-    await pdf_btn.click()
+    pdf = page.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
+    await _click(pdf, "Notice/Letter Pdf")
     try:
         await page.wait_for_url(re.compile(r"viewDetailedNotice"), timeout=20000)
         async with page.expect_download(timeout=30000) as dl:
-            await page.get_by_role(
-                "button", name=re.compile(r"Download", re.I)).first.click()
+            await _click(page.get_by_role("button", name="Download",
+                                          exact=False).first, "Download")
         download = await dl.value
         dest = Path(settings.notices_dir) / f"{ref_id}.pdf"
         dest.parent.mkdir(parents=True, exist_ok=True)
         await download.save_as(dest)
-        await events.log(f"Downloaded {ref_id}.pdf")
+        await events.log(f"  downloaded {ref_id}.pdf")
         return str(dest)
     except PWTimeout:
-        await events.log(f"Could not download PDF for {ref_id} - stored without file")
+        await events.log(f"  could not download {ref_id} - stored without a file")
         return None
     finally:
-        await page.go_back(wait_until="domcontentloaded")
+        await _click_back(page, events)        # back to the notice list
+        await page.wait_for_timeout(1000)
 
 
 # ------------------------------------------------------------------- parsing
-# NOTE: the two parsers below are the only part still calibrated against
-# screenshots instead of the live DOM. First real run happens with
-# HEADLESS=false so we can watch and tighten them. Field labels come
-# verbatim from the recon images.
-
-async def _proceeding_cards(page):
-    return await page.locator(
-        "div", has_text=re.compile(r"Proceeding Name")).all()
-
-
-async def _notice_cards(page):
-    return await page.locator(
-        "div", has_text=re.compile(r"Notice/ Communication Reference ID")).all()
-
-
 async def _parse_proceeding(card, tab_key, sub_key) -> dict:
     text = await card.inner_text()
     return {
@@ -163,11 +226,21 @@ async def _parse_proceeding(card, tab_key, sub_key) -> dict:
 async def _parse_notice(card, proceeding_id) -> dict:
     text = await card.inner_text()
     due = _after(text, "Response Due Date")
+    doc_ref = _match(text, r"(ITBA/[\w/().-]+)")
+
+    # The card prints "Notice u/s" and then, on the next line, the document
+    # reference - the "Document reference ID" label sits *below* its value.
+    # A notice with no section (an Issue Letter) would otherwise record the
+    # ITBA reference as its section.
+    notice_us = _after(text, "Notice u/s")
+    if notice_us and notice_us.startswith("ITBA/"):
+        notice_us = None
+
     return {
         "proceeding_id": proceeding_id,
         "ref_id": _match(text, r"Reference ID\s*:?\s*(\d+)"),
-        "notice_us": _after(text, "Notice u/s"),
-        "doc_ref_id": _match(text, r"(ITBA/[\w/().-]+)"),
+        "notice_us": notice_us,
+        "doc_ref_id": doc_ref,
         "description": _after(text, "Description"),
         "issued_on": _after(text, "Issued On"),
         "served_on": _after(text, "Served On"),
@@ -197,10 +270,45 @@ def _count_from_label(label: str) -> int:
     return int(m.group(1)) if m else 0
 
 
-async def _set_items_per_page_max(page) -> None:
+async def _set_page_size_max(page, events) -> None:
+    """Items per Page is a mat-select. Choosing the largest value puts every
+    proceeding on one page, which is far less fragile than paging."""
     try:
-        sel = page.locator("select").last
-        if await sel.count():
-            await sel.select_option(index=-1)   # largest page size
+        trigger = page.locator(
+            ".mat-mdc-paginator-page-size-select [role=combobox], "
+            ".mat-mdc-paginator-page-size-select mat-select").first
+        if not await trigger.count():
+            return
+        await trigger.click()
+        await page.wait_for_timeout(700)
+        options = page.get_by_role("option")
+        sizes = []
+        for k in range(await options.count()):
+            label = (await options.nth(k).inner_text()).strip()
+            if label.isdigit():
+                sizes.append((int(label), label))
+        if not sizes:
+            await page.keyboard.press("Escape")
+            return
+        biggest = max(sizes)[1]
+        await page.get_by_role("option", name=biggest, exact=True).first.click()
+        await page.wait_for_timeout(2000)
+        await events.log(f"  showing {biggest} per page")
+    except Exception as e:                     # never fail a sync over paging
+        await events.log(f"  could not change the page size ({e!r})")
+        try:
+            await page.keyboard.press("Escape")
+        except Exception:
+            pass
+
+
+async def _next_page(page) -> bool:
+    """The paginator arrows carry no accessible name, so class it is."""
+    try:
+        nxt = page.locator("button.mat-mdc-paginator-navigation-next").first
+        if await nxt.count() and await nxt.is_enabled():
+            await nxt.click()
+            return True
     except Exception:
         pass
+    return False

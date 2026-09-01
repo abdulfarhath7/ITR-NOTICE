@@ -41,8 +41,13 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   not once per poll. Headed runs launch with `slow_mo=SLOW_MO_MS` so a human
   can follow along; `save_debug_screenshot()` writes a full-page PNG to
   `data/debug/` on the failure path.
-- `app/portal/scraper.py` — full walk structure + parsers. Written from
-  screenshots, NOT yet run live. **This is the first thing to verify.**
+- `app/portal/scraper.py` — REWRITTEN against the live DOM (recon dumps in
+  `data/debug/recon*/`, 2026-09-01). Cards are `div.card-container.matCardRow`
+  (proceedings) and `div.card-container.matCard` (notices). Navigation between
+  pages uses the portal's own "Back" button and same-document hash changes
+  only. Parsers TESTED against card text captured verbatim from the account.
+  The end-to-end automated walk has still not been run in one go - that is
+  what remains of step 1.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
   holder on `EventHub` (`set_credentials` / `credentials` / `has_credentials` /
   `clear_credentials`). POST /api/credentials stores the login and starts the
@@ -68,17 +73,33 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   your secure access message displayed above" (MUST be ticked), password
   field, "Continue". No captcha. OTP not seen on this account but the relay
   must stay in place.
-- Force-login: when logged in elsewhere the portal shows a popup; exact
-  markup unknown (screenshot pending). Current handler clicks the first
-  visible button named "Login Here" / "Force Login" / "Continue Login" /
-  "Yes". Tighten when the screenshot arrives; keep it auto-click (owner wants
-  the tool to steal the session).
+- Force-login: CONFIRMED live. The popup's button is
+  `<button type="button" data-dismiss="modal"
+   class="defaultButton primaryButton primaryBtnMargin"> Login Here </button>`,
+  so `get_by_role("button", name="Login Here")` finds it. Keep it auto-click
+  (owner wants the tool to steal the session).
+- **The browser Back button is a trap.** The portal answers Back / Forward /
+  Refresh with "For security reasons, we have disabled Back, Forward and
+  Refresh actions of the browser. Are you sure you want to Logout?" with
+  YES / No. Never call `page.go_back()` and never `goto()`/reload a route.
+  Every page carries its own "Back" button (`get_by_role("button",
+  name="Back", exact=True)`), verified to walk detail → notices → list with
+  no dialog. To reach the list, move `window.location.hash` instead - a
+  same-document navigation, exactly what an in-app link does.
+- An expired session lands on `#/sessionExpire` (not `/login`), and the
+  password page has its own route, `#/login/password`.
+- Playwright 1.62 raises InvalidSelectorError for
+  `get_by_role(name=re.compile(...))` when the pattern contains "/". Every
+  notice-level locator here used to. Use plain substring names with
+  `exact=False`, which also handles the button reading "Notice/Letter pdf"
+  with a lowercase p.
 - Header shows "Session Time 14:59" counting down from 15:00. Optional
   improvement: parse it instead of the internal clock in `session.py`.
 - e-Proceedings URL: .../#/dashboard/eProceedings
   Tabs: "Self", "Of Other PAN/TAN", "As Authorized Representative" (third tab
-  absent on company accounts — skip if missing). Sub-tabs: "For your Action
-  (N)", "For your Information (N)". Top right: search box, "Filter" button,
+  CONFIRMED absent on this company account — skip if missing); they are
+  buttons. Sub-tabs are Angular Material tabs with `role="tab"`: "For your
+  Action (40)", "For your Information (24)" on this account. Top right: search box, "Filter" button,
   "Excel Download". Pagination: "Items per Page" select.
 - Filter panel contains: Proceeding Status radios (Open/Pending, Closed,
   Submitted, e-Submission re-enabled by AO, e-Submission closed by officer),
@@ -102,18 +123,26 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Real quirk to test with: this account has an "Issue Letter" notice
   (ref 100118320996) with Date "-", AY "Not Available" and NO due date —
   the exact case the Ask-Claude feature exists for.
+- Notice card label trap, seen live: the card prints "Notice u/s" and then the
+  document reference on the *next* line, because the "Document reference ID"
+  label sits BELOW its own value. A notice with no section (an Issue Letter)
+  therefore parses the ITBA reference as its section unless that is rejected
+  explicitly. The real text of both card types is pinned in test_app.py.
+- The PDF download is a genuine browser download (`expect_download`), and the
+  file the portal serves is named like
+  `70000000172639792_216809962_2026_COM_AAACU3358G_Issue Letter_1092231604(1)_17082026.pdf`.
 
 ## Roadmap, in order
 
-1. **Verify live** — run with HEADLESS=false (SLOW_MO_MS makes it watchable),
-   watch login + one full sync. A failure leaves `data/debug/fail-*.png` and
-   holds the window open for HOLD_ON_ERROR seconds.
-   Fix `_proceeding_cards` / `_notice_cards` / `_parse_*` in scraper.py
-   against the real DOM (the current `div has_text` locators are almost
-   certainly too broad — they may match ancestor divs; prefer the tightest
-   repeating container). Handle pagination if >10 items despite the
-   items-per-page select. Then set the README checkbox for step 3 to
-   "verified".
+1. **Verify live** — the DOM recon is DONE (2026-09-01, dumps under
+   `data/debug/recon*/`): login, force-login, card containers, the Back-button
+   trap, pagination and the download were all confirmed against the real
+   account, and scraper.py was rewritten around them. What is left is one
+   uninterrupted automated run: `./run.sh` with HEADLESS=false (SLOW_MO_MS
+   makes it watchable), log in through the dashboard, and watch a full sync
+   walk both tabs. A failure leaves `data/debug/fail-*.png` and holds the
+   window open for HOLD_ON_ERROR seconds. Then set the README checkbox for
+   step 3 to "verified".
 2. **Step 5 — Ask-Claude due date.** Implement the 501 stub:
    read the stored PDF for ref_id → send to Claude API (model
    claude-sonnet-4-6 unless owner says otherwise, anthropic Python SDK,

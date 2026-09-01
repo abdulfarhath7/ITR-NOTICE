@@ -9,6 +9,8 @@ Covers the credential rules that matter:
   - the password never appears in a response body, a broadcast, or the db
 """
 import asyncio
+import pathlib
+import re
 import sys
 import tempfile
 import time
@@ -349,6 +351,113 @@ shown_otp = FakeLoc(1, True)
 err, events = settle(FakePage(otp=shown_otp, dashboard_after=2))
 check("visible OTP box DOES ask the dashboard for a code",
       err is None and events.otp_asked == 1, f"asked {events.otp_asked}x")
+
+
+# ------------------------------------------------- parsers, against real text
+# Copied verbatim out of the live recon dumps (data/debug/recon3/), so these
+# are the portal's own words, not a guess at them.
+from app.portal import scraper                                  # noqa: E402
+
+REAL_PROCEEDING = """Proceeding Name :
+Issue Letter
+Assessment Year :
+Not Available
+PAN
+AAACU3358G
+Name of Assessee
+CAMBRIDGE TECHNOLOGY ENTERPRISES LIMITED
+1
+18-Aug-2026
+Open
+Financial Year :
+Not Available
+Applicable Act :
+Income Tax Act 1961
+View Notices/Orders (1)
++ Add / View Authorised Representative"""
+
+REAL_NOTICE = """Notice/ Communication Reference ID : 100118320996
+Notice u/s
+ITBA/COM/F/17/2026-27/1092231604(1)
+Document reference ID
+Description :
+[ITBA]Issue Letter
+Issued On :
+17-Aug-2026
+Last Response submitted On :
+18-Aug-2026
+Response viewed by AO on :
+27-Aug-2026
+View Response
+Notice/Letter pdf
+Seek/View Adjournment"""
+
+
+class TextCard:
+    def __init__(self, text):
+        self._text = text
+
+    async def inner_text(self):
+        return self._text
+
+
+p = asyncio.run(scraper._parse_proceeding(TextCard(REAL_PROCEEDING), "self", "action"))
+check("proceeding: name", p["proceeding_name"] == "Issue Letter", p["proceeding_name"])
+check("proceeding: PAN", p["pan"] == "AAACU3358G", p["pan"])
+check("proceeding: assessee", p["assessee_name"] == "CAMBRIDGE TECHNOLOGY ENTERPRISES LIMITED")
+check("proceeding: 'Not Available' year becomes NULL",
+      p["assessment_year"] is None and p["financial_year"] is None,
+      f"{p['assessment_year']} / {p['financial_year']}")
+check("proceeding: act", p["applicable_act"] == "Income Tax Act 1961", p["applicable_act"])
+check("proceeding: status", p["status"] == "Open", p["status"])
+
+n = asyncio.run(scraper._parse_notice(TextCard(REAL_NOTICE), 1))
+check("notice: reference id", n["ref_id"] == "100118320996", n["ref_id"])
+check("notice: document reference",
+      n["doc_ref_id"] == "ITBA/COM/F/17/2026-27/1092231604(1)", n["doc_ref_id"])
+# The card prints the doc reference on the line after "Notice u/s"; a naive
+# parser files it as the section this notice was issued under.
+check("notice: section is NOT the ITBA reference", n["notice_us"] is None,
+      repr(n["notice_us"]))
+check("notice: description", n["description"] == "[ITBA]Issue Letter", n["description"])
+check("notice: issued on", n["issued_on"] == "17-Aug-2026", n["issued_on"])
+check("notice: no due date on this letter",
+      n["due_date"] is None and n["due_date_source"] is None)
+check("notice: AO viewed on", n["ao_viewed_on"] == "27-Aug-2026", n["ao_viewed_on"])
+
+# the read-only guardrail is enforced, not just documented
+class Clickable:
+    def __init__(self):
+        self.clicked = False
+
+    async def click(self):
+        self.clicked = True
+
+
+for label in ("Submit Response", "View Response", "Seek/View Adjournment"):
+    c = Clickable()
+    try:
+        asyncio.run(scraper._click(c, label))
+        check(f"guardrail refuses {label!r}", False, "it clicked")
+    except RuntimeError:
+        check(f"guardrail refuses {label!r}", not c.clicked)
+
+ok = Clickable()
+asyncio.run(scraper._click(ok, "Notice/Letter Pdf"))
+check("guardrail allows the PDF button", ok.clicked)
+
+# the locator crash found live: a "/" inside a regex name breaks Playwright
+check("no get_by_role(name=re.compile) with a slash remains",
+      not re.search(r"get_by_role\([^)]*re\.compile\([^)]*/", 
+                    pathlib.Path("app/portal/scraper.py").read_text()))
+# the docstring explains why go_back is banned, so look for real calls only
+_src = pathlib.Path("app/portal/scraper.py").read_text()
+_calls = [l for l in _src.splitlines()
+          if re.search(r"(?<!Never )(?<!so )page\.go_back\(", l)
+          and not l.strip().startswith(("#", '"""'))
+          and '"""' not in l]
+check("no page.go_back() call remains (it triggers the portal logout dialog)",
+      not _calls, str(_calls))
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

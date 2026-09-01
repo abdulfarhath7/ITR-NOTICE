@@ -212,7 +212,9 @@ class PortalSession:
     async def ensure_alive(self) -> None:
         """Call before every scraping action. Re-logins proactively near the
         15-min mark, and reactively if the portal bounced us to /login."""
-        bounced = "/login" in (self.page.url or "")
+        url = self.page.url or ""
+        # Seen live: an expired session lands on #/sessionExpire, not /login.
+        bounced = "/login" in url or "sessionExpire" in url
         if bounced or self.seconds_left() < RELOGIN_MARGIN:
             reason = "session expired" if bounced else "session about to expire"
             await self.events.log(f"Re-login ({reason})")
