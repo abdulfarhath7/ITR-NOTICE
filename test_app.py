@@ -58,6 +58,9 @@ class FakeSession:
     async def stop(self):
         self.stopped = True
 
+    async def save_debug_screenshot(self, tag="fail"):
+        return f"data/debug/{tag}-test.png"
+
 
 async def fake_run_sync(session, events):
     return {"proceedings": 1, "notices": 2, "downloaded": 0, "skipped_cached": 2}
@@ -65,6 +68,7 @@ async def fake_run_sync(session, events):
 
 main.PortalSession = FakeSession
 scraper.run_sync = fake_run_sync
+main.settings.hold_on_error = 0     # no 15-second pause inside the tests
 
 
 class Recorder:
@@ -165,6 +169,10 @@ with TestClient(main.app) as client:
           str(prompts[-1]) if prompts else "no push")
     check("wrong password is never retried", len(FakeSession.instances) == 1,
           f"{len(FakeSession.instances)} login attempts")
+    shots = [m.get("msg", "") for m in rec.sent if m.get("type") == "log"]
+    check("failure path logs a screenshot path",
+          any("Screenshot of the failure" in m for m in shots),
+          str(shots[-2:]))
 
     # 6 - nothing leaks the password ------------------------------------------
     reset()
@@ -190,6 +198,157 @@ with TestClient(main.app) as client:
                   and ".venv" not in str(p) and p.name != "test_app.py"))
 
     main.hub.sockets.remove(rec)
+
+
+# ---------------------------------------------------- the post-password loop
+# The bug this guards: Angular ships hidden validation nodes ("Please enter
+# valid password") in the DOM from page load, and get_by_text matches
+# substrings, so a .count()-only check aborted every login as a wrong password.
+from app.portal import session as session_mod                # noqa: E402
+from app.portal.session import PortalSession                 # noqa: E402
+
+DASHBOARD = "https://eportal.incometax.gov.in/iec/foservices/#/dashboard"
+LOGIN = "https://eportal.incometax.gov.in/iec/foservices/#/login"
+
+
+class FakeLoc:
+    def __init__(self, count=0, visible=False, text=""):
+        self._count, self._visible, self._text = count, visible, text
+        self.clicked = False
+        self.filled = None
+
+    @property
+    def first(self):
+        return self
+
+    async def count(self):
+        return self._count
+
+    async def is_visible(self):
+        return self._visible
+
+    async def inner_text(self):
+        return self._text
+
+    async def click(self):
+        self.clicked = True
+
+    async def fill(self, value):
+        self.filled = value
+
+    async def wait_for(self, state=None, timeout=None):
+        return None
+
+    def or_(self, other):
+        return self if self._count else other
+
+
+class FakePage:
+    """Just enough Page for _settle_post_password."""
+
+    def __init__(self, error=None, force_label=None, force=None, otp=None,
+                 dashboard_after=None):
+        self._url = LOGIN
+        self.error = error                    # FakeLoc for a password error
+        self.force_label, self.force = force_label, force
+        self.otp = otp
+        self.dashboard_after = dashboard_after
+        self.reads = 0
+
+    @property
+    def url(self):
+        self.reads += 1
+        if self.dashboard_after is not None and self.reads > self.dashboard_after:
+            return DASHBOARD
+        return self._url
+
+    def get_by_text(self, text):
+        if self.error is not None and text in session_mod.PASSWORD_ERRORS:
+            return self.error
+        return FakeLoc()
+
+    def get_by_role(self, role, name=None):
+        if self.force is not None and name == self.force_label:
+            return self.force
+        return FakeLoc()
+
+    def get_by_placeholder(self, text):
+        return self.otp if self.otp is not None else FakeLoc()
+
+    def locator(self, selector):
+        return FakeLoc(1, True)
+
+
+class FakeEvents:
+    def __init__(self):
+        self.logs, self.otp_asked = [], 0
+
+    async def log(self, msg):
+        self.logs.append(msg)
+
+    async def request_otp(self):
+        self.otp_asked += 1
+        return "123456"
+
+
+def settle(page, grace=0.0):
+    """Run the loop against a fake page, fast."""
+    session_mod.POLL_SECONDS = 0.01
+    session_mod.ERROR_GRACE_SECONDS = grace
+    events = FakeEvents()
+    s = PortalSession(events, USER_ID, PASSWORD)
+    s.page = page
+    err = None
+    try:
+        asyncio.run(s._settle_post_password())
+    except Exception as e:                      # noqa: BLE001 - the test wants it
+        err = e
+    return err, events
+
+
+# 7 - a hidden error node is not an error -----------------------------------
+err, _ = settle(FakePage(error=FakeLoc(1, False, "Please enter valid password"),
+                         dashboard_after=2))
+check("hidden error node does NOT raise (the login bug)", err is None,
+      repr(err))
+
+# 8 - a visible one is ------------------------------------------------------
+err, _ = settle(FakePage(
+    error=FakeLoc(1, True, "Please enter valid password. 2 attempts left"),
+    dashboard_after=99))
+check("visible error node DOES raise",
+      isinstance(err, WrongPasswordError), repr(err))
+check("the raise quotes what the portal actually said",
+      err is not None and "2 attempts left" in str(err), str(err))
+check("the raise never contains the password",
+      err is not None and PASSWORD not in str(err))
+
+# 9 - the grace period covers the navigation gap ----------------------------
+err, _ = settle(FakePage(error=FakeLoc(1, True, "Please enter valid password"),
+                         dashboard_after=3), grace=5.0)
+check("no error is believed during the grace period", err is None, repr(err))
+
+# 10 - force-login and OTP share the visible-only rule ----------------------
+hidden_btn = FakeLoc(1, False, "Yes")
+err, _ = settle(FakePage(force_label="Yes", force=hidden_btn, dashboard_after=2))
+check("hidden force-login button is NOT clicked",
+      err is None and not hidden_btn.clicked)
+
+shown_btn = FakeLoc(1, True, "Login Here")
+err, _ = settle(FakePage(force_label="Login Here", force=shown_btn,
+                         dashboard_after=2))
+check("visible force-login button IS clicked",
+      err is None and shown_btn.clicked)
+
+hidden_otp = FakeLoc(1, False)
+err, events = settle(FakePage(otp=hidden_otp, dashboard_after=2))
+check("hidden OTP template does NOT freeze the login",
+      err is None and events.otp_asked == 0)
+
+shown_otp = FakeLoc(1, True)
+err, events = settle(FakePage(otp=shown_otp, dashboard_after=2))
+check("visible OTP box DOES ask the dashboard for a code",
+      err is None and events.otp_asked == 1, f"asked {events.otp_asked}x")
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

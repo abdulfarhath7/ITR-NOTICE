@@ -116,10 +116,12 @@ async def _run_sync() -> None:
         # Hard rule: never retry. Drop the bad login and ask again.
         status, message = "failed", str(e)
         await hub.log(f"STOPPED: {e}")
+        await _after_failure(session)
         await hub.clear_credentials(str(e))
     except Exception as e:
         status, message = "failed", repr(e)
         await hub.log(f"Sync failed: {e!r}")
+        await _after_failure(session)
     finally:
         await session.stop()
         if hub.state != "credentials_required":   # set by the wrong-password path
@@ -129,6 +131,18 @@ async def _run_sync() -> None:
                 "UPDATE runs SET finished=datetime('now'), status=?, message=? "
                 "WHERE id=?", (status, message, run_id))
         await hub._broadcast({"type": "sync_finished", "status": status})
+
+
+async def _after_failure(session) -> None:
+    """A failed run must not vanish. Leave a screenshot behind, and optionally
+    the browser window itself, so the actual portal screen can be read."""
+    shot = await session.save_debug_screenshot()
+    if shot:
+        await hub.log(f"Screenshot of the failure: {shot}")
+    if settings.hold_on_error > 0:
+        await hub.log(
+            f"Holding the browser open for {settings.hold_on_error}s - look at it now")
+        await asyncio.sleep(settings.hold_on_error)
 
 
 def _start_sync_task() -> None:

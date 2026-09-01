@@ -17,6 +17,7 @@ minor portal facelifts far better than CSS classes.
 """
 import asyncio
 import time
+from pathlib import Path
 
 from playwright.async_api import Page, TimeoutError as PWTimeout, async_playwright
 
@@ -26,6 +27,35 @@ LOGIN_URL = "https://eportal.incometax.gov.in/iec/foservices/#/login"
 DASHBOARD_MARKER = "/dashboard"
 SESSION_SECONDS = 15 * 60
 RELOGIN_MARGIN = 2 * 60          # re-login when < 2 min remain
+
+# How long the post-password loop watches for a result, how often it looks,
+# and how long it refuses to believe an error message. The grace period exists
+# because the password page keeps its Angular validation nodes in the DOM from
+# load: they are invisible, but they are there, and sampling them while the
+# password page is still on screen reads an error that never happened.
+SETTLE_SECONDS = 60
+POLL_SECONDS = 1.0
+ERROR_GRACE_SECONDS = 3.0
+
+PASSWORD_ERRORS = ("Invalid password", "incorrect password",
+                   "Please enter valid password")
+FORCE_LOGIN_LABELS = ("Login Here", "Force Login", "Continue Login", "Yes")
+
+
+async def first_visible(locator):
+    """Return the first match only if a human could actually see it.
+
+    `.count()` on its own is not evidence: the portal ships hidden templates
+    for errors, popups and the OTP box, and get_by_text matches substrings.
+    Every check in the settle loop goes through here.
+    """
+    try:
+        first = locator.first
+        if await first.count() and await first.is_visible():
+            return first
+    except PWTimeout:
+        return None
+    return None
 
 
 class WrongPasswordError(RuntimeError):
@@ -54,6 +84,8 @@ class PortalSession:
         self._pw = await async_playwright().start()
         self.browser = await self._pw.chromium.launch(
             headless=settings.headless,
+            # Only worth slowing down when there is a window to watch.
+            slow_mo=0 if settings.headless else settings.slow_mo_ms,
             args=["--disable-blink-features=AutomationControlled"],
         )
         ctx = await self.browser.new_context(
@@ -104,36 +136,44 @@ class PortalSession:
 
     async def _settle_post_password(self) -> None:
         page = self.page
-        deadline = time.monotonic() + 60
+        started = time.monotonic()
+        deadline = started + SETTLE_SECONDS
+        otp_relayed = False       # one relay per prompt, not one per poll
         while time.monotonic() < deadline:
             if DASHBOARD_MARKER in page.url:
                 return
 
-            # hard rule: wrong password -> abort, never retry
-            for err in ("Invalid password", "incorrect password",
-                        "Please enter valid password"):
-                if await page.get_by_text(err).count():
-                    raise WrongPasswordError(
-                        "Portal rejected the password. NOT retrying (the portal "
-                        "locks accounts). Check the password and enter it again "
-                        "in the dashboard."
-                    )
+            # hard rule: wrong password -> abort, never retry.
+            # Held off for the first few seconds: see ERROR_GRACE_SECONDS.
+            if time.monotonic() - started >= ERROR_GRACE_SECONDS:
+                for err in PASSWORD_ERRORS:
+                    shown = await first_visible(page.get_by_text(err))
+                    if shown:
+                        words = (await shown.inner_text()).strip()
+                        raise WrongPasswordError(
+                            "Portal rejected the password. NOT retrying (the "
+                            "portal locks accounts). Check the password and "
+                            "enter it again in the dashboard. The portal says: "
+                            f"{words!r}"
+                        )
 
             # force-login: another device holds the session.
             # Generic for now (screenshot pending): any dialog whose button
-            # matches these labels gets clicked.
-            for label in ("Login Here", "Force Login", "Continue Login", "Yes"):
-                btn = page.get_by_role("button", name=label)
-                if await btn.count() and await btn.first.is_visible():
+            # matches these labels gets clicked - if it is on screen.
+            for label in FORCE_LOGIN_LABELS:
+                btn = await first_visible(page.get_by_role("button", name=label))
+                if btn:
                     await self.events.log(
                         f"Another session detected - clicking '{label}'")
-                    await btn.first.click()
+                    await btn.click()
                     break
 
             # OTP: freeze and relay through the dashboard
-            otp_box = page.get_by_placeholder("OTP").or_(
-                page.get_by_text("Enter OTP"))
-            if await otp_box.count() and await otp_box.first.is_visible():
+            otp_box = await first_visible(
+                page.get_by_placeholder("OTP").or_(page.get_by_text("Enter OTP")))
+            if not otp_box:
+                otp_relayed = False        # prompt gone; a later one is new
+            elif not otp_relayed:
                 await self.events.log("Portal is asking for an OTP")
                 code = await self.events.request_otp()
                 field = page.locator(
@@ -142,11 +182,28 @@ class PortalSession:
                 await field.fill(code)
                 await self._click_if_visible("button:has-text('Continue')")
                 await self._click_if_visible("button:has-text('Submit')")
+                otp_relayed = True
                 await self.events.log("OTP relayed to the portal")
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(POLL_SECONDS)
 
-        raise TimeoutError("Login did not reach the dashboard within 60s")
+        raise TimeoutError(
+            f"Login did not reach the dashboard within {SETTLE_SECONDS}s")
+
+    # --------------------------------------------------------------- debug
+    async def save_debug_screenshot(self, tag: str = "fail") -> str | None:
+        """Full-page shot of whatever the browser is showing. Called on the
+        failure path so a crashed run leaves something to look at."""
+        if not self.page:
+            return None
+        try:
+            dest = (Path(settings.debug_dir)
+                    / f"{tag}-{time.strftime('%Y%m%d-%H%M%S')}.png")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            await self.page.screenshot(path=str(dest), full_page=True)
+            return str(dest)
+        except Exception:
+            return None      # a screenshot failing must never mask the real error
 
     # ------------------------------------------------------------- keepalive
     def seconds_left(self) -> float:

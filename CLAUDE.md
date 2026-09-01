@@ -18,17 +18,29 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - `app/db.py` — schema + upserts. TESTED: proceeding dedup across syncs
   (NULL keys normalized to ''), notice dedup by ref_id, and
   `set_claude_due_date()` fills only NULL due dates and never overwrites.
-- `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS, NOTICES_DIR.
-  Portal credentials deliberately absent.
+- `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS, SLOW_MO_MS
+  (default 600, applied only when headed), HOLD_ON_ERROR (default 15s, 0
+  disables), NOTICES_DIR, DEBUG_DIR. Portal credentials deliberately absent.
 - `app/portal/session.py` — login flow. `PortalSession(events, user_id,
   password)` takes the login from the caller, never from settings. Written
-  from screenshots, NOT yet run
-  against the live portal. Implements: User ID page → Continue → tick the
-  "confirm your secure access message" checkbox → password → Continue; then a
-  60s settle loop that handles force-login popups (generic button-name match),
-  OTP pause (blocks on `events.request_otp()`), and wrong-password abort.
-  Proactive re-login when <2 min of the 15-min session remain
-  (`ensure_alive()` — call it before every scraping action).
+  from screenshots, NOT yet run against the live portal. Implements: User ID
+  page → Continue → tick the "confirm your secure access message" checkbox →
+  password → Continue; then a 60s settle loop that handles force-login popups
+  (generic button-name match), OTP pause (blocks on `events.request_otp()`),
+  and wrong-password abort. Proactive re-login when <2 min of the 15-min
+  session remain (`ensure_alive()` — call it before every scraping action).
+  TESTED (test_app.py, fake page, no browser): every check in the settle loop
+  goes through `first_visible()`, which requires `count()` **and**
+  `is_visible()`. This is not a nicety — the portal ships hidden Angular
+  templates from page load and `get_by_text` matches substrings, so a
+  count-only check read "Please enter valid password" on a perfectly good
+  login and aborted every run. Password errors are additionally ignored for
+  the first `ERROR_GRACE_SECONDS` (3s) while the password page is still on
+  screen, and a real WrongPasswordError quotes the portal's visible words (the
+  password itself is never logged). An OTP prompt is relayed once per prompt,
+  not once per poll. Headed runs launch with `slow_mo=SLOW_MO_MS` so a human
+  can follow along; `save_debug_screenshot()` writes a full-page PNG to
+  `data/debug/` on the failure path.
 - `app/portal/scraper.py` — full walk structure + parsers. Written from
   screenshots, NOT yet run live. **This is the first thing to verify.**
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
@@ -45,7 +57,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   after a rejected password), "Change login" in the header, Sync button, live
   log, OTP input that appears on `otp_required`, notices table with overdue
   highlight, "no due date" pill, "by Claude" tag, per-notice Download.
-- `test_app.py` — TestClient script, no browser. Run `python test_app.py`.
+- `test_app.py` — TestClient script plus fake-page unit tests for the settle
+  loop, no browser. Run `.venv/bin/python test_app.py`.
 
 ## Portal facts (from real screenshots of this account — trust these)
 
@@ -92,7 +105,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 
 ## Roadmap, in order
 
-1. **Verify live** — run with HEADLESS=false, watch login + one full sync.
+1. **Verify live** — run with HEADLESS=false (SLOW_MO_MS makes it watchable),
+   watch login + one full sync. A failure leaves `data/debug/fail-*.png` and
+   holds the window open for HOLD_ON_ERROR seconds.
    Fix `_proceeding_cards` / `_notice_cards` / `_parse_*` in scraper.py
    against the real DOM (the current `div has_text` locators are almost
    certainly too broad — they may match ancestor divs; prefer the tightest
