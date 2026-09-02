@@ -255,7 +255,7 @@ function renderStats(rows) {
   countUp($('s-total'), rows.length);
   countUp($('s-week'), week.length);
   countUp($('s-nodue'), rows.filter(n => !n.due_date).length);
-  countUp($('s-docs'), rows.filter(n => n.pdf_path).length);
+  countUp($('s-docs'), rows.filter(n => n.has_pdf).length);
 }
 
 function countUp(el, to) {
@@ -329,10 +329,10 @@ function applyFilters() {
       <td class="mono">${esc(n.issued_on || '—')}</td>
       <td>${dueChip(n)}</td>
       <td><div class="rowacts">
-        ${n.pdf_path ? `<button onclick="preview('${esc(n.ref_id)}')">Preview</button>` : ''}
-        ${(!n.due_date && n.pdf_path)
+        ${n.has_pdf ? `<button onclick="preview('${esc(n.ref_id)}')">Preview</button>` : ''}
+        ${(!n.due_date && n.has_pdf)
           ? `<button onclick="askClaude('${esc(n.ref_id)}', this)">Ask Claude</button>` : ''}
-        ${n.pdf_path
+        ${n.has_pdf
           ? `<button class="primary" onclick="generateDraft('${esc(n.ref_id)}', this)">Generate response</button>` : ''}
       </div></td>
     </tr>`).join('');
@@ -483,7 +483,7 @@ function commands() {
     { label: 'Clear filters', run: () => { $('f-ay').value = ''; $('f-name').value = ''; $('f-nodue').checked = false; applyFilters(); } },
     { label: 'Toggle live viewport', run: () => { $('monitor').open = !$('monitor').open; } },
   ];
-  const notices = NOTICES.filter(n => n.pdf_path).map(n => ({
+  const notices = NOTICES.filter(n => n.has_pdf).map(n => ({
     label: `Open notice ${n.ref_id}`,
     hint: (n.description || n.proceeding_name || '').slice(0, 40),
     haystack: `${n.ref_id} ${n.description || ''} ${n.proceeding_name || ''}`,

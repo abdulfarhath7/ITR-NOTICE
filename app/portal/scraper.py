@@ -38,7 +38,6 @@ from pathlib import Path
 from playwright.async_api import TimeoutError as PWTimeout
 
 from .. import db
-from ..config import settings
 from .session import (PortalSession, dismiss_security_popup, first_visible,
                       pace_for)
 
@@ -321,8 +320,8 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
             await events.progress("download", notice=j + 1, of=total,
                                   downloaded=stats["downloaded"],
                                   limit=stats.get("limit"))
-            n["pdf_path"] = await _download(session, events, n["ref_id"])
-            if n["pdf_path"]:
+            n["pdf_blob"] = await _download(session, events, n["ref_id"])
+            if n["pdf_blob"]:
                 stats["downloaded"] += 1
         db.upsert_notice(con, n)
 
@@ -336,8 +335,12 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
     await page.wait_for_timeout(1500)
 
 
-async def _download(session, events, ref_id) -> str | None:
-    """Notice card -> 'Notice/Letter pdf' -> detail page -> Download -> back."""
+async def _download(session, events, ref_id) -> bytes | None:
+    """Notice card -> 'Notice/Letter pdf' -> detail page -> Download -> back.
+
+    Returns the PDF's bytes. Nothing is written to the filesystem: the file
+    goes straight into the notice's row, so the database is the whole archive.
+    """
     page = session.page
     await session.pace()
     pdf = page.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
@@ -348,11 +351,11 @@ async def _download(session, events, ref_id) -> str | None:
             await _safe_click(page, page.get_by_role(
                 "button", name="Download", exact=False).first, "Download", events)
         download = await dl.value
-        dest = Path(settings.notices_dir) / f"{ref_id}.pdf"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        await download.save_as(dest)
-        await events.log(f"  downloaded {ref_id}.pdf")
-        return str(dest)
+        # Playwright has already written it to its own temp file; read it back
+        # and let Playwright clean up after itself.
+        data = Path(await download.path()).read_bytes()
+        await events.log(f"  downloaded {ref_id}.pdf ({len(data) // 1024} KB)")
+        return data or None
     except PWTimeout:
         await events.log(f"  could not download {ref_id} - stored without a file")
         return None
@@ -402,7 +405,7 @@ async def _parse_notice(card, proceeding_id) -> dict:
         "due_date": due or None,                       # empty stays NULL
         "due_date_source": "portal" if due else None,
         "ao_viewed_on": _after(text, "Response viewed by AO on"),
-        "pdf_path": None,
+        "pdf_blob": None,
     }
 
 

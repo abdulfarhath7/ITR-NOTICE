@@ -64,6 +64,8 @@ except on the login and OTP screens, which are never captured.
               never submits anything to the portal.
 - [x] Step 7  Live speed control: Slow / Fast / Extreme, applied to the next
               browser action even mid-sync.
+- [x] Step 8  Notice PDFs are stored in the database itself, not in a folder
+              of files - back up data/itr.db and you have everything.
 
 ## First-run note
 

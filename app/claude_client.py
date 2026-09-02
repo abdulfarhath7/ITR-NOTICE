@@ -11,7 +11,6 @@ Nothing here ever writes to the portal. The draft is a draft.
 """
 import base64
 import json
-from pathlib import Path
 
 import anthropic
 
@@ -89,8 +88,8 @@ def _client() -> anthropic.AsyncAnthropic:
     return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 
-def _pdf_block(pdf_path: str) -> dict:
-    data = Path(pdf_path).read_bytes()
+def _pdf_block(data: bytes) -> dict:
+    """The stored notice, straight out of the pdf_blob column."""
     if not data:
         raise ClaudeUnavailable("the stored PDF is empty")
     if len(data) > MAX_PDF_BYTES:
@@ -112,7 +111,7 @@ def _json_answer(response) -> dict:
     return json.loads(text)
 
 
-async def due_date_from_pdf(pdf_path: str, *, ref_id: str,
+async def due_date_from_pdf(pdf: bytes, *, ref_id: str,
                             issued_on: str | None = None,
                             served_on: str | None = None) -> dict:
     """-> {"due_date": "DD-MMM-YYYY" | None, "basis": "<one line>"}"""
@@ -138,14 +137,14 @@ async def due_date_from_pdf(pdf_path: str, *, ref_id: str,
     response = await client.messages.create(
         model=MODEL,
         max_tokens=2000,
-        messages=[{"role": "user", "content": [_pdf_block(pdf_path),
+        messages=[{"role": "user", "content": [_pdf_block(pdf),
                                                {"type": "text", "text": prompt}]}],
         output_config={"format": {"type": "json_schema", "schema": DUE_DATE_SCHEMA}},
     )
     return _json_answer(response)
 
 
-async def draft_from_pdf(pdf_path: str, *, ref_id: str,
+async def draft_from_pdf(pdf: bytes, *, ref_id: str,
                          notice_us: str | None = None,
                          assessee: str | None = None,
                          assessment_year: str | None = None) -> dict:
@@ -177,7 +176,7 @@ async def draft_from_pdf(pdf_path: str, *, ref_id: str,
         model=MODEL,
         max_tokens=16000,
         thinking={"type": "adaptive"},
-        messages=[{"role": "user", "content": [_pdf_block(pdf_path),
+        messages=[{"role": "user", "content": [_pdf_block(pdf),
                                                {"type": "text", "text": prompt}]}],
         output_config={"format": {"type": "json_schema", "schema": DRAFT_SCHEMA}},
     )

@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 from fastapi import Body, FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -445,23 +445,24 @@ async def notices():
 
 @app.get("/api/notices/{ref_id}/pdf")
 async def notice_pdf(ref_id: str, inline: int = 0):
-    """inline=1 renders in the browser's PDF viewer; the default downloads."""
+    """Streams the stored bytes straight out of the row - there is no file.
+
+    inline=1 renders in the browser's PDF viewer (that is what the View
+    modal's iframe asks for); the default saves it.
+    """
     with db.connect() as con:
-        row = con.execute(
-            "SELECT pdf_path FROM notices WHERE ref_id=?", (ref_id,)).fetchone()
-    if not row or not row["pdf_path"] or not Path(row["pdf_path"]).exists():
+        data = db.get_notice_pdf(con, ref_id)
+    if not data:
         return JSONResponse({"error": "no PDF stored for this notice"}, 404)
-    if inline:
-        return FileResponse(
-            row["pdf_path"], media_type="application/pdf",
-            headers={"Content-Disposition": f'inline; filename="{ref_id}.pdf"'})
-    return FileResponse(row["pdf_path"], filename=f"{ref_id}.pdf")
+    disposition = "inline" if inline else "attachment"
+    return Response(
+        content=bytes(data), media_type="application/pdf",
+        headers={"Content-Disposition": f'{disposition}; filename="{ref_id}.pdf"'})
 
 
 # ------------------------------------------------------------- Ask Claude
-def _stored_pdf(row) -> str | None:
-    path = row["pdf_path"] if row is not None else None
-    return path if path and Path(path).exists() else None
+def _stored_pdf(con, ref_id: str) -> bytes | None:
+    return db.get_notice_pdf(con, ref_id)
 
 
 @app.post("/api/notices/{ref_id}/ask-claude")
@@ -483,7 +484,7 @@ async def ask_claude(ref_id: str):
             # A portal date is the truth; Claude never gets to overwrite it.
             return {"ref_id": ref_id, "due_date": row["due_date"],
                     "basis": None, "source": row["due_date_source"], "cached": True}
-        pdf = _stored_pdf(row)
+        pdf = _stored_pdf(con, ref_id)
         issued_on, served_on = row["issued_on"], row["served_on"]
 
     if not pdf:
@@ -531,7 +532,7 @@ async def draft_response(ref_id: str, regenerate: int = 0):
                     "checklist": json.loads(existing["checklist_json"] or "[]"),
                     "draft_text": existing["draft_text"],
                     "generated_at": existing["generated_at"], "cached": True}
-        pdf = _stored_pdf(row)
+        pdf = _stored_pdf(con, ref_id)
         notice_us = row["notice_us"]
         proceeding = con.execute(
             "SELECT assessee_name, assessment_year FROM proceedings WHERE id=?",

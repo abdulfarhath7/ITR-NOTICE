@@ -778,15 +778,15 @@ def _days(d):
 _fmt = lambda n: (datetime.date.today() + datetime.timedelta(days=n)).strftime("%d-%b-%Y")
 SAMPLE = [
     {"due_date": None, "assessment_year": "2020-21", "proceeding_name": "Issue Letter",
-     "pdf_path": "/a.pdf"},
+     "has_pdf": 1},
     {"due_date": _fmt(3), "assessment_year": "2021-22",
-     "proceeding_name": "Assessment u/s 143", "pdf_path": None},
+     "proceeding_name": "Assessment u/s 143", "has_pdf": 0},
     {"due_date": _fmt(7), "assessment_year": "2021-22", "proceeding_name": "Penalty",
-     "pdf_path": "/b.pdf"},
+     "has_pdf": 1},
     {"due_date": _fmt(20), "assessment_year": "2020-21", "proceeding_name": "Penalty",
-     "pdf_path": "/c.pdf"},
+     "has_pdf": 1},
     {"due_date": _fmt(-2), "assessment_year": "2020-21", "proceeding_name": "Overdue one",
-     "pdf_path": "/d.pdf"},
+     "has_pdf": 1},
 ]
 due_week = [n for n in SAMPLE if n["due_date"] and 0 <= _days(n["due_date"]) <= 7]
 check("Due this week counts the next 7 days only", len(due_week) == 2,
@@ -796,7 +796,7 @@ check("Due this week excludes dates already past",
 check("Missing due date counts blanks",
       len([n for n in SAMPLE if not n["due_date"]]) == 1)
 check("Docs saved counts stored PDFs",
-      len([n for n in SAMPLE if n["pdf_path"]]) == 4)
+      len([n for n in SAMPLE if n["has_pdf"]]) == 4)
 check("the year dropdown lists each year once, sorted",
       sorted({n["assessment_year"] for n in SAMPLE if n["assessment_year"]})
       == ["2020-21", "2021-22"])
@@ -817,13 +817,10 @@ check("filters combine", len(_filtered(SAMPLE, ay="2020-21", name="penalty")) ==
 
 # 17 - preview vs download ---------------------------------------------------
 main.settings.app_password = ""
-_pdf_dir = TMP.parent / "notices"
-_pdf_dir.mkdir(exist_ok=True)
-_pdf = _pdf_dir / "100118320996.pdf"
-_pdf.write_bytes(b"%PDF-1.4\n% a stored notice\n%%EOF\n")
+_PDF = b"%PDF-1.4\n% a stored notice\n%%EOF\n"
 with db.connect() as con:
     con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES (?)", ("100118320996",))
-    con.execute("UPDATE notices SET pdf_path=? WHERE ref_id=?", (str(_pdf), "100118320996"))
+    con.execute("UPDATE notices SET pdf_blob=? WHERE ref_id=?", (_PDF, "100118320996"))
 
 with TestClient(main.app) as client:
     r = client.get("/api/notices/100118320996/pdf?inline=1")
@@ -855,13 +852,14 @@ from app import claude_client                                        # noqa: E40
 CALLS = []
 
 
-async def fake_due_date(pdf_path, *, ref_id, issued_on=None, served_on=None):
-    CALLS.append({"ref_id": ref_id, "issued_on": issued_on, "served_on": served_on})
+async def fake_due_date(pdf, *, ref_id, issued_on=None, served_on=None):
+    CALLS.append({"ref_id": ref_id, "pdf": pdf,
+                  "issued_on": issued_on, "served_on": served_on})
     return {"due_date": "15-Sep-2026",
             "basis": "notice says within 15 days of service on 18-Aug-2026"}
 
 
-async def fake_no_date(pdf_path, **kw):
+async def fake_no_date(pdf, **kw):
     CALLS.append({"ref_id": kw.get("ref_id")})
     return {"due_date": None, "basis": "this letter sets no deadline"}
 
@@ -904,7 +902,7 @@ with TestClient(main.app) as client:
     with db.connect() as con:
         con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('portal-dated')")
         con.execute("UPDATE notices SET due_date='01-Oct-2026', due_date_source='portal', "
-                    "pdf_path=? WHERE ref_id='portal-dated'", (str(_pdf),))
+                    "pdf_blob=? WHERE ref_id='portal-dated'", (_PDF,))
     CALLS.clear()
     r3 = client.post("/api/notices/portal-dated/ask-claude")
     check("a portal date is returned untouched and Claude is not called",
@@ -915,8 +913,8 @@ with TestClient(main.app) as client:
     main.claude_client.due_date_from_pdf = fake_no_date
     with db.connect() as con:
         con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('no-deadline')")
-        con.execute("UPDATE notices SET pdf_path=? WHERE ref_id='no-deadline'",
-                    (str(_pdf),))
+        con.execute("UPDATE notices SET pdf_blob=? WHERE ref_id='no-deadline'",
+                    (_PDF,))
     r4 = client.post("/api/notices/no-deadline/ask-claude")
     check("no deadline in the notice returns null, not an error",
           r4.status_code == 200 and r4.json()["due_date"] is None, r4.text[:80])
@@ -952,21 +950,21 @@ claude_client.settings.anthropic_api_key = _real_key
 check("the model is the one the owner asked for",
       claude_client.MODEL == "claude-sonnet-4-6", claude_client.MODEL)
 check("the PDF is sent as a document block",
-      claude_client._pdf_block(str(_pdf))["type"] == "document")
+      claude_client._pdf_block(_PDF)["type"] == "document")
 check("the due-date schema pins the strict JSON shape",
       claude_client.DUE_DATE_SCHEMA["required"] == ["due_date", "basis"]
       and claude_client.DUE_DATE_SCHEMA["additionalProperties"] is False)
 check("the row offers Ask Claude only when a PDF is stored",
-      "askClaude(" in _page_now() and "n.pdf_path ?" in _page_now())
+      "askClaude(" in _page_now() and "n.has_pdf" in _page_now())
 
 
 # 19 - generate a draft response ---------------------------------------------
 DRAFT_CALLS = []
 
 
-async def fake_draft(pdf_path, *, ref_id, notice_us=None, assessee=None,
+async def fake_draft(pdf, *, ref_id, notice_us=None, assessee=None,
                      assessment_year=None):
-    DRAFT_CALLS.append({"ref_id": ref_id, "notice_us": notice_us,
+    DRAFT_CALLS.append({"ref_id": ref_id, "pdf": pdf, "notice_us": notice_us,
                         "assessee": assessee, "assessment_year": assessment_year})
     return {"summary": "The officer wants proof of the deduction you claimed.",
             "checklist": ["Bank statement for FY 2019-20", "Copy of the invoice"],
@@ -1289,6 +1287,113 @@ check("the dashboard labels the buttons Slow, Fast and Extreme",
       all(f'data-speed="{s}"' in _page_now() for s in ("slow", "fast", "extreme")))
 check("extreme carries its 'testing only' caption",
       "testing only" in _page_now() and "speednote" in _page_now())
+
+
+# 23 - the PDFs live in the database ----------------------------------------
+# One file to back up, one file to move to Lightsail: notices.pdf_blob holds
+# the document itself and NOTICES_DIR is gone.
+_BLOB = b"%PDF-1.7\n% blob round trip \x00\x01\x02 binary safe\n%%EOF\n"
+
+with db.connect() as con:
+    con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('blob-notice')")
+    db.upsert_notice(con, {
+        "proceeding_id": None, "ref_id": "blob-notice", "notice_us": "142(1)",
+        "doc_ref_id": None, "description": "blob test", "issued_on": None,
+        "served_on": None, "due_date": None, "due_date_source": None,
+        "ao_viewed_on": None, "pdf_blob": _BLOB})
+
+with db.connect() as con:
+    check("the bytes come back out of the row unchanged",
+          db.get_notice_pdf(con, "blob-notice") == _BLOB)
+    check("storing a PDF stamps downloaded_at",
+          db.get_notice(con, "blob-notice")["downloaded_at"] is not None)
+    check("the cache rule now reads the blob, not a path",
+          db.notice_exists(con, "blob-notice"))
+    check("a notice with no blob is not cached",
+          not db.notice_exists(con, "no-pdf"))
+    check("get_notice_pdf on an unknown notice is None, not a crash",
+          db.get_notice_pdf(con, "nope") is None)
+
+    # a second sync of the same notice must not wipe the stored document
+    db.upsert_notice(con, {
+        "proceeding_id": None, "ref_id": "blob-notice", "notice_us": "142(1)",
+        "doc_ref_id": None, "description": "blob test", "issued_on": None,
+        "served_on": None, "due_date": None, "due_date_source": None,
+        "ao_viewed_on": None, "pdf_blob": None})
+    check("re-seeing a notice never blanks the PDF already held",
+          db.get_notice_pdf(con, "blob-notice") == _BLOB)
+
+with TestClient(main.app) as client:
+    r = client.get("/api/notices/blob-notice/pdf?inline=1")
+    check("view serves the stored bytes inline", r.status_code == 200
+          and r.content == _BLOB, f"{r.status_code} {len(r.content)}B")
+    check("view is application/pdf",
+          r.headers.get("content-type", "").startswith("application/pdf"),
+          r.headers.get("content-type", "none"))
+    check("view asks the browser to render, not to save",
+          r.headers.get("content-disposition", "").startswith("inline"),
+          r.headers.get("content-disposition", "none"))
+
+    r = client.get("/api/notices/blob-notice/pdf")
+    check("save serves the same bytes as an attachment",
+          r.status_code == 200 and r.content == _BLOB
+          and "attachment" in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", "none"))
+    check("the download is named after the notice",
+          'filename="blob-notice.pdf"' in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", "none"))
+    check("a notice with no stored PDF is 404",
+          client.get("/api/notices/no-pdf/pdf").status_code == 404)
+
+    # the blob must never ride along in the table's JSON
+    rows = client.get("/api/notices").json()["notices"]
+    row = next(n for n in rows if n["ref_id"] == "blob-notice")
+    check("the notices list does not ship the blob", "pdf_blob" not in row,
+          str(sorted(row))[:120])
+    check("it ships has_pdf instead", row["has_pdf"] == 1, str(row.get("has_pdf")))
+    check("a notice with no PDF says so",
+          next(n for n in rows if n["ref_id"] == "no-pdf")["has_pdf"] == 0)
+
+# the one-time move off the filesystem, on a database that still has paths
+_old_dir = TMP.parent / "old-notices"
+_old_dir.mkdir(exist_ok=True)
+_old_file = _old_dir / "legacy.pdf"
+_old_file.write_bytes(b"%PDF-legacy%%EOF")
+_gone_file = _old_dir / "already-deleted.pdf"
+with db.connect() as con:
+    con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('legacy')")
+    con.execute("UPDATE notices SET pdf_path=?, pdf_blob=NULL WHERE ref_id='legacy'",
+                (str(_old_file),))
+    con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('legacy-gone')")
+    con.execute("UPDATE notices SET pdf_path=?, pdf_blob=NULL WHERE ref_id='legacy-gone'",
+                (str(_gone_file),))
+
+db.init_db()
+with db.connect() as con:
+    check("an old on-disk notice is moved into the database",
+          db.get_notice_pdf(con, "legacy") == b"%PDF-legacy%%EOF")
+    check("its path is cleared once the bytes are in",
+          db.get_notice(con, "legacy")["pdf_path"] is None)
+    check("the file itself is deleted", not _old_file.exists())
+    check("a path whose file has already gone is left alone, not blanked",
+          db.get_notice(con, "legacy-gone")["pdf_path"] == str(_gone_file))
+
+db.init_db()                      # migrations and the move are both idempotent
+with db.connect() as con:
+    check("running the migration twice changes nothing",
+          db.get_notice_pdf(con, "legacy") == b"%PDF-legacy%%EOF"
+          and db.get_notice_pdf(con, "blob-notice") == _BLOB)
+
+check("NOTICES_DIR is gone from the settings",
+      not hasattr(main.settings, "notices_dir"))
+_scraper_now = pathlib.Path("app/portal/scraper.py").read_text()
+check("the scraper writes no PDF files any more",
+      "notices_dir" not in _scraper_now and "save_as" not in _scraper_now)
+check("the scraper stores the downloaded bytes",
+      'n["pdf_blob"] = await _download' in _scraper_now)
+check("Claude is handed the bytes, not a path",
+      "def _pdf_block(data: bytes)" in
+      pathlib.Path("app/claude_client.py").read_text())
 
 
 print()

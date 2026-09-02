@@ -24,7 +24,8 @@ class Settings:
     # Seconds to keep the browser window open after a failure so a human can
     # read the actual screen. 0 closes it immediately.
     hold_on_error: int = int(os.getenv("HOLD_ON_ERROR", "15"))
-    notices_dir: str = os.getenv("NOTICES_DIR", str(_DATA / "notices"))
+    # NOTICES_DIR is gone: notice PDFs live in the notices.pdf_blob column,
+    # so the database file is the whole archive.
     debug_dir: str = os.getenv("DEBUG_DIR", str(_DATA / "debug"))
 
 

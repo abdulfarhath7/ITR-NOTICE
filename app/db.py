@@ -2,7 +2,9 @@
 
 Tables:
   proceedings - one row per proceeding card on the e-Proceeding list
-  notices     - one row per notice inside a proceeding (View Notices page)
+  notices     - one row per notice inside a proceeding (View Notices page),
+                PDF included: the file lives in the pdf_blob column, not on
+                the filesystem, so the database is the whole archive
   runs        - one row per sync run, for the dashboard log
 """
 import sqlite3
@@ -42,7 +44,8 @@ CREATE TABLE IF NOT EXISTS notices (
     due_date        TEXT,                      -- NULL when portal shows none
     due_date_source TEXT,                      -- 'portal' | 'claude' | NULL
     ao_viewed_on    TEXT,
-    pdf_path        TEXT,
+    pdf_path        TEXT,                      -- legacy: PDFs used to be files
+    pdf_blob        BLOB,                      -- the PDF itself, one row = one file
     downloaded_at   TEXT,
     first_seen      TEXT DEFAULT (datetime('now'))
 );
@@ -71,6 +74,10 @@ MIGRATIONS = {
     "notices": [
         # one line from Claude explaining where a due date came from
         ("due_date_basis", "ALTER TABLE notices ADD COLUMN due_date_basis TEXT"),
+        # the PDF itself. Notices used to be files under NOTICES_DIR; the
+        # database is the only copy now, so a backup is one file and moving
+        # the app to another machine carries the documents with it.
+        ("pdf_blob", "ALTER TABLE notices ADD COLUMN pdf_blob BLOB"),
     ],
 }
 
@@ -84,6 +91,40 @@ def init_db() -> None:
             for column, ddl in columns:
                 if column not in have:
                     con.execute(ddl)
+        absorbed = _absorb_pdf_files(con)
+    # Only once those rows are committed does the file go. The order matters:
+    # a crash in between leaves a duplicate, not a lost notice.
+    for path in absorbed:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    if absorbed:
+        print(f"Moved {len(absorbed)} notice PDF(s) from disk into the database")
+
+
+def _absorb_pdf_files(con) -> list[Path]:
+    """One-time move of the old on-disk notices into pdf_blob.
+
+    Idempotent: a row is only touched while it still has a path and no blob,
+    and a file that has already gone is left alone rather than blanking the
+    row. Returns the files that are now safe to delete.
+    """
+    done = []
+    rows = con.execute("SELECT ref_id, pdf_path FROM notices "
+                       "WHERE pdf_path IS NOT NULL AND pdf_blob IS NULL").fetchall()
+    for row in rows:
+        path = Path(row["pdf_path"])
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if not data:
+            continue
+        con.execute("UPDATE notices SET pdf_blob=?, pdf_path=NULL WHERE ref_id=?",
+                    (data, row["ref_id"]))
+        done.append(path)
+    return done
 
 
 @contextmanager
@@ -129,10 +170,16 @@ def upsert_proceeding(con, p: dict) -> int:
 def notice_exists(con, ref_id: str) -> bool:
     """The cache rule: if we already hold this notice, we never scrape it again."""
     return (
-        con.execute("SELECT 1 FROM notices WHERE ref_id=? AND pdf_path IS NOT NULL",
+        con.execute("SELECT 1 FROM notices WHERE ref_id=? AND pdf_blob IS NOT NULL",
                     (ref_id,)).fetchone()
         is not None
     )
+
+
+def get_notice_pdf(con, ref_id: str) -> bytes | None:
+    row = con.execute("SELECT pdf_blob FROM notices WHERE ref_id=?",
+                      (ref_id,)).fetchone()
+    return row["pdf_blob"] if row else None
 
 
 def upsert_notice(con, n: dict) -> None:
@@ -140,14 +187,16 @@ def upsert_notice(con, n: dict) -> None:
         """INSERT INTO notices
            (proceeding_id, ref_id, notice_us, doc_ref_id, description,
             issued_on, served_on, due_date, due_date_source, ao_viewed_on,
-            pdf_path, downloaded_at)
+            pdf_blob, downloaded_at)
            VALUES (:proceeding_id,:ref_id,:notice_us,:doc_ref_id,:description,
                    :issued_on,:served_on,:due_date,:due_date_source,:ao_viewed_on,
-                   :pdf_path, CASE WHEN :pdf_path IS NULL THEN NULL
+                   :pdf_blob, CASE WHEN :pdf_blob IS NULL THEN NULL
                                    ELSE datetime('now') END)
            ON CONFLICT(ref_id) DO UPDATE SET
                due_date=COALESCE(notices.due_date, excluded.due_date),
-               pdf_path=COALESCE(notices.pdf_path, excluded.pdf_path)""",
+               pdf_blob=COALESCE(notices.pdf_blob, excluded.pdf_blob),
+               downloaded_at=COALESCE(notices.downloaded_at,
+                                      excluded.downloaded_at)""",
         n,
     )
 
@@ -185,8 +234,16 @@ def save_draft(con, ref_id: str, summary: str, checklist_json: str,
 
 
 def list_notices(con):
+    """Everything the dashboard table needs - and never the blob itself, which
+    would push megabytes of base64 through the JSON on every refresh. What the
+    table actually wants is whether a PDF is held, not the PDF."""
     return con.execute(
-        """SELECT n.*, p.proceeding_name, p.pan, p.assessment_year, p.status
+        """SELECT n.id, n.proceeding_id, n.ref_id, n.notice_us, n.doc_ref_id,
+                  n.description, n.issued_on, n.served_on, n.due_date,
+                  n.due_date_source, n.due_date_basis, n.ao_viewed_on,
+                  n.downloaded_at, n.first_seen,
+                  n.pdf_blob IS NOT NULL AS has_pdf,
+                  p.proceeding_name, p.pan, p.assessment_year, p.status
            FROM notices n LEFT JOIN proceedings p ON p.id = n.proceeding_id
            ORDER BY n.due_date IS NULL, n.due_date"""
     ).fetchall()

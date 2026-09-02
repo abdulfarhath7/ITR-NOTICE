@@ -18,10 +18,21 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - `app/db.py` — schema + upserts. TESTED: proceeding dedup across syncs
   (NULL keys normalized to ''), notice dedup by ref_id, and
   `set_claude_due_date()` fills only NULL due dates and never overwrites.
+- **PDFs live in the database, not the filesystem.** `notices.pdf_blob` holds
+  the file; `data/notices/` and NOTICES_DIR are gone. `init_db()` runs a
+  one-time `_absorb_pdf_files()` that reads any row still carrying a
+  `pdf_path` into its blob, clears the path and then deletes the file (rows
+  committed first, so a crash duplicates rather than loses); a path whose file
+  has already gone is left alone. The cache rule is now `pdf_blob IS NOT
+  NULL`, `upsert_notice` COALESCEs the blob so re-seeing a notice never blanks
+  it, and `list_notices()` selects explicit columns plus `has_pdf` - never the
+  blob itself, which would push megabytes of base64 into every table refresh.
+  TESTED (test_app.py section 23): round trip, both dispositions, the move off
+  disk, and that it is idempotent.
 - `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS,
-  HOLD_ON_ERROR (default 15s, 0 disables), NOTICES_DIR, DEBUG_DIR. Portal
-  credentials deliberately absent. Browser pace is NOT a knob here any more —
-  see the speed control below.
+  HOLD_ON_ERROR (default 15s, 0 disables), DEBUG_DIR. Portal credentials
+  deliberately absent. Browser pace is NOT a knob here any more — see the
+  speed control below; NOTICES_DIR is gone — PDFs are in the database.
 - `app/portal/session.py` — login flow. `PortalSession(events, user_id,
   password)` takes the login from the caller, never from settings. Written
   from screenshots, NOT yet run against the live portal. Implements: User ID
@@ -79,7 +90,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - `drafts` table: one row per notice (ref_id primary key) holding summary,
   checklist_json and draft_text. Regenerate overwrites; it never accumulates.
 - `app/claude_client.py` — the Claude API calls. Model `claude-sonnet-4-6`,
-  async SDK client, PDF sent as a base64 document block, answers pinned by
+  async SDK client, PDF taken as bytes (from `pdf_blob`) and sent as a base64
+  document block, answers pinned by
   `output_config={"format": {"type": "json_schema", ...}}` so the reply is a
   dict, not prose. `have_key()` treats the .env.example placeholder as missing.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
@@ -91,9 +103,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the error text. TESTED (test_app.py): the credential rules above, /api/otp
   relay, /api/notices, 404 on missing PDF, WS handshake,
   /api/notices/{ref_id}/ask-claude is a 501 stub (build step 5).
-- Preview vs Download: `/api/notices/{ref_id}/pdf?inline=1` serves the stored
-  file as `Content-Disposition: inline` with `application/pdf`, so the browser
-  renders it in a new tab; without the flag it stays an attachment download.
+- Preview vs Download: `/api/notices/{ref_id}/pdf?inline=1` streams the stored
+  blob as `Content-Disposition: inline` with `application/pdf`, so the browser
+  renders it; without the flag it is an attachment download.
 - Dashboard summary + filters: four cards above the table (total notices, due
   in the next 7 days, missing due date, docs saved) computed from
   /api/notices, and a filter row (assessment year dropdown built from the data,
