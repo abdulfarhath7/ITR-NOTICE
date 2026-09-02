@@ -96,6 +96,10 @@ same password as everything else.
 - [x] Step 14 Reads whether a reply is already filed on the portal (from
               which button the card shows - it never clicks either) and
               shows it as a fourth dot on the row.
+- [x] Step 15 The generated response is a document: View it in the page or
+              Save the PDF, and "Save edits" rewrites both the text and the
+              PDF so they never disagree. Every page is footed
+              "DRAFT - prepared for review. Not filed." 
 - [x] Step 14 Summary report: "Position at a glance" buckets that filter the
               table, an attention list of what is overdue or due within three
               days, and an Excel export (Summary / Attention / All notices).

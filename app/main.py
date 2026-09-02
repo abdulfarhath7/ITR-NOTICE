@@ -27,7 +27,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import claude_client, db, report
+from . import claude_client, db, response_pdf, report
 from .config import settings
 from .portal.session import PortalSession, WrongPasswordError
 
@@ -594,9 +594,86 @@ async def draft_response(ref_id: str, regenerate: int = 0):
         db.save_draft(con, ref_id, answer.get("summary") or "",
                       json.dumps(checklist), answer.get("draft_reply") or "")
         saved = db.get_draft(con, ref_id)
+        _render_draft_pdf(con, ref_id, saved)
+        saved = db.get_draft(con, ref_id)
     return {"ref_id": ref_id, "summary": saved["summary"], "checklist": checklist,
             "draft_text": saved["draft_text"], "generated_at": saved["generated_at"],
             "cached": False}
+
+
+def _draft_context(con, ref_id: str) -> dict:
+    """The facts printed in the document's header, from the notice itself."""
+    row = db.get_notice(con, ref_id)
+    if row is None:
+        return {}
+    proceeding = con.execute(
+        "SELECT assessee_name, assessment_year FROM proceedings WHERE id=?",
+        (row["proceeding_id"],)).fetchone() if row["proceeding_id"] else None
+    return {
+        "notice_us": row["notice_us"],
+        "assessee": proceeding["assessee_name"] if proceeding else None,
+        "assessment_year": proceeding["assessment_year"] if proceeding else None,
+    }
+
+
+def _render_draft_pdf(con, ref_id: str, saved) -> bytes:
+    """Render the stored draft and put the bytes back on the same row.
+
+    Called from both places the text can change - a generation and an edit -
+    so the document is never a version behind what the drawer shows.
+    """
+    pdf = response_pdf.render(
+        ref_id=ref_id,
+        summary=saved["summary"] or "",
+        checklist=json.loads(saved["checklist_json"] or "[]"),
+        draft_text=saved["draft_text"] or "",
+        generated_at=saved["generated_at"],
+        **_draft_context(con, ref_id))
+    con.execute("UPDATE drafts SET response_pdf=? WHERE ref_id=?", (pdf, ref_id))
+    return pdf
+
+
+@app.get("/api/notices/{ref_id}/draft.pdf")
+async def draft_pdf(ref_id: str, inline: int = 0):
+    """The draft as a document. Same two dispositions as a notice PDF:
+    inline=1 for the viewer modal, plain for Save."""
+    with db.connect() as con:
+        data = db.get_draft_pdf(con, ref_id)
+        if not data:
+            # A draft written before this column existed has text but no
+            # document; render it now rather than reporting nothing.
+            saved = db.get_draft(con, ref_id)
+            if saved is None:
+                return JSONResponse({"error": "no draft for this notice"},
+                                    status_code=404)
+            data = _render_draft_pdf(con, ref_id, saved)
+    disposition = "inline" if inline else "attachment"
+    return Response(
+        content=bytes(data), media_type="application/pdf",
+        headers={"Content-Disposition":
+                 f'{disposition}; filename="draft-{ref_id}.pdf"'})
+
+
+class DraftTextIn(BaseModel):
+    draft_text: str
+
+
+@app.post("/api/notices/{ref_id}/draft/text")
+async def save_draft_text(ref_id: str, body: DraftTextIn):
+    """The owner edited the reply in the drawer. Costs nothing - Claude is
+    not called - and re-renders the PDF in the same breath, so the document
+    always says what the textarea says."""
+    with db.connect() as con:
+        saved = db.get_draft(con, ref_id)
+        if saved is None:
+            return JSONResponse({"error": "no draft for this notice"},
+                                status_code=404)
+        db.update_draft_text(con, ref_id, body.draft_text, None)
+        saved = db.get_draft(con, ref_id)
+        _render_draft_pdf(con, ref_id, saved)
+        saved = db.get_draft(con, ref_id)
+    return {"ref_id": ref_id, "draft_text": saved["draft_text"],
+            "generated_at": saved["generated_at"], "saved": True}
 
 
 # ---------------------------------------------------------------- ws + static

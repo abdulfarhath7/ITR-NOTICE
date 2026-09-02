@@ -119,7 +119,18 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   **secure=False until this is behind TLS** — on plain http the password and
   cookie are readable and replayable by anyone on the path.
 - `drafts` table: one row per notice (ref_id primary key) holding summary,
-  checklist_json and draft_text. Regenerate overwrites; it never accumulates.
+  checklist_json, draft_text and `response_pdf` — the same draft rendered as a
+  document by `app/response_pdf.py` (fpdf2). Regenerate overwrites; it never
+  accumulates. The PDF is re-rendered anywhere the text can change — a
+  generation, a regeneration, and `POST /api/notices/{ref}/draft/text` (the
+  drawer's "Save edits", which costs nothing because Claude is not called) —
+  so the document and the textarea can never tell different stories.
+  `GET /api/notices/{ref}/draft.pdf?inline=1` feeds the same viewer modal the
+  notices use; without the flag it downloads. A draft written before the
+  column existed is rendered on first request rather than 404ing.
+  fpdf2's core fonts are cp1252-only, so `_plain()` maps ₹ → "Rs.", em/en
+  dashes → "-", curly quotes → straight, ✦ → "*"; the footer on every page is
+  literally `DRAFT - prepared for review. Not filed.`
 - `app/claude_client.py` — the Claude API calls. Model `claude-sonnet-4-6`,
   async SDK client, PDF taken as bytes (from `pdf_blob`) and sent as a base64
   document block, answers pinned by

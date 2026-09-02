@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS drafts (
     generated_at   TEXT DEFAULT (datetime('now')),
     summary        TEXT,                      -- plain-language: what is demanded
     checklist_json TEXT,                      -- JSON array of documents wanted
-    draft_text     TEXT                       -- the reply, for the owner to edit
+    draft_text     TEXT,                      -- the reply, for the owner to edit
+    response_pdf   BLOB                       -- the same draft, rendered
 );
 
 CREATE TABLE IF NOT EXISTS runs (
@@ -87,6 +88,11 @@ MIGRATIONS = {
         # the notice card shows. Unlike the PDF this is NOT cached: it changes
         # the moment the owner files something, so every sync rewrites it.
         ("responded", "ALTER TABLE notices ADD COLUMN responded INTEGER"),
+    ],
+    "drafts": [
+        # the draft rendered as a document. Re-rendered whenever the text
+        # changes, so the PDF and draft_text can never drift apart.
+        ("response_pdf", "ALTER TABLE drafts ADD COLUMN response_pdf BLOB"),
     ],
     "runs": [
         # the counts behind the "Last sync" line
@@ -271,18 +277,37 @@ def get_draft(con, ref_id: str):
 
 
 def save_draft(con, ref_id: str, summary: str, checklist_json: str,
-               draft_text: str) -> None:
+               draft_text: str, response_pdf: bytes | None = None) -> None:
     """One draft per notice; Regenerate deliberately overwrites it."""
     con.execute(
-        """INSERT INTO drafts (ref_id, summary, checklist_json, draft_text)
-           VALUES (?,?,?,?)
+        """INSERT INTO drafts (ref_id, summary, checklist_json, draft_text,
+                               response_pdf)
+           VALUES (?,?,?,?,?)
            ON CONFLICT(ref_id) DO UPDATE SET
                summary=excluded.summary,
                checklist_json=excluded.checklist_json,
                draft_text=excluded.draft_text,
+               response_pdf=excluded.response_pdf,
                generated_at=datetime('now')""",
-        (ref_id, summary, checklist_json, draft_text),
+        (ref_id, summary, checklist_json, draft_text, response_pdf),
     )
+
+
+def update_draft_text(con, ref_id: str, draft_text: str,
+                      response_pdf: bytes | None) -> None:
+    """The owner edited the reply. The document is rewritten in the same
+    statement as the text, so the two can never tell different stories."""
+    con.execute(
+        """UPDATE drafts SET draft_text=?, response_pdf=?,
+               generated_at=datetime('now') WHERE ref_id=?""",
+        (draft_text, response_pdf, ref_id),
+    )
+
+
+def get_draft_pdf(con, ref_id: str) -> bytes | None:
+    row = con.execute("SELECT response_pdf FROM drafts WHERE ref_id=?",
+                      (ref_id,)).fetchone()
+    return row["response_pdf"] if row else None
 
 
 def list_notices(con):

@@ -553,11 +553,27 @@ for (const id of ['f-ay', 'f-name', 'f-nodue']) {
 // that you never leave it.
 const viewer = $('viewer');
 
-function view(refId) {
-  $('v-ref').textContent = refId;
-  $('v-frame').src = `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`;
+// The modal shows any PDF this server holds: a notice, or the draft written
+// against it. `saveAs` is what its own Save button then downloads.
+let VIEW_SAVE = null;
+
+function viewDoc(label, inlineUrl, saveUrl) {
+  $('v-ref').textContent = label;
+  $('v-frame').src = inlineUrl;
+  VIEW_SAVE = saveUrl;
   viewer.classList.add('show');
   $('v-close').focus();
+}
+
+function view(refId) {
+  viewDoc(refId, `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`,
+          `/api/notices/${encodeURIComponent(refId)}/pdf`);
+}
+
+function viewDraft(refId) {
+  viewDoc(`draft ${refId}`,
+          `/api/notices/${encodeURIComponent(refId)}/draft.pdf?inline=1`,
+          `/api/notices/${encodeURIComponent(refId)}/draft.pdf`);
 }
 
 function closeViewer() {
@@ -572,7 +588,7 @@ function savePdf(refId) {
 }
 
 $('v-close').onclick = closeViewer;
-$('v-save').onclick = () => savePdf($('v-ref').textContent);
+$('v-save').onclick = () => { if (VIEW_SAVE) location.href = VIEW_SAVE; };
 viewer.onclick = ev => { if (ev.target === viewer) closeViewer(); };
 
 async function askClaude(refId, btn) {
@@ -638,6 +654,7 @@ function showDraft(d) {
     ? d.checklist.map(c => `<div class="checkline"><span class="box"></span><span>${esc(c)}</span></div>`).join('')
     : '<div class="mut">Nothing specific demanded.</div>';
   $('d-text').value = d.draft_text || '';
+  $('d-dirty').hidden = true;
   $('d-meta').textContent = (d.cached ? 'saved ' : 'generated ') + relTime(d.generated_at);
   drawer.classList.add('show');
   $('d-close').focus();
@@ -672,6 +689,36 @@ function regenerate() {
 $('d-regen').onclick = regenerate;
 $('d-close').onclick = () => drawer.classList.remove('show');
 drawer.onclick = ev => { if (ev.target === drawer) drawer.classList.remove('show'); };
+
+$('d-view').onclick = () => { if (DRAFT_REF) viewDraft(DRAFT_REF); };
+$('d-download').onclick = () => {
+  if (DRAFT_REF) location.href = `/api/notices/${encodeURIComponent(DRAFT_REF)}/draft.pdf`;
+};
+
+// Editing the textarea alone changes nothing on the server. Save edits is
+// what writes the text AND re-renders the document, so the two never drift.
+$('d-text').addEventListener('input', () => { $('d-dirty').hidden = false; });
+
+$('d-save').onclick = async () => {
+  if (!DRAFT_REF) return;
+  const btn = $('d-save');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/api/notices/${encodeURIComponent(DRAFT_REF)}/draft/text`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft_text: $('d-text').value }),
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || 'Could not save the edits.'); return; }
+    $('d-dirty').hidden = true;
+    $('d-meta').textContent = 'saved ' + relTime(d.generated_at);
+    toast('Edits saved, document re-rendered.');
+  } catch (e) {
+    toast('Could not reach the server.');
+  } finally {
+    btn.disabled = false;
+  }
+};
 
 $('d-copy').onclick = async () => {
   try {

@@ -167,10 +167,15 @@
       <div>
         <p class="h">Draft reply (editable)</p>
         <textarea id="d-text" spellcheck="false"></textarea>
-        <div style="margin-top:10px;display:flex;gap:8px">
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="primary accent" id="d-save">Save edits</button>
+          <button id="d-view">View</button>
+          <button id="d-download">Save</button>
           <button id="d-copy">Copy draft</button>
           <button class="ghost" id="d-regen">Regenerate</button>
         </div>
+        <p class="mut" id="d-dirty" style="margin:8px 0 0" hidden>
+          Edited &mdash; press Save edits to update the document too.</p>
       </div>
     </div>
   </div>

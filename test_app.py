@@ -1448,7 +1448,8 @@ check("the buttons are right-aligned and reachable without a mouse",
 check("View opens an in-page modal, not a new tab",
       'id="viewer"' in _p and "window.open" not in _p)
 check("the modal renders the PDF in a big iframe on the inline endpoint",
-      "$('v-frame').src = `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`" in _p)
+      "$('v-frame').src = inlineUrl;" in _p
+      and "`/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`" in _p)
 check("the modal has a dark overlay that follows the theme",
       ".modal { position: fixed; inset: 0;" in _p
       and "background: var(--overlay);" in _p
@@ -1998,6 +1999,94 @@ check("the row's checklist has a fourth dot for it",
 check("unknown is drawn dashed rather than claimed as 'not yet'",
       ".tick.unknown { border-style: dashed;" in _p
       and "the portal did not say at the last sync" in _p)
+
+
+# 29 - the draft as a document ------------------------------------------------
+from app import response_pdf                                        # noqa: E402
+
+_doc = response_pdf.render(
+    ref_id="100118320996", summary="The officer wants proof of the deduction.",
+    checklist=["Bank statement for FY 2019-20", "Copy of the invoice"],
+    draft_text="To the Assessing Officer,\n\n[Fill in the reply here.]",
+    notice_us="142(1)", assessee="CAMBRIDGE TECHNOLOGY ENTERPRISES LIMITED",
+    assessment_year="2020-21", generated_at="02-Sep-2026", compress=False)
+check("it is a PDF", _doc.startswith(b"%PDF"), str(_doc[:8]))
+check("the header carries the notice reference", b"100118320996" in _doc)
+# PDF string syntax escapes brackets, so the section reads 142\(1\) in the raw
+check("and the notice's own facts",
+      rb"142\(1\)" in _doc and b"2020-21" in _doc
+      and b"CAMBRIDGE" in _doc)
+check("every page is footed DRAFT, not filed",
+      b"DRAFT - prepared for review. Not filed." in _doc)
+check("the summary, the checklist and the reply are all in it",
+      b"proof of the deduction" in _doc and b"Bank statement" in _doc
+      and b"Assessing Officer" in _doc)
+check("a rupee sign becomes Rs. rather than breaking the render",
+      b"Rs.1,20,000" in response_pdf.render(
+          ref_id="x", draft_text="Total \u20b91,20,000", compress=False))
+check("an empty draft still renders",
+      response_pdf.render(ref_id="x").startswith(b"%PDF"))
+
+# round trip through the database and both endpoints
+with TestClient(main.app) as client:
+    DRAFT_CALLS.clear()
+    r = client.post("/api/notices/100118320996/draft?regenerate=1")
+    check("generating a draft also renders the document", r.status_code == 200, r.text[:80])
+    with db.connect() as con:
+        stored = db.get_draft_pdf(con, "100118320996")
+    check("the document is stored on the draft row",
+          stored is not None and bytes(stored).startswith(b"%PDF"),
+          str(type(stored)))
+
+    r = client.get("/api/notices/100118320996/draft.pdf?inline=1")
+    check("View serves it inline", r.status_code == 200
+          and r.headers.get("content-disposition", "").startswith("inline")
+          and r.content.startswith(b"%PDF"), r.headers.get("content-disposition", ""))
+    r = client.get("/api/notices/100118320996/draft.pdf")
+    check("Save serves it as an attachment",
+          "attachment" in r.headers.get("content-disposition", "")
+          and 'filename="draft-100118320996.pdf"' in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", ""))
+    check("a notice with no draft is 404",
+          client.get("/api/notices/no-pdf/draft.pdf").status_code == 404)
+
+    # the edit path: text and document move together, and Claude is not called
+    before = client.get("/api/notices/100118320996/draft.pdf").content
+    DRAFT_CALLS.clear()
+    r = client.post("/api/notices/100118320996/draft/text",
+                    json={"draft_text": "Sir,\n\nA completely rewritten reply."})
+    check("saving edits succeeds", r.status_code == 200 and r.json()["saved"] is True,
+          r.text[:80])
+    check("editing never calls Claude", not DRAFT_CALLS, str(DRAFT_CALLS))
+    with db.connect() as con:
+        row = db.get_draft(con, "100118320996")
+    check("the stored text is the edited text",
+          "completely rewritten" in row["draft_text"], row["draft_text"][:40])
+    after = client.get("/api/notices/100118320996/draft.pdf").content
+    check("and the document was re-rendered with it", after != before)
+    check("the new text is really in the new document",
+          b"completely rewritten" in response_pdf.render(
+              ref_id="100118320996", draft_text=row["draft_text"], compress=False))
+    check("editing a draft that does not exist is 404",
+          client.post("/api/notices/nope/draft/text",
+                      json={"draft_text": "x"}).status_code == 404)
+
+    # a draft written before this column existed gets a document on first ask
+    with db.connect() as con:
+        con.execute("UPDATE drafts SET response_pdf=NULL WHERE ref_id='100118320996'")
+    r = client.get("/api/notices/100118320996/draft.pdf")
+    check("an older draft is rendered on demand rather than 404ing",
+          r.status_code == 200 and r.content.startswith(b"%PDF"), str(r.status_code))
+
+_p = _page_now()
+check("the drawer offers View, Save and Save edits",
+      'id="d-view"' in _p and 'id="d-download"' in _p and 'id="d-save"' in _p)
+check("View uses the same modal as a notice",
+      "function viewDraft(" in _p and "draft.pdf?inline=1" in _p)
+check("an unsaved edit says so",
+      'id="d-dirty"' in _p and "press Save edits to update the document too" in _p)
+check("the modal's own Save follows whichever document it is showing",
+      "VIEW_SAVE" in _p)
 
 
 print()
