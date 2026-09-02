@@ -31,6 +31,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   `download.delete()`, so a notice exists in exactly one place. TESTED
   (test_app.py section 23): round trip, both dispositions, the move off disk,
   and that it is idempotent.
+- Dependencies: fastapi, uvicorn, playwright, python-dotenv, anthropic, and
+  openpyxl (the Excel export only).
 - `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS,
   HOLD_ON_ERROR (default 15s, 0 disables), DEBUG_DIR. Portal credentials
   deliberately absent. Browser pace is NOT a knob here any more — see the
@@ -198,6 +200,31 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   `{"type":"progress","stage":...,"counts":{...}}` at login / list / walk /
   download / done. Note the stored dict is `hub.last_progress` — naming it
   `hub.progress` shadowed the method and broke every sync.
+- `app/report.py` — the firm's old Excel tracker, rebuilt. `build_summary(con)`
+  is the single place the bucket rules live: a notice is OPEN while its
+  proceeding status is not "Closed", and only open notices get an urgency
+  bucket (overdue / due ≤3d / due ≤10d / on track >10d / no due date yet);
+  closed ones are counted on their own line, so a notice already answered can
+  never read as overdue. It also returns run info (last finish, notices
+  scanned, new this run), the attention list (overdue or due ≤3 days, most
+  overdue first) and the full register. `build_workbook()` turns that same
+  dict into a real three-sheet .xlsx (openpyxl, imported lazily so a missing
+  dependency cannot stop the server booting); dates go in as dates, and the
+  Attention header keeps the tracker's dark blue with a frozen header row.
+  TESTED (test_app.py, on a throwaway database of its own): the bucket edges
+  (day 3 vs 4, day 10 vs 11), closed kept out of the urgency buckets,
+  attention contents and order, the export's content type / filename / three
+  sheets / styled frozen header, and 401 on both routes when APP_PASSWORD is set.
+- GET /api/summary returns that dict; GET /api/export.xlsx returns the workbook
+  named `itr-summary-YYYY-MM-DD.xlsx`. Both sit behind the same cookie as
+  everything else under `/api/`.
+- Summary section on the dashboard, above the table: "Position at a glance",
+  a run-date line, the buckets as a row of clickable chips (clicking one
+  filters the table client-side — `bucketOf()` in app.js repeats the server's
+  rules, so it costs no round trip), the "Attention — overdue & due within 3
+  days" table with the dark header band, and the italic caution line. With
+  nothing urgent it prints the old sheet's own words, "Nothing overdue or
+  critical." The header's **Export** button downloads the workbook.
 - `app/static/index.html` + `app/static/app.js` + `app/static/style.css` —
   the dashboard: credentials form (masked password, shown when the server
   holds no login and re-shown with an error after a rejected password),

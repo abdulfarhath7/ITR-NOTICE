@@ -51,6 +51,9 @@
   --ai: #6e79f7;
   --ai-soft: #1c1e3c;
 
+  /* the old tracker's dark blue, kept for the attention header band */
+  --attn-head: #1f3864;
+
   --overlay: rgba(6, 7, 9, .72);
   --radius: 10px;      /* cards, panels, dialogs */
   --radius-md: 8px;    /* buttons, inputs, toasts */
@@ -95,6 +98,8 @@
 
   --ai: #4c53d8;
   --ai-soft: #eceefe;
+
+  --attn-head: #1f3864;
 
   --overlay: rgba(24, 24, 27, .45);
   --shadow: 0 1px 2px rgba(24, 24, 27, .06), 0 10px 30px rgba(24, 24, 27, .08);
@@ -375,3 +380,45 @@ th.right, td.right { text-align: right; }
         border-top-color: var(--action); border-radius: 50%; vertical-align: -1px; }
 @media (prefers-reduced-motion: no-preference) { .spin { animation: sp .7s linear infinite; } }
 @keyframes sp { to { transform: rotate(360deg); } }
+
+/* -------------------------------------------------------------- report */
+/* The old Excel tracker, on the page: where everything stands, then the
+   short list that actually needs a person today. */
+.report .rtitle { font: 600 17px var(--display); letter-spacing: -.03em; margin: 0; }
+.report .runline { margin: 3px 0 0; }
+.report .runline b { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.report .attn-h { margin: 20px 0 8px; }
+.report .caution { margin: 12px 0 0; font-size: 12px; font-style: italic; color: var(--faint); }
+
+/* One horizontal bar of chips. Each one is a button: it filters the table
+   below to exactly the notices it counts. */
+.buckets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.bchip { display: flex; align-items: baseline; gap: 7px; padding: 7px 12px;
+         border-radius: var(--pill); border: 1px solid var(--hairline);
+         background: var(--raised); color: var(--muted); font-size: 12px; }
+.bchip .n { font: 700 14px var(--display); font-variant-numeric: tabular-nums; color: var(--text); }
+.bchip[aria-pressed='true'] { border-color: currentColor; }
+.bchip.late { color: var(--danger-text); background: var(--danger-soft); }
+.bchip.late .n { color: var(--danger); }
+.bchip.soon { color: var(--warn-text); background: var(--warn-soft); }
+.bchip.soon .n { color: var(--warn); }
+.bchip.watch { color: var(--info-text); background: var(--info-soft); }
+.bchip.watch .n { color: var(--info); }
+.bchip.ok { color: var(--ok-text); background: var(--ok-soft); }
+.bchip.ok .n { color: var(--ok); }
+.bchip.none { color: var(--ai); background: var(--ai-soft); }
+.bchip.none .n { color: var(--ai); }
+.bchip.done { color: var(--muted); background: var(--raised); }
+.bchip.done .n { color: var(--muted); }
+/* a bucket holding nothing is not news: it stays quiet until it fills */
+.bchip.zero { color: var(--faint); background: var(--raised); }
+.bchip.zero .n { color: var(--muted); }
+
+/* The attention table keeps the tracker's dark header band, in both themes. */
+.attnwrap { max-height: none; border: 1px solid var(--hairline); }
+table.attn thead th { background: var(--attn-head); color: #fff; }
+table.attn tbody td { font-size: 12.5px; }
+.days { font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
+.days.late { color: var(--danger-text); }
+.days.soon { color: var(--warn-text); }
+.allclear { color: var(--ok-text); font-weight: 600; }

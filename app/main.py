@@ -27,7 +27,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import claude_client, db
+from . import claude_client, db, report
 from .config import settings
 from .portal.session import PortalSession, WrongPasswordError
 
@@ -464,6 +464,33 @@ async def notice_pdf(ref_id: str, inline: int = 0):
     return Response(
         content=bytes(data), media_type="application/pdf",
         headers={"Content-Disposition": f'{disposition}; filename="{ref_id}.pdf"'})
+
+
+# ---------------------------------------------------------------- summary
+# The firm used to keep this in a spreadsheet: where every notice stands,
+# what is overdue, what is about to be. Same numbers in both places - the
+# dashboard draws this dict, and the .xlsx below is built from it.
+@app.get("/api/summary")
+async def summary():
+    with db.connect() as con:
+        return report.build_summary(con)
+
+
+@app.get("/api/export.xlsx")
+async def export_xlsx():
+    """The report as a real workbook: Summary, Attention, All notices."""
+    with db.connect() as con:
+        data = report.build_summary(con)
+    try:
+        blob = report.build_workbook(data)
+    except ImportError:
+        return JSONResponse(
+            {"error": "openpyxl is not installed - run pip install -r requirements.txt"},
+            status_code=503)
+    return Response(
+        content=blob, media_type=report.XLSX_MEDIA,
+        headers={"Content-Disposition":
+                 f'attachment; filename="{report.filename(data)}"'})
 
 
 # ------------------------------------------------------------- Ask Claude

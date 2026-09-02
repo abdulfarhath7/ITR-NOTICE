@@ -39,6 +39,7 @@
   </button>
   <button class="ghost" id="palette-open" title="Command palette"><span class="kbd">Ctrl K</span></button>
   <button class="ghost" id="signout">Log out</button>
+  <button class="ghost" id="export" title="Download the summary as Excel">Export</button>
   <button class="primary accent" id="sync">Sync</button>
 </header>
 
@@ -91,6 +92,28 @@
     <div class="pad pipe" id="pipe"></div>
     <div id="log">Ready.</div>
   </div>
+
+  <section class="card report" id="report">
+    <div class="pad">
+      <h2 class="rtitle">Position at a glance</h2>
+      <p class="mut runline" id="r-run">&mdash;</p>
+
+      <div class="buckets" id="buckets"></div>
+
+      <p class="h attn-h">Attention &mdash; overdue &amp; due within 3 days</p>
+      <div class="tablewrap attnwrap">
+        <table class="attn">
+          <thead><tr>
+            <th>Client / Description</th><th>PAN</th><th>AY</th><th>Section</th>
+            <th>Due date</th><th class="right">Days left</th><th>Status</th>
+          </tr></thead>
+          <tbody id="attnrows"></tbody>
+        </table>
+      </div>
+
+      <p class="caution">Draft for review &mdash; verify every figure against the portal.</p>
+    </div>
+  </section>
 
   <div class="card">
     <div class="filters">

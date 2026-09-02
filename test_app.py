@@ -1035,6 +1035,7 @@ check("the panel has an editable draft and a Copy button",
 # the read-only guardrail, still absolute
 _backend = (pathlib.Path("app/main.py").read_text()
             + pathlib.Path("app/portal/scraper.py").read_text()
+            + pathlib.Path("app/report.py").read_text()
             + pathlib.Path("app/claude_client.py").read_text())
 for banned in ("submitResponse", "submit_response", "fileAppeal", "/submit"):
     check(f"no portal-submission code anywhere ({banned})", banned not in _backend)
@@ -1722,6 +1723,216 @@ check("s syncs and / searches",
 check("neither fires while you are typing",
       "/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)" in _p
       and "if (typing) return;" in _p)
+
+
+
+# 25 - the summary report and the Excel export -------------------------------
+# The firm's old tracker: which notices are overdue, which are about to be,
+# and the same numbers in a workbook. Counted on a database of its own so the
+# arithmetic is exact rather than "whatever the earlier tests left behind".
+import io as _io                                                     # noqa: E402
+from datetime import date as _date, timedelta as _td                 # noqa: E402
+from openpyxl import load_workbook                                   # noqa: E402
+
+from app import report                                               # noqa: E402
+
+_MAIN_DB = db.DB_PATH
+_SUM_DB = TMP.parent / "summary.db"
+db.DB_PATH = _SUM_DB
+db.init_db()
+
+
+def _portal_date(offset):
+    """A date in the portal's own 17-Aug-2026 shape, offset days from today."""
+    return (_date.today() + _td(days=offset)).strftime("%d-%b-%Y")
+
+
+def _proc(con, name, status):
+    return db.upsert_proceeding(con, {
+        "tab": "self", "sub_tab": "action", "proceeding_name": name,
+        "pan": "AAACU3358G", "assessee_name": "CAMBRIDGE TECHNOLOGY ENTERPRISES",
+        "assessment_year": "2026-27", "financial_year": "2025-26",
+        "applicable_act": "Income Tax Act 1961", "status": status,
+        "closure_date": None, "closure_order": None})
+
+
+def _notice(con, ref, pid, due, pdf=b"%PDF-x%%EOF", source="portal"):
+    db.upsert_notice(con, {
+        "proceeding_id": pid, "ref_id": ref, "notice_us": "142(1)",
+        "doc_ref_id": "ITBA/COM/F/17/2026-27/1092231604(1)",
+        "description": f"[ITBA]{ref}", "issued_on": _portal_date(-20),
+        "served_on": None, "due_date": due,
+        "due_date_source": source if due else None,
+        "ao_viewed_on": None, "pdf_blob": pdf})
+
+
+with db.connect() as con:
+    _open = _proc(con, "Assessment u/s 143(2)", "Open")
+    _shut = _proc(con, "Assessment already answered", "Closed")
+    _notice(con, "n-overdue", _open, _portal_date(-5))
+    _notice(con, "n-2d", _open, _portal_date(2))
+    _notice(con, "n-3d", _open, _portal_date(3))
+    _notice(con, "n-4d", _open, _portal_date(4))
+    _notice(con, "n-10d", _open, _portal_date(10))
+    _notice(con, "n-40d", _open, _portal_date(40))
+    _notice(con, "n-nodate", _open, None, pdf=None)
+    _notice(con, "n-closed", _shut, _portal_date(-9))
+    db.save_draft(con, "n-overdue", "summary", "[]", "draft text")
+    _S = report.build_summary(con)
+
+_B = {b["key"]: b["count"] for b in _S["buckets"]}
+check("overdue counts the dates that have already gone", _B["overdue"] == 1, str(_B))
+check("due <=3 days holds day 2 and day 3", _B["due_3"] == 2, str(_B))
+check("due <=10 days starts at day 4 and ends at day 10", _B["due_10"] == 2, str(_B))
+check("on track is everything past ten days", _B["on_track"] == 1, str(_B))
+check("a notice with no due date has its own bucket", _B["no_due_date"] == 1, str(_B))
+check("a closed proceeding is counted separately", _B["closed"] == 1, str(_B))
+check("a closed notice never lands in an urgency bucket even when its date has gone",
+      next(i for i in _S["register"] if i["ref_id"] == "n-closed")["bucket"] == "closed")
+check("every notice is counted exactly once",
+      sum(_B.values()) == len(_S["register"]) == 8, str(_B))
+
+check("day 3 is critical, day 4 is not",
+      report.bucket_of(3, True) == "due_3" and report.bucket_of(4, True) == "due_10")
+check("day 10 is the last of the ten-day band",
+      report.bucket_of(10, True) == "due_10" and report.bucket_of(11, True) == "on_track")
+check("a closed proceeding is closed whatever its date",
+      report.bucket_of(-9, False) == "closed" and report.bucket_of(None, False) == "closed")
+check("the portal's own date format parses",
+      report.parse_date("17-Aug-2026") == _date(2026, 8, 17))
+check("a date the portal left as '-' is not guessed at",
+      report.parse_date("-") is None and report.parse_date(None) is None)
+
+_attn = [i["ref_id"] for i in _S["attention"]]
+check("attention holds only what is overdue or due within three days",
+      _attn == ["n-overdue", "n-2d", "n-3d"], str(_attn))
+check("days left is negative once the date has gone",
+      _S["attention"][0]["days_left"] == -5, str(_S["attention"][0]["days_left"]))
+_first = _S["attention"][0]
+check("attention carries the fields the old sheet showed",
+      all(_first[k] is not None for k in
+          ("description", "pan", "assessment_year", "notice_us", "due_date")),
+      str(_first))
+check("attention carries the pdf / date / draft flags",
+      _first["has_pdf"] and _first["has_due_date"] and _first["has_draft"],
+      str(_first))
+check("the register records where each due date came from",
+      {i["due_date_source"] for i in _S["register"]} == {"portal", None},
+      str({i["due_date_source"] for i in _S["register"]}))
+check("the run line says what was scanned",
+      _S["run"]["notices_scanned"] == 8, str(_S["run"]))
+
+with TestClient(main.app) as client:
+    r = client.get("/api/summary")
+    check("/api/summary answers", r.status_code == 200, r.text[:80])
+    _j = r.json()
+    check("it ships run info, buckets, attention and the full register",
+          all(k in _j for k in ("run", "buckets", "attention", "register")),
+          str(sorted(_j))[:100])
+    check("the endpoint counts the same buckets as the module",
+          {b["key"]: b["count"] for b in _j["buckets"]} == _B)
+    check("the run block carries the finish time and the new count",
+          "finished" in _j["run"] and "new_this_run" in _j["run"], str(_j["run"]))
+
+    r = client.get("/api/export.xlsx")
+    check("the Excel export answers 200", r.status_code == 200, str(r.status_code))
+    check("it is served as a real xlsx",
+          r.headers.get("content-type", "").startswith(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml"),
+          r.headers.get("content-type", "none"))
+    check("the download is named for the day it was built",
+          f'itr-summary-{_date.today().isoformat()}.xlsx'
+          in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", "none"))
+
+    _wb = load_workbook(_io.BytesIO(r.content))
+    check("the workbook opens, with the three sheets",
+          _wb.sheetnames == ["Summary", "Attention", "All notices"],
+          str(_wb.sheetnames))
+    _sum_ws = _wb["Summary"]
+    _sum_text = [str(c.value) for row in _sum_ws.iter_rows() for c in row if c.value]
+    check("the summary sheet keeps the tracker's title",
+          "Position at a glance" in _sum_text, str(_sum_text[:6]))
+    check("it keeps the caution line",
+          any("verify every figure against the portal" in t for t in _sum_text))
+    check("it writes the run date as a date, not text",
+          isinstance(_sum_ws["B2"].value, (_date, datetime.datetime)),
+          type(_sum_ws["B2"].value).__name__)
+    check("every bucket has a label row and a count",
+          all(b["label"] in _sum_text for b in _j["buckets"]))
+    check("the bucket labels are bold",
+          _sum_ws.cell(row=9, column=1).font.bold is True)
+
+    _att = _wb["Attention"]
+    check("the attention sheet lists exactly the attention rows",
+          _att.max_row == 1 + len(_j["attention"]), str(_att.max_row))
+    check("its header row is the tracker's dark blue with white bold text",
+          _att["A1"].font.bold and _att["A1"].font.color.rgb.endswith("FFFFFF")
+          and _att["A1"].fill.fgColor.rgb.endswith("1F3864"),
+          str(_att["A1"].fill.fgColor.rgb))
+    check("the header row is frozen", _att.freeze_panes == "A2", str(_att.freeze_panes))
+    check("columns are sized to their content",
+          _att.column_dimensions["A"].width > 10, str(_att.column_dimensions["A"].width))
+    check("due dates are written as dates, not strings",
+          isinstance(_att["E2"].value, (_date, datetime.datetime)),
+          type(_att["E2"].value).__name__)
+    check("days left stays a number so Excel can sort it",
+          isinstance(_att["F2"].value, int) and _att["F2"].value == -5,
+          str(_att["F2"].value))
+
+    _all = _wb["All notices"]
+    _headers = [c.value for c in _all[1]]
+    check("the register sheet holds every notice",
+          _all.max_row == 1 + len(_j["register"]), str(_all.max_row))
+    check("it says where each due date came from",
+          "Due date from" in _headers, str(_headers))
+    check("it carries the pdf and draft columns",
+          "PDF saved" in _headers and "Draft ready" in _headers, str(_headers))
+
+# the lock covers the report exactly like everything else under /api/
+main.settings.app_password = "dashboard-pw"
+with TestClient(main.app) as anon:
+    check("locked: the summary is not readable",
+          anon.get("/api/summary").status_code == 401)
+    r = anon.get("/api/export.xlsx")
+    check("locked: the export is refused", r.status_code == 401, str(r.status_code))
+    check("locked: no workbook bytes leak out",
+          not r.content.startswith(b"PK"), r.content[:8].hex())
+main.settings.app_password = ""
+
+db.DB_PATH = _MAIN_DB              # back to the suite's own database
+
+# what the dashboard ships for all of this
+_p = _page_now()
+check("the report section is titled like the old sheet",
+      "Position at a glance" in _p)
+check("it prints a run-date line", 'id="r-run"' in _p and "notices scanned" in _p)
+check("the buckets are a row of chips that filter the table",
+      'id="buckets"' in _p and "data-bucket" in _p
+      and "bucketOf(n) === BUCKET" in _p)
+check("the dashboard repeats the server's bucket rules exactly",
+      "d <= 3" in _p and "d <= 10" in _p and "'no_due_date'" in _p)
+check("overdue is red, three days amber, no-date indigo, on track green, closed muted",
+      "overdue: 'late', due_3: 'soon'" in _p
+      and "on_track: 'ok', no_due_date: 'none', closed: 'done'" in _p
+      and ".bchip.none { color: var(--ai)" in _p
+      and ".bchip.ok { color: var(--ok-text)" in _p
+      and ".bchip.done { color: var(--muted)" in _p)
+check("the attention table has the tracker's dark header band",
+      "table.attn thead th { background: var(--attn-head); color: #fff; }" in _p)
+check("its columns are the sheet's columns",
+      "Client / Description" in _p and "<th>Section</th>" in _p
+      and "Days left" in _p)
+check("days left is coloured red when negative and amber inside three days",
+      "d < 0 ? 'late' : d <= 3 ? 'soon' : ''" in _p
+      and ".days.late { color: var(--danger-text); }" in _p)
+check("an empty attention table says exactly what the old sheet said",
+      "Nothing overdue or critical." in _p and ".allclear { color: var(--ok-text)" in _p)
+check("the caution line survives",
+      "Draft for review &mdash; verify every figure against the portal." in _p)
+check("Export sits next to Sync in the header",
+      '<button class="ghost" id="export"' in _p
+      and "location.href = '/api/export.xlsx'" in _p)
 
 
 print()

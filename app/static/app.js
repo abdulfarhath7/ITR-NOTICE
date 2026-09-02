@@ -333,6 +333,99 @@ function renderLastSync(run) {
     + ` · <b>${n(run.skipped_cached)}</b> already held`;
 }
 
+/* --------------------------------------------------------------- report */
+// The firm's old Excel tracker, on the page. The server counts the buckets
+// (app/report.py) so the dashboard and the downloaded .xlsx can never
+// disagree; the chip filter below repeats the same rules on the rows already
+// loaded, which is why clicking one costs no round trip.
+const BUCKET_CLASS = {
+  overdue: 'late', due_3: 'soon', due_10: 'watch',
+  on_track: 'ok', no_due_date: 'none', closed: 'done',
+};
+let SUMMARY = null;
+let BUCKET = '';                     // the chip filtering the table, '' = none
+
+function bucketOf(n) {
+  if (String(n.status || '').trim().toLowerCase() === 'closed') return 'closed';
+  const d = dueInDays(n.due_date);
+  if (d === null) return 'no_due_date';
+  if (d < 0) return 'overdue';
+  if (d <= 3) return 'due_3';
+  if (d <= 10) return 'due_10';
+  return 'on_track';
+}
+
+function renderBuckets(buckets) {
+  $('buckets').innerHTML = (buckets || []).map(b =>
+    `<button class="bchip ${BUCKET_CLASS[b.key] || ''}${b.count ? '' : ' zero'}"
+             data-bucket="${esc(b.key)}" aria-pressed="${BUCKET === b.key}"
+             title="Show only these in the table below">
+       <span class="n">${esc(b.count)}</span><span>${esc(b.label)}</span></button>`
+  ).join('');
+}
+
+// Red once the date has gone, amber while it is inside three days.
+function daysCell(d) {
+  if (d === null || d === undefined) return '<span class="mut">&mdash;</span>';
+  const cls = d < 0 ? 'late' : d <= 3 ? 'soon' : '';
+  return `<span class="days ${cls}">${esc(d)}</span>`;
+}
+
+function renderAttention(items) {
+  const tb = $('attnrows');
+  if (!items.length) {
+    // the old sheet's own words, kept exactly
+    tb.innerHTML = '<tr><td colspan="7"><span class="allclear">'
+      + 'Nothing overdue or critical.</span></td></tr>';
+    return;
+  }
+  tb.innerHTML = items.map(i => `<tr>
+      <td>${esc(i.description || i.proceeding_name || i.ref_id || '—')}
+        ${i.description && i.proceeding_name
+          ? `<div class="sub">${esc(i.proceeding_name)}</div>` : ''}</td>
+      <td class="mono">${esc(i.pan || '—')}</td>
+      <td class="mono">${esc(i.assessment_year || '—')}</td>
+      <td>${esc(i.notice_us || '—')}</td>
+      <td class="mono">${esc(i.due_date || '—')}</td>
+      <td class="right">${daysCell(i.days_left)}</td>
+      <td>${statusCell({ has_pdf: i.has_pdf, due_date: i.due_date,
+                         has_draft: i.has_draft })}</td>
+    </tr>`).join('');
+}
+
+function renderReport(s) {
+  SUMMARY = s;
+  const run = s.run || {};
+  const when = relTime(run.finished) || run.finished;
+  $('r-run').innerHTML = run.finished
+    ? `Run <b>${esc(when)}</b> · <b>${esc(run.notices_scanned)}</b> notices scanned`
+      + ` · <b>${esc(run.new_this_run)}</b> new this run`
+    : `No sync has finished yet · <b>${esc(run.notices_scanned || 0)}</b> notices held`;
+  renderBuckets(s.buckets);
+  renderAttention(s.attention || []);
+}
+
+async function loadSummary() {
+  try {
+    const r = await fetch('/api/summary');
+    if (!r.ok) return;
+    renderReport(await r.json());
+  } catch (e) {
+    /* the table still works without the report; leave what is on screen */
+  }
+}
+
+$('buckets').addEventListener('click', ev => {
+  const chip = ev.target.closest('[data-bucket]');
+  if (!chip) return;
+  BUCKET = BUCKET === chip.dataset.bucket ? '' : chip.dataset.bucket;
+  renderBuckets(SUMMARY && SUMMARY.buckets);
+  applyFilters();
+});
+
+// A real workbook, built server-side: Summary, Attention, All notices.
+$('export').onclick = () => { location.href = '/api/export.xlsx'; };
+
 function fillYears(rows) {
   const sel = $('f-ay');
   const years = [...new Set(rows.map(n => n.assessment_year).filter(Boolean))].sort();
@@ -364,7 +457,8 @@ function visibleRows() {
   return NOTICES.filter(n =>
     (!ay || n.assessment_year === ay)
     && (!name || (n.proceeding_name || '').toLowerCase().includes(name))
-    && (!noDue || !n.due_date));
+    && (!noDue || !n.due_date)
+    && (!BUCKET || bucketOf(n) === BUCKET));
 }
 
 const SKELETON = Array.from({ length: 5 }, () => `<tr>${
@@ -431,6 +525,7 @@ async function loadNotices() {
     renderLastSync(d.last_run);
     fillYears(NOTICES);
     applyFilters();
+    loadSummary();                   // the report is counted server-side
   } catch (e) {
     LOADING = false;
     $('rows').innerHTML = `<tr><td colspan="6"><div class="empty-state">
@@ -591,7 +686,8 @@ function commands() {
     { label: 'Speed: fast', run: () => setSpeed('fast') },
     { label: 'Speed: extreme (testing only)', run: () => setSpeed('extreme') },
     { label: 'Filter: missing due date', run: () => { $('f-nodue').checked = true; applyFilters(); } },
-    { label: 'Clear filters', run: () => { $('f-ay').value = ''; $('f-name').value = ''; $('f-nodue').checked = false; applyFilters(); } },
+    { label: 'Clear filters', run: () => { $('f-ay').value = ''; $('f-name').value = ''; $('f-nodue').checked = false; BUCKET = ''; renderBuckets(SUMMARY && SUMMARY.buckets); applyFilters(); } },
+    { label: 'Export summary to Excel', run: () => $('export').click() },
     { label: 'Toggle live viewport', run: () => { $('monitor').open = !$('monitor').open; } },
   ];
   const notices = NOTICES.filter(n => n.has_pdf).map(n => ({

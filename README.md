@@ -42,6 +42,24 @@ Dark by default, light on the toggle. Ctrl/Cmd+K opens a command palette,
 viewport" card shows what the browser is actually looking at, frame by frame -
 except on the login and OTP screens, which are never captured.
 
+## Summary and Excel
+
+"Position at a glance" sits above the table: the last run, then a row of
+chips - Overdue, Due <=3 days, Due <=10 days, On track, No due date yet, and
+Closed / responded counted apart. Click a chip and the table below shows only
+those notices; click it again to clear. Under it, "Attention - overdue & due
+within 3 days" is the short list someone has to act on today, and it says
+"Nothing overdue or critical." when there is none.
+
+Only open proceedings get an urgency bucket. A closed one is counted on its
+own line, so a notice that has already been answered can never read as overdue.
+
+"Export" in the header downloads the same report as a real workbook,
+`itr-summary-YYYY-MM-DD.xlsx`, with three sheets: Summary (the counts),
+Attention (the same short list) and All notices (the whole register, including
+whether each due date came from the portal or from Claude). It is behind the
+same password as everything else.
+
 ## What is built vs pending
 
 - [x] Step 1  FastAPI skeleton + SQLite schema
@@ -75,6 +93,9 @@ except on the login and OTP screens, which are never captured.
               nothing captured while a password or OTP is on screen.
 - [x] Step 13 Pipeline bar over the log, and a Ctrl/Cmd+K command palette
               (sync, theme, speed, filters, open any notice).
+- [x] Step 14 Summary report: "Position at a glance" buckets that filter the
+              table, an attention list of what is overdue or due within three
+              days, and an Excel export (Summary / Attention / All notices).
 - [x] Step 10 Overview at the top: five stat cards (total, due this week,
               missing date, docs saved, drafts ready), a one-line "Last sync"
               (new notices, PDFs saved, already held; a failed run shows only
