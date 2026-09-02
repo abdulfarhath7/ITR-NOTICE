@@ -72,9 +72,11 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Speed control (live): three header buttons, Slow / Fast / Extreme, one
   always active, default fast, with a "testing only" caption under Extreme.
   Playwright's `slow_mo` is fixed at launch, so it is set to 0 and the pacing
-  is ours: `SPEEDS = {slow: 1.0s, fast: 0.25s, extreme: 0}` on `hub.speed`,
-  changed by POST /api/speed (400 on an unknown name), broadcast as a `speed`
-  frame over the WebSocket (also sent on connect, right after `state`), and
+  is ours: `MODES = {slow: 1.0s, fast: 0.25s, extreme: 0}` on `hub.mode`,
+  changed by `POST /api/speed {"mode": "slow|fast|extreme"}` (400 on an
+  unknown mode, 422 on a missing one; case and spaces are forgiven), broadcast
+  as `{"type": "speed", "mode", "delay_ms"}` over the WebSocket (also sent on
+  connect, right after `state`), and
   waited out by `await session.pace()` / `pace_for(events)` before every fill,
   click, parse and download. The delay is re-read on every call, so pressing a
   button in the middle of a sync is felt by the very next action. TESTED

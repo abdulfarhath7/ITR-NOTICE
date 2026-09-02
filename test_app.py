@@ -1163,37 +1163,39 @@ with TestClient(main.app) as client:
 # launch, so the pace is ours and is re-read before every browser action.
 from app.portal.session import pace_for, PortalSession        # noqa: E402
 
-check("the three speeds are the ones on the buttons",
-      sorted(main.SPEEDS) == ["extreme", "fast", "slow"], str(list(main.SPEEDS)))
+check("the three modes are the ones on the buttons",
+      sorted(main.MODES) == ["extreme", "fast", "slow"], str(list(main.MODES)))
 check("slow is a full second, extreme is no wait at all",
-      main.SPEEDS["slow"] == 1.0 and main.SPEEDS["fast"] == 0.25
-      and main.SPEEDS["extreme"] == 0.0, str(main.SPEEDS))
-check("fast is the default", main.DEFAULT_SPEED == "fast")
+      main.MODES["slow"] == 1.0 and main.MODES["fast"] == 0.25
+      and main.MODES["extreme"] == 0.0, str(main.MODES))
+check("fast is the default", main.DEFAULT_MODE == "fast")
 
-main.hub.speed = main.DEFAULT_SPEED
+main.hub.mode = main.DEFAULT_MODE
 with TestClient(main.app) as client:
-    check("the speed can be read back", client.get("/api/speed").json()["speed"] == "fast")
+    check("the mode can be read back", client.get("/api/speed").json()["mode"] == "fast")
 
     for name, ms in (("slow", 1000), ("extreme", 0), ("fast", 250)):
-        r = client.post("/api/speed", json={"speed": name})
-        check(f"speed {name} is accepted",
-              r.status_code == 200 and r.json() == {"speed": name, "delay_ms": ms},
+        r = client.post("/api/speed", json={"mode": name})
+        check(f"mode {name} is accepted",
+              r.status_code == 200 and r.json() == {"mode": name, "delay_ms": ms},
               r.text[:80])
-        check(f"speed {name} is what the scraper will read",
-              main.hub.speed == name and main.hub.pace_seconds() == main.SPEEDS[name])
+        check(f"mode {name} is what the scraper will read",
+              main.hub.mode == name and main.hub.pace_seconds() == main.MODES[name])
 
-    r = client.post("/api/speed", json={"speed": "ludicrous"})
-    check("an unknown speed is rejected", r.status_code == 400, r.text[:80])
-    check("the rejection lists the speeds that do work",
-          all(s in r.json()["error"] for s in main.SPEEDS), r.text[:90])
-    check("a rejected speed changes nothing", main.hub.speed == "fast")
-    check("a missing speed field is a 422, not a crash",
+    r = client.post("/api/speed", json={"mode": "ludicrous"})
+    check("an unknown mode is rejected", r.status_code == 400, r.text[:80])
+    check("the rejection lists the modes that do work",
+          all(s in r.json()["error"] for s in main.MODES), r.text[:90])
+    check("a rejected mode changes nothing", main.hub.mode == "fast")
+    check("a missing mode field is a 422, not a crash",
           client.post("/api/speed", json={}).status_code == 422)
+    check("a mode of the wrong type is a 422, not a crash",
+          client.post("/api/speed", json={"mode": 3}).status_code == 422)
 
     # case and stray spaces are the user's, not an error
-    r = client.post("/api/speed", json={"speed": "  SLOW "})
-    check("the speed name is normalised", r.status_code == 200
-          and main.hub.speed == "slow", r.text[:80])
+    r = client.post("/api/speed", json={"mode": "  SLOW "})
+    check("the mode name is normalised", r.status_code == 200
+          and main.hub.mode == "slow", r.text[:80])
 
     # every open dashboard hears about it, including one that never clicked
     with client.websocket_connect("/ws") as ws:
@@ -1201,20 +1203,20 @@ with TestClient(main.app) as client:
         for _ in range(2):
             m = ws.receive_json()
             seen[m["type"]] = m
-        check("a new socket is told the current speed",
-              seen.get("speed", {}).get("speed") == "slow", str(seen.get("speed")))
-        client.post("/api/speed", json={"speed": "extreme"})
+        check("a new socket is told the current mode",
+              seen.get("speed", {}).get("mode") == "slow", str(seen.get("speed")))
+        client.post("/api/speed", json={"mode": "extreme"})
         pushed = None
         for _ in range(6):
             m = ws.receive_json()
             if m["type"] == "speed":
                 pushed = m
                 break
-        check("a speed change is broadcast to every open dashboard",
-              pushed == {"type": "speed", "speed": "extreme", "delay_ms": 0},
+        check("a mode change is broadcast to every open dashboard",
+              pushed == {"type": "speed", "mode": "extreme", "delay_ms": 0},
               str(pushed))
 
-main.hub.speed = main.DEFAULT_SPEED
+main.hub.mode = main.DEFAULT_MODE
 
 # the wait itself: read live, so a change lands mid-sync
 async def _timed(events):
@@ -1222,11 +1224,11 @@ async def _timed(events):
     await pace_for(events)
     return time.monotonic() - t0
 
-main.hub.speed = "extreme"
+main.hub.mode = "extreme"
 check("extreme does not wait", asyncio.run(_timed(main.hub)) < 0.05)
-main.hub.speed = "slow"
+main.hub.mode = "slow"
 check("slow waits about a second", 0.9 <= asyncio.run(_timed(main.hub)) <= 1.4)
-main.hub.speed = main.DEFAULT_SPEED
+main.hub.mode = main.DEFAULT_MODE
 
 
 class SpeedlessEvents:
@@ -1249,7 +1251,7 @@ async def _timed_pace(obj):
     return time.monotonic() - t0
 
 
-main.hub.speed = "slow"
+main.hub.mode = "slow"
 check("session.pace() reads the same live setting",
       0.9 <= asyncio.run(_timed_pace(PacedSession())) <= 1.4)
 
@@ -1257,16 +1259,16 @@ check("session.pace() reads the same live setting",
 # the whole point: pressing a button mid-sync is felt by the next action
 async def _mid_run_change():
     sess = PacedSession()
-    main.hub.speed = "slow"
+    main.hub.mode = "slow"
     slow = await _timed_pace(sess)
-    main.hub.speed = "extreme"          # the dashboard button, mid-walk
+    main.hub.mode = "extreme"           # the dashboard button, mid-walk
     quick = await _timed_pace(sess)
     return slow, quick
 
 _slow, _quick = asyncio.run(_mid_run_change())
-check("changing the speed mid-sync changes the very next action",
+check("changing the mode mid-sync changes the very next action",
       _slow >= 0.9 and _quick < 0.05, f"{_slow:.2f}s then {_quick:.2f}s")
-main.hub.speed = main.DEFAULT_SPEED
+main.hub.mode = main.DEFAULT_MODE
 
 # every browser action is paced: the calls are in the source, not just the API
 _sess_src = pathlib.Path("app/portal/session.py").read_text()
@@ -1280,8 +1282,9 @@ check("every scraper click is paced", "await pace_for(events)" in _scrp_src)
 check("parsing and downloading are paced too",
       _scrp_src.count("await session.pace()") >= 3,
       str(_scrp_src.count("await session.pace()")))
-check("the dashboard posts the speed to the server, not to a cookie",
-      "/api/speed" in _page_now() and "speed=${SPEED}" not in _page_now())
+check("the dashboard posts the mode to the server, not to a cookie",
+      "/api/speed" in _page_now() and "JSON.stringify({ mode: next })" in _page_now()
+      and "speed=${SPEED}" not in _page_now())
 check("the dashboard labels the buttons Slow, Fast and Extreme",
       all(f'data-speed="{s}"' in _page_now() for s in ("slow", "fast", "extreme")))
 check("extreme carries its 'testing only' caption",

@@ -112,7 +112,7 @@ ws.onmessage = ev => {
     renderPipe();
     $('monitor').open = true;          // a run started: show the viewport
   }
-  if (d.type === 'speed') { SPEED = d.speed; paintSpeed(); }
+  if (d.type === 'speed') { MODE = d.mode; paintSpeed(); }
   if (d.type === 'viewport') showFrame(d.img);
   if (d.type === 'sync_finished') {
     setState(d.status);
@@ -199,23 +199,23 @@ $('signout').onclick = async () => { await fetch('/logout', { method: 'POST' });
 // The pace belongs to the server, not to this browser: it is the delay the
 // scraper waits before every action, read fresh each time. So a click here
 // changes the speed of a sync that is already running, not just the next one.
-let SPEED = 'fast';
+let MODE = 'fast';
 function paintSpeed() {
   document.querySelectorAll('.seg button').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.speed === SPEED)));
-  $('speednote').hidden = SPEED !== 'extreme';
+    b.setAttribute('aria-pressed', String(b.dataset.speed === MODE)));
+  $('speednote').hidden = MODE !== 'extreme';
 }
 async function setSpeed(next) {
   try {
     const r = await fetch('/api/speed', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ speed: next }),
+      body: JSON.stringify({ mode: next }),
     });
     const d = await r.json();
     if (!r.ok) { toast(d.error || 'Could not change the speed.'); return; }
-    SPEED = d.speed;                 // the ws push repaints every other tab
+    MODE = d.mode;                   // the ws push repaints every other tab
     paintSpeed();
-    toast(`Speed: ${SPEED} (${d.delay_ms}ms per action)`);
+    toast(`Speed: ${MODE} (${d.delay_ms}ms per action)`);
   } catch (e) {
     toast('Could not reach the server.');
   }

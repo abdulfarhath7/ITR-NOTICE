@@ -159,8 +159,8 @@ async def logout():
 # is fixed when the browser launches, so the dashboard's buttons could never
 # have moved it; this is read fresh before each action instead, which is what
 # makes a speed change land in the middle of a running sync.
-SPEEDS = {"slow": 1.0, "fast": 0.25, "extreme": 0.0}
-DEFAULT_SPEED = "fast"
+MODES = {"slow": 1.0, "fast": 0.25, "extreme": 0.0}
+DEFAULT_MODE = "fast"
 
 
 # ------------------------------------------------------------------ event hub
@@ -185,16 +185,19 @@ class EventHub:
         self.download_limit: int | None = None
         # slow | fast | extreme. Read live by session.pace(), so changing it
         # mid-sync changes the very next browser action.
-        self.speed = DEFAULT_SPEED
+        self.mode = DEFAULT_MODE
 
     # -------------------------------------------------------------- pacing
     def pace_seconds(self) -> float:
-        return SPEEDS.get(self.speed, SPEEDS[DEFAULT_SPEED])
+        return MODES.get(self.mode, MODES[DEFAULT_MODE])
 
-    async def set_speed(self, speed: str) -> None:
-        self.speed = speed
-        await self._broadcast({"type": "speed", "speed": speed,
-                               "delay_ms": int(self.pace_seconds() * 1000)})
+    async def set_mode(self, mode: str) -> None:
+        self.mode = mode
+        await self._broadcast(self.speed_frame())
+
+    def speed_frame(self) -> dict:
+        return {"type": "speed", "mode": self.mode,
+                "delay_ms": int(self.pace_seconds() * 1000)}
 
     # ------------------------------------------------------- credentials
     def set_credentials(self, user_id: str, password: str) -> None:
@@ -404,24 +407,24 @@ async def forget_credentials():
 
 # --------------------------------------------------------------- speed knob
 class SpeedIn(BaseModel):
-    speed: str
+    mode: str
 
 
 @app.get("/api/speed")
 async def read_speed():
-    return {"speed": hub.speed, "delay_ms": int(hub.pace_seconds() * 1000)}
+    return {"mode": hub.mode, "delay_ms": int(hub.pace_seconds() * 1000)}
 
 
 @app.post("/api/speed")
 async def write_speed(body: SpeedIn):
     """Takes effect on the next browser action, running sync or not."""
-    speed = body.speed.strip().lower()
-    if speed not in SPEEDS:
+    mode = body.mode.strip().lower()
+    if mode not in MODES:
         return JSONResponse(
-            {"error": f"speed must be one of: {', '.join(SPEEDS)}"},
+            {"error": f"mode must be one of: {', '.join(MODES)}"},
             status_code=400)
-    await hub.set_speed(speed)
-    return {"speed": speed, "delay_ms": int(hub.pace_seconds() * 1000)}
+    await hub.set_mode(mode)
+    return {"mode": mode, "delay_ms": int(hub.pace_seconds() * 1000)}
 
 
 class OtpIn(BaseModel):
@@ -579,8 +582,7 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     hub.sockets.append(ws)
     await ws.send_json({"type": "state", "state": hub.state})
-    await ws.send_json({"type": "speed", "speed": hub.speed,
-                        "delay_ms": int(hub.pace_seconds() * 1000)})
+    await ws.send_json(hub.speed_frame())
     # Replay enough for a browser that refreshed mid-sync to catch up.
     if hub.last_progress:
         await ws.send_json(hub.last_progress)
