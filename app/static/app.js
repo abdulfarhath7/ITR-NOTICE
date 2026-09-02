@@ -109,6 +109,7 @@ ws.onmessage = ev => {
     renderPipe();
     $('monitor').open = true;          // a run started: show the viewport
   }
+  if (d.type === 'speed') { SPEED = d.speed; paintSpeed(); }
   if (d.type === 'viewport') showFrame(d.img);
   if (d.type === 'sync_finished') {
     setState(d.status);
@@ -152,7 +153,8 @@ async function startSync() {
 }
 $('sync').onclick = startSync;
 
-$('credsend').onclick = async () => {
+$('credform').onsubmit = async (ev) => {
+  ev.preventDefault();                     // stay on the page, post it ourselves
   const user_id = $('uid').value.trim();
   const pwdBox = $('pwd');
   const password = pwdBox.value;
@@ -191,20 +193,32 @@ $('otpsend').onclick = async () => {
 $('signout').onclick = async () => { await fetch('/logout', { method: 'POST' }); location.reload(); };
 
 /* ----------------------------------------------------------- speed control */
-// Slow is watchable, extreme is headless-fast. Stored per browser; the sync
-// endpoints read it from the same limit/speed payload.
-let SPEED = readCookie('speed') || 'fast';
+// The pace belongs to the server, not to this browser: it is the delay the
+// scraper waits before every action, read fresh each time. So a click here
+// changes the speed of a sync that is already running, not just the next one.
+let SPEED = 'fast';
 function paintSpeed() {
   document.querySelectorAll('.seg button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.speed === SPEED)));
+  $('speednote').hidden = SPEED !== 'extreme';
+}
+async function setSpeed(next) {
+  try {
+    const r = await fetch('/api/speed', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ speed: next }),
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || 'Could not change the speed.'); return; }
+    SPEED = d.speed;                 // the ws push repaints every other tab
+    paintSpeed();
+    toast(`Speed: ${SPEED} (${d.delay_ms}ms per action)`);
+  } catch (e) {
+    toast('Could not reach the server.');
+  }
 }
 document.querySelectorAll('.seg button').forEach(b => {
-  b.onclick = () => {
-    SPEED = b.dataset.speed;
-    document.cookie = `speed=${SPEED}; path=/; max-age=31536000; samesite=lax`;
-    paintSpeed();
-    toast(`Speed: ${SPEED} (applies to the next sync)`);
-  };
+  b.onclick = () => setSpeed(b.dataset.speed);
 });
 paintSpeed();
 
@@ -462,9 +476,9 @@ function commands() {
   const base = [
     { label: 'Run sync', hint: 's', run: startSync },
     { label: 'Toggle theme', hint: '', run: () => $('theme').click() },
-    { label: 'Speed: slow', run: () => document.querySelector('[data-speed=slow]').click() },
-    { label: 'Speed: fast', run: () => document.querySelector('[data-speed=fast]').click() },
-    { label: 'Speed: extreme', run: () => document.querySelector('[data-speed=extreme]').click() },
+    { label: 'Speed: slow', run: () => setSpeed('slow') },
+    { label: 'Speed: fast', run: () => setSpeed('fast') },
+    { label: 'Speed: extreme (testing only)', run: () => setSpeed('extreme') },
     { label: 'Filter: missing due date', run: () => { $('f-nodue').checked = true; applyFilters(); } },
     { label: 'Clear filters', run: () => { $('f-ay').value = ''; $('f-name').value = ''; $('f-nodue').checked = false; applyFilters(); } },
     { label: 'Toggle live viewport', run: () => { $('monitor').open = !$('monitor').open; } },

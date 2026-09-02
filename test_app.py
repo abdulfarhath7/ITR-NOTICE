@@ -1069,9 +1069,9 @@ main.hub.sockets.remove(rec2)
 # a browser connecting mid-sync is caught up on both
 with TestClient(main.app) as client:
     with client.websocket_connect("/ws") as ws:
-        kinds = [ws.receive_json()["type"] for _ in range(3)]
-    check("a fresh socket is replayed state, progress and the last frame",
-          kinds == ["state", "progress", "viewport"], str(kinds))
+        kinds = [ws.receive_json()["type"] for _ in range(4)]
+    check("a fresh socket is replayed state, speed, progress and the last frame",
+          kinds == ["state", "speed", "progress", "viewport"], str(kinds))
 
 # --- the rule that matters: no credential ever reaches the viewport ---------
 class FakePage:
@@ -1160,6 +1160,136 @@ with TestClient(main.app) as client:
         check(f"{path} is served", r.status_code == 200
               and kind in r.headers.get("content-type", ""),
               f"{r.status_code} {r.headers.get('content-type', '')}")
+
+# 22 - live speed control ----------------------------------------------------
+# The point of this one is that it is LIVE: Playwright's slow_mo is fixed at
+# launch, so the pace is ours and is re-read before every browser action.
+from app.portal.session import pace_for, PortalSession        # noqa: E402
+
+check("the three speeds are the ones on the buttons",
+      sorted(main.SPEEDS) == ["extreme", "fast", "slow"], str(list(main.SPEEDS)))
+check("slow is a full second, extreme is no wait at all",
+      main.SPEEDS["slow"] == 1.0 and main.SPEEDS["fast"] == 0.25
+      and main.SPEEDS["extreme"] == 0.0, str(main.SPEEDS))
+check("fast is the default", main.DEFAULT_SPEED == "fast")
+
+main.hub.speed = main.DEFAULT_SPEED
+with TestClient(main.app) as client:
+    check("the speed can be read back", client.get("/api/speed").json()["speed"] == "fast")
+
+    for name, ms in (("slow", 1000), ("extreme", 0), ("fast", 250)):
+        r = client.post("/api/speed", json={"speed": name})
+        check(f"speed {name} is accepted",
+              r.status_code == 200 and r.json() == {"speed": name, "delay_ms": ms},
+              r.text[:80])
+        check(f"speed {name} is what the scraper will read",
+              main.hub.speed == name and main.hub.pace_seconds() == main.SPEEDS[name])
+
+    r = client.post("/api/speed", json={"speed": "ludicrous"})
+    check("an unknown speed is rejected", r.status_code == 400, r.text[:80])
+    check("the rejection lists the speeds that do work",
+          all(s in r.json()["error"] for s in main.SPEEDS), r.text[:90])
+    check("a rejected speed changes nothing", main.hub.speed == "fast")
+    check("a missing speed field is a 422, not a crash",
+          client.post("/api/speed", json={}).status_code == 422)
+
+    # case and stray spaces are the user's, not an error
+    r = client.post("/api/speed", json={"speed": "  SLOW "})
+    check("the speed name is normalised", r.status_code == 200
+          and main.hub.speed == "slow", r.text[:80])
+
+    # every open dashboard hears about it, including one that never clicked
+    with client.websocket_connect("/ws") as ws:
+        seen = {}
+        for _ in range(2):
+            m = ws.receive_json()
+            seen[m["type"]] = m
+        check("a new socket is told the current speed",
+              seen.get("speed", {}).get("speed") == "slow", str(seen.get("speed")))
+        client.post("/api/speed", json={"speed": "extreme"})
+        pushed = None
+        for _ in range(6):
+            m = ws.receive_json()
+            if m["type"] == "speed":
+                pushed = m
+                break
+        check("a speed change is broadcast to every open dashboard",
+              pushed == {"type": "speed", "speed": "extreme", "delay_ms": 0},
+              str(pushed))
+
+main.hub.speed = main.DEFAULT_SPEED
+
+# the wait itself: read live, so a change lands mid-sync
+async def _timed(events):
+    t0 = time.monotonic()
+    await pace_for(events)
+    return time.monotonic() - t0
+
+main.hub.speed = "extreme"
+check("extreme does not wait", asyncio.run(_timed(main.hub)) < 0.05)
+main.hub.speed = "slow"
+check("slow waits about a second", 0.9 <= asyncio.run(_timed(main.hub)) <= 1.4)
+main.hub.speed = main.DEFAULT_SPEED
+
+
+class SpeedlessEvents:
+    """An events object from before the speed knob existed."""
+
+
+check("pacing a hub that has no speed knob is a no-op, not a crash",
+      asyncio.run(_timed(SpeedlessEvents())) < 0.05)
+
+
+class PacedSession:
+    """Just the pace() method, on the same hub the real session gets."""
+    events = main.hub
+    pace = PortalSession.pace
+
+
+async def _timed_pace(obj):
+    t0 = time.monotonic()
+    await obj.pace()
+    return time.monotonic() - t0
+
+
+main.hub.speed = "slow"
+check("session.pace() reads the same live setting",
+      0.9 <= asyncio.run(_timed_pace(PacedSession())) <= 1.4)
+
+
+# the whole point: pressing a button mid-sync is felt by the next action
+async def _mid_run_change():
+    sess = PacedSession()
+    main.hub.speed = "slow"
+    slow = await _timed_pace(sess)
+    main.hub.speed = "extreme"          # the dashboard button, mid-walk
+    quick = await _timed_pace(sess)
+    return slow, quick
+
+_slow, _quick = asyncio.run(_mid_run_change())
+check("changing the speed mid-sync changes the very next action",
+      _slow >= 0.9 and _quick < 0.05, f"{_slow:.2f}s then {_quick:.2f}s")
+main.hub.speed = main.DEFAULT_SPEED
+
+# every browser action is paced: the calls are in the source, not just the API
+_sess_src = pathlib.Path("app/portal/session.py").read_text()
+_scrp_src = pathlib.Path("app/portal/scraper.py").read_text()
+check("login paces before the user id, the password and each Continue",
+      _sess_src.count("await self.pace()") >= 6,
+      str(_sess_src.count("await self.pace()")))
+check("slow_mo is no longer used (it cannot change after launch)",
+      "slow_mo=0," in _sess_src and "settings.slow_mo_ms" not in _sess_src)
+check("every scraper click is paced", "await pace_for(events)" in _scrp_src)
+check("parsing and downloading are paced too",
+      _scrp_src.count("await session.pace()") >= 3,
+      str(_scrp_src.count("await session.pace()")))
+check("the dashboard posts the speed to the server, not to a cookie",
+      "/api/speed" in _page_now() and "speed=${SPEED}" not in _page_now())
+check("the dashboard labels the buttons Slow, Fast and Extreme",
+      all(f'data-speed="{s}"' in _page_now() for s in ("slow", "fast", "extreme")))
+check("extreme carries its 'testing only' caption",
+      "testing only" in _page_now() and "speednote" in _page_now())
+
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

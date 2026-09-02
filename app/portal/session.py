@@ -85,6 +85,22 @@ async def dismiss_security_popup(page, events=None) -> bool:
     return False
 
 
+async def pace_for(events) -> None:
+    """Wait out the dashboard's current speed setting.
+
+    Playwright's slow_mo is fixed when the browser launches, so the Slow /
+    Fast / Extreme buttons could never have moved it. The delay is read from
+    the hub on every single call instead, which is what lets a click on the
+    dashboard change the pace of a sync that is already running.
+    """
+    getter = getattr(events, "pace_seconds", None)
+    if getter is None:
+        return
+    delay = getter()
+    if delay > 0:
+        await asyncio.sleep(delay)
+
+
 async def first_visible(locator):
     """Return the first match only if a human could actually see it.
 
@@ -131,8 +147,9 @@ class PortalSession:
         self._pw = await async_playwright().start()
         self.browser = await self._pw.chromium.launch(
             headless=settings.headless,
-            # Only worth slowing down when there is a window to watch.
-            slow_mo=0 if settings.headless else settings.slow_mo_ms,
+            # No slow_mo: it cannot be changed after launch, so the speed
+            # buttons would be dead. pace() does the waiting instead.
+            slow_mo=0,
             args=["--disable-blink-features=AutomationControlled"],
         )
         ctx = await self.browser.new_context(
@@ -154,6 +171,11 @@ class PortalSession:
             if self._pw:
                 await self._pw.stop()
 
+    # ---------------------------------------------------------------- pacing
+    async def pace(self) -> None:
+        """Call before every fill, click, parse and download."""
+        await pace_for(self.events)
+
     # ----------------------------------------------------------------- login
     async def login(self) -> None:
         page = self.page
@@ -164,7 +186,9 @@ class PortalSession:
         # --- page 1: User ID ------------------------------------------------
         uid = page.get_by_placeholder("PAN/ AADHAAR/ OTHER USER ID")
         await uid.wait_for(state="visible", timeout=30000)
+        await self.pace()
         await uid.fill(self._user_id)
+        await self.pace()
         await page.get_by_role("button", name="Continue").click()
         await self.events.log("User ID submitted")
 
@@ -173,10 +197,13 @@ class PortalSession:
         await confirm.wait_for(state="visible", timeout=30000)
         checkbox = page.locator("input[type=checkbox]").first
         if not await checkbox.is_checked():
+            await self.pace()
             await checkbox.check()
+        await self.pace()
         await page.get_by_placeholder("Password").or_(
             page.locator("input[type=password]")
         ).first.fill(self._password)
+        await self.pace()
         await page.get_by_role("button", name="Continue").click()
         await self.events.log("Password submitted")
 
@@ -211,6 +238,7 @@ class PortalSession:
         except Exception:
             pass
         await asyncio.sleep(RETRY_PAUSE_SECONDS)
+        await self.pace()
         button = page.get_by_role("button", name="Continue").first
         await button.click(timeout=15000)
 
@@ -264,6 +292,7 @@ class PortalSession:
                 if btn:
                     await self.events.log(
                         f"Another session detected - clicking '{label}'")
+                    await self.pace()
                     await btn.click()
                     break
 
@@ -278,6 +307,7 @@ class PortalSession:
                 field = page.locator(
                     "input[type=tel], input[type=number], "
                     "input[placeholder*='OTP' i]").first
+                await self.pace()
                 await field.fill(code)
                 await self._click_if_visible("button:has-text('Continue')")
                 await self._click_if_visible("button:has-text('Submit')")

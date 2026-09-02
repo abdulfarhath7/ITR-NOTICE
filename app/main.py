@@ -154,6 +154,15 @@ async def logout():
     return resp
 
 
+# --------------------------------------------------------------- speed knob
+# How long every browser action waits before it happens. Playwright's slow_mo
+# is fixed when the browser launches, so the dashboard's buttons could never
+# have moved it; this is read fresh before each action instead, which is what
+# makes a speed change land in the middle of a running sync.
+SPEEDS = {"slow": 1.0, "fast": 0.25, "extreme": 0.0}
+DEFAULT_SPEED = "fast"
+
+
 # ------------------------------------------------------------------ event hub
 class EventHub:
     """Bridges the scraper (async world) and the dashboard (WebSocket), and
@@ -174,6 +183,18 @@ class EventHub:
         self.last_log: str = ""
         # How many NEW PDFs a run may fetch. None = every notice.
         self.download_limit: int | None = None
+        # slow | fast | extreme. Read live by session.pace(), so changing it
+        # mid-sync changes the very next browser action.
+        self.speed = DEFAULT_SPEED
+
+    # -------------------------------------------------------------- pacing
+    def pace_seconds(self) -> float:
+        return SPEEDS.get(self.speed, SPEEDS[DEFAULT_SPEED])
+
+    async def set_speed(self, speed: str) -> None:
+        self.speed = speed
+        await self._broadcast({"type": "speed", "speed": speed,
+                               "delay_ms": int(self.pace_seconds() * 1000)})
 
     # ------------------------------------------------------- credentials
     def set_credentials(self, user_id: str, password: str) -> None:
@@ -382,6 +403,28 @@ async def forget_credentials():
     return {"cleared": True}
 
 
+# --------------------------------------------------------------- speed knob
+class SpeedIn(BaseModel):
+    speed: str
+
+
+@app.get("/api/speed")
+async def read_speed():
+    return {"speed": hub.speed, "delay_ms": int(hub.pace_seconds() * 1000)}
+
+
+@app.post("/api/speed")
+async def write_speed(body: SpeedIn):
+    """Takes effect on the next browser action, running sync or not."""
+    speed = body.speed.strip().lower()
+    if speed not in SPEEDS:
+        return JSONResponse(
+            {"error": f"speed must be one of: {', '.join(SPEEDS)}"},
+            status_code=400)
+    await hub.set_speed(speed)
+    return {"speed": speed, "delay_ms": int(hub.pace_seconds() * 1000)}
+
+
 class OtpIn(BaseModel):
     code: str
 
@@ -532,6 +575,8 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     hub.sockets.append(ws)
     await ws.send_json({"type": "state", "state": hub.state})
+    await ws.send_json({"type": "speed", "speed": hub.speed,
+                        "delay_ms": int(hub.pace_seconds() * 1000)})
     # Replay enough for a browser that refreshed mid-sync to catch up.
     if hub.last_progress:
         await ws.send_json(hub.last_progress)

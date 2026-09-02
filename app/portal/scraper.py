@@ -39,7 +39,8 @@ from playwright.async_api import TimeoutError as PWTimeout
 
 from .. import db
 from ..config import settings
-from .session import PortalSession, dismiss_security_popup, first_visible
+from .session import (PortalSession, dismiss_security_popup, first_visible,
+                      pace_for)
 
 PROCEEDING_CARD = "div.card-container.matCardRow"
 NOTICE_CARD = "div.card-container.matCard"
@@ -79,7 +80,13 @@ async def _click(locator, label: str, timeout: int | None = None) -> None:
 async def _safe_click(page, locator, label: str, events=None,
                       timeout: int = 15000) -> None:
     """Click, but clear the portal's back/refresh modal first - while it is up
-    it intercepts pointer events and a plain click just times out."""
+    it intercepts pointer events and a plain click just times out.
+
+    Also the one place every scraper click is paced from: session.pace() does
+    the same job wherever the session object is in scope, and both read the
+    live speed setting, so a mid-sync speed change is felt on the next click.
+    """
+    await pace_for(events)
     await dismiss_security_popup(page, events)
     try:
         await _click(locator, label, timeout=timeout)
@@ -262,6 +269,7 @@ async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
             card = page.locator(PROCEEDING_CARD).nth(i)
             if not await card.count():
                 break
+            await session.pace()
             p = await _parse_proceeding(card, tab_key, sub_key)
             pid = db.upsert_proceeding(con, p)
             stats["proceedings"] += 1
@@ -298,6 +306,7 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
     await events.log(f"    {total} notice(s) on this proceeding")
     for j in range(total):
         notice = page.locator(NOTICE_CARD).nth(j)
+        await session.pace()
         n = await _parse_notice(notice, proceeding_id)
         if not n["ref_id"]:
             continue
@@ -330,6 +339,7 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
 async def _download(session, events, ref_id) -> str | None:
     """Notice card -> 'Notice/Letter pdf' -> detail page -> Download -> back."""
     page = session.page
+    await session.pace()
     pdf = page.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
     await _safe_click(page, pdf, "Notice/Letter Pdf", events)
     try:

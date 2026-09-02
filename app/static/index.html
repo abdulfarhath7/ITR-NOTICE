@@ -16,12 +16,16 @@
 
   <label class="mut" for="limit">Download at most</label>
   <input id="limit" type="number" min="1" step="1" placeholder="all" style="width:78px"
+         name="download-limit" autocomplete="off" data-lpignore="true" data-1p-ignore
          aria-label="How many new PDFs to download this run">
 
-  <div class="seg" role="group" aria-label="Browser speed">
-    <button data-speed="slow" aria-pressed="false">Slow</button>
-    <button data-speed="fast" aria-pressed="true">Fast</button>
-    <button data-speed="extreme" aria-pressed="false">Extreme</button>
+  <div class="speed">
+    <div class="seg" role="group" aria-label="Browser speed">
+      <button data-speed="slow" aria-pressed="false">Slow</button>
+      <button data-speed="fast" aria-pressed="true">Fast</button>
+      <button data-speed="extreme" aria-pressed="false">Extreme</button>
+    </div>
+    <span class="seg-note" id="speednote" hidden>testing only</span>
   </div>
 
   <button class="ghost" id="theme" title="Toggle theme" aria-label="Toggle theme">&#9686;</button>
@@ -36,13 +40,13 @@
     <strong>Portal login</strong>
     <p class="mut" style="margin:6px 0 12px">Kept in this server&#39;s memory only &mdash;
        never written to disk. Restarting the server asks again.</p>
-    <div class="filters" style="padding:0">
-      <input id="uid" placeholder="PAN / AADHAAR / OTHER USER ID" autocomplete="off"
-             aria-label="Portal user ID" style="width:270px">
-      <input id="pwd" type="password" placeholder="Portal password" autocomplete="off"
-             aria-label="Portal password" style="width:200px">
-      <button class="primary" id="credsend">Save &amp; sync</button>
-    </div>
+    <form class="filters" style="padding:0" id="credform">
+      <input id="uid" name="username" placeholder="PAN / AADHAAR / OTHER USER ID"
+             autocomplete="username" aria-label="Portal user ID" style="width:270px">
+      <input id="pwd" name="password" type="password" placeholder="Portal password"
+             autocomplete="current-password" aria-label="Portal password" style="width:200px">
+      <button class="primary" id="credsend" type="submit">Save &amp; sync</button>
+    </form>
   </div>
 
   <div class="card gate pad" id="otp">

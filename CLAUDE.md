@@ -18,9 +18,10 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - `app/db.py` — schema + upserts. TESTED: proceeding dedup across syncs
   (NULL keys normalized to ''), notice dedup by ref_id, and
   `set_claude_due_date()` fills only NULL due dates and never overwrites.
-- `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS, SLOW_MO_MS
-  (default 600, applied only when headed), HOLD_ON_ERROR (default 15s, 0
-  disables), NOTICES_DIR, DEBUG_DIR. Portal credentials deliberately absent.
+- `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS,
+  HOLD_ON_ERROR (default 15s, 0 disables), NOTICES_DIR, DEBUG_DIR. Portal
+  credentials deliberately absent. Browser pace is NOT a knob here any more —
+  see the speed control below.
 - `app/portal/session.py` — login flow. `PortalSession(events, user_id,
   password)` takes the login from the caller, never from settings. Written
   from screenshots, NOT yet run against the live portal. Implements: User ID
@@ -38,8 +39,7 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the first `ERROR_GRACE_SECONDS` (3s) while the password page is still on
   screen, and a real WrongPasswordError quotes the portal's visible words (the
   password itself is never logged). An OTP prompt is relayed once per prompt,
-  not once per poll. Headed runs launch with `slow_mo=SLOW_MO_MS` so a human
-  can follow along; `save_debug_screenshot()` writes a full-page PNG to
+  not once per poll. `save_debug_screenshot()` writes a full-page PNG to
   `data/debug/` on the failure path.
 - `app/portal/scraper.py` — REWRITTEN against the live DOM (recon dumps in
   `data/debug/recon*/`, 2026-09-01). Cards are `div.card-container.matCardRow`
@@ -58,6 +58,16 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the walk raises `DownloadLimitReached` the moment the cap is met. Everything
   already stored stays stored, so pressing Sync again carries on where the
   capped run stopped - the notice cache makes that free.
+- Speed control (live): three header buttons, Slow / Fast / Extreme, one
+  always active, default fast, with a "testing only" caption under Extreme.
+  Playwright's `slow_mo` is fixed at launch, so it is set to 0 and the pacing
+  is ours: `SPEEDS = {slow: 1.0s, fast: 0.25s, extreme: 0}` on `hub.speed`,
+  changed by POST /api/speed (400 on an unknown name), broadcast as a `speed`
+  frame over the WebSocket (also sent on connect, right after `state`), and
+  waited out by `await session.pace()` / `pace_for(events)` before every fill,
+  click, parse and download. The delay is re-read on every call, so pressing a
+  button in the middle of a sync is felt by the very next action. TESTED
+  (test_app.py section 22), including the mid-run change.
 - Access lock: `APP_PASSWORD` in .env gates the whole app. Unset = open, with
   a loud startup warning (localhost dev only). Set = every HTTP request and the
   WebSocket handshake need a cookie: `<issued-unix-seconds>.<hmac-sha256 of it
@@ -207,8 +217,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
    `data/debug/recon*/`): login, force-login, card containers, the Back-button
    trap, pagination and the download were all confirmed against the real
    account, and scraper.py was rewritten around them. What is left is one
-   uninterrupted automated run: `./run.sh` with HEADLESS=false (SLOW_MO_MS
-   makes it watchable), log in through the dashboard, and watch a full sync
+   uninterrupted automated run: `./run.sh` with HEADLESS=false (press Slow in
+   the header to make it watchable), log in through the dashboard, and watch a full sync
    walk both tabs. A failure leaves `data/debug/fail-*.png` and holds the
    window open for HOLD_ON_ERROR seconds. Then set the README checkbox for
    step 3 to "verified".

@@ -15,7 +15,10 @@ done is skipped, so later runs start in about a second. Ctrl+C stops it.
 
     RUN_DEV=1 ./run.sh          # same, plus uvicorn --reload
 
-Hit "Sync now". The "Download at most" box next to it caps how many new PDFs
+Hit "Sync". The Slow / Fast / Extreme buttons in the header set how long the
+browser waits before each action (1s / 0.25s / none). It applies immediately,
+even to a sync already running - press Slow to watch what it is doing, Extreme
+only for testing. The "Download at most" box next to it caps how many new PDFs
 that run fetches - handy for a quick test. Leave it blank for every notice.
 A capped run stops cleanly and the next Sync picks up where it left off. The dashboard asks for your portal user ID and password the
 first time; they are held in the server's memory for as long as it runs and
@@ -59,6 +62,8 @@ except on the login and OTP screens, which are never captured.
 - [x] Step 6  Claude drafts a reply: summary, document checklist and an
               editable draft in a side panel. Always a draft - this tool
               never submits anything to the portal.
+- [x] Step 7  Live speed control: Slow / Fast / Extreme, applied to the next
+              browser action even mid-sync.
 
 ## First-run note
 

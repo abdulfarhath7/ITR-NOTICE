@@ -17,9 +17,10 @@ class Settings:
     # Gate for the whole dashboard. Empty = wide open (localhost dev only).
     app_password: str = os.getenv("APP_PASSWORD", "")
     headless: bool = os.getenv("HEADLESS", "true").lower() == "true"
-    # Watching a headed run at full speed shows nothing useful, so slow the
-    # browser down. Ignored when headless - nobody is looking.
-    slow_mo_ms: int = int(os.getenv("SLOW_MO_MS", "600"))
+    # How fast the browser is driven is NOT a .env knob any more: it is the
+    # dashboard's Slow / Fast / Extreme buttons, which can be changed while a
+    # sync is running (Playwright's launch-time slow_mo cannot).
+
     # Seconds to keep the browser window open after a failure so a human can
     # read the actual screen. 0 closes it immediately.
     hold_on_error: int = int(os.getenv("HOLD_ON_ERROR", "15"))
