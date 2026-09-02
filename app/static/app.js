@@ -258,6 +258,48 @@ function dueChip(n) {
   return `<span class="chip ${cls}" title="${esc(n.due_date)}">${label}</span>${badge}`;
 }
 
+// Five numbers, counted over everything the account holds - never over the
+// filtered view, which would make the filters look like they changed the facts.
+function renderStats(rows) {
+  const week = rows.filter(n => {
+    const d = dueInDays(n.due_date);
+    return d !== null && d >= 0 && d <= 7;
+  }).length;
+  const noDue = rows.filter(n => !n.due_date).length;
+  const docs = rows.filter(n => n.has_pdf).length;
+  const drafts = rows.filter(n => n.has_draft).length;
+
+  const put = (id, value) => {
+    const el = $(id);
+    el.textContent = value;
+    el.parentElement.classList.toggle('zero', value === 0);
+  };
+  put('s-total', rows.length);
+  put('s-week', week);
+  put('s-nodue', noDue);
+  put('s-docs', docs);
+  put('s-drafts', drafts);
+}
+
+// What the last finished run did, in one line, from the runs table. A run
+// that failed says only that - its message is a whole sentence, so it goes
+// in the tooltip rather than across the page.
+function renderLastSync(run) {
+  const el = $('lastsync');
+  if (!run) { el.textContent = 'No sync has finished yet.'; return; }
+  const when = relTime(run.finished) || run.finished || '';
+  if (run.status !== 'done') {
+    el.innerHTML = `Last sync <b>${esc(when)}</b> · `
+      + `<span class="bad" title="${esc(run.message || 'no reason recorded')}">`
+      + `${esc(run.status || 'failed')}</span>`;
+    return;
+  }
+  const n = v => (v === null || v === undefined ? 0 : v);
+  el.innerHTML = `Last sync <b>${esc(when)}</b> · <b>${n(run.notices_new)}</b> new`
+    + ` · <b>${n(run.pdfs_saved)}</b> PDFs saved`
+    + ` · <b>${n(run.skipped_cached)}</b> already held`;
+}
+
 function fillYears(rows) {
   const sel = $('f-ay');
   const years = [...new Set(rows.map(n => n.assessment_year).filter(Boolean))].sort();
@@ -266,18 +308,20 @@ function fillYears(rows) {
   if (years.includes(keep)) sel.value = keep;
 }
 
-// Three marks per row, so the table reads as the checklist it is: do we hold
-// the document, do we know the deadline, is there a draft waiting.
+// Three dots per row, so the table reads as the checklist it is: do we hold
+// the document, do we know the deadline, is there a draft waiting. Filled
+// green when done, hollow grey when not, and each one says which it is.
 function statusCell(n) {
   const marks = [
-    ['PDF', n.has_pdf, n.has_pdf ? 'PDF saved' : 'no PDF stored yet'],
-    ['Date', !!n.due_date, n.due_date
+    ['PDF', !!n.has_pdf, n.has_pdf ? 'PDF saved' : 'no PDF stored yet'],
+    ['date', !!n.due_date, n.due_date
       ? `due ${n.due_date}` : 'no due date on this notice'],
-    ['Draft', n.has_draft, n.has_draft ? 'draft written' : 'no draft yet'],
+    ['draft', !!n.has_draft, n.has_draft ? 'draft written' : 'no draft yet'],
   ];
   return `<div class="ticks">${marks.map(([label, on, title]) =>
-    `<span class="tick${on ? ' on' : ''}" title="${esc(title)}">${label} ${
-      on ? '&check;' : '&middot;'}</span>`).join('')}</div>`;
+    `<span class="tick${on ? ' on' : ''}" role="img" title="${esc(label)}: ${
+      esc(title)}" aria-label="${esc(label)} ${on ? 'done' : 'not yet'}"></span>`
+  ).join('')}</div>`;
 }
 
 function visibleRows() {
@@ -347,6 +391,8 @@ async function loadNotices() {
     LOADING = false;
     if (d.state === 'credentials_required') showGate('creds'); else setState(d.state);
     NOTICES = d.notices || [];
+    renderStats(NOTICES);
+    renderLastSync(d.last_run);
     fillYears(NOTICES);
     applyFilters();
   } catch (e) {
@@ -403,6 +449,7 @@ async function askClaude(refId, btn) {
         row.due_date_source = d.source || 'claude';
         row.due_date_basis = d.basis;
       }
+      renderStats(NOTICES);          // one fewer "missing date"
       applyFilters();
       toast(`Due ${d.due_date}${d.basis ? ' — ' + d.basis : ''}`);
     } else {
@@ -469,6 +516,7 @@ async function generateDraft(refId, btn, regen) {
     const row = NOTICES.find(n => n.ref_id === refId);
     if (row && !row.has_draft) {
       row.has_draft = 1;
+      renderStats(NOTICES);          // one more "drafts ready"
       applyFilters();
     }
   } catch (e) {

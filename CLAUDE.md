@@ -129,11 +129,19 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   as tinted fills with no outline, radii 10/8/6 with pills only for chips,
   Manrope + Space Grotesk + IBM Plex Mono self-hosted. Note vcfo's THEME.md is
   stale - it documents a violet theme its own globals.css no longer uses;
-  the CSS is the source of truth. There is deliberately no hero or
-  overview bar: the owner removed it. The table is the page, and per-notice
-  state (PDF / date / draft ticks) lives in the row rather than in an
-  aggregate strip. The last run is still recorded server-side; nothing renders
-  it at the moment.
+  the CSS is the source of truth. The hero band (greeting, ring) stays gone;
+  what came back in its place is a plain row of five stat cards — Total
+  notices, Due this week, Missing date, Docs saved, Drafts ready, counted over
+  everything the account holds and never over the filtered view — and one
+  "Last sync" line off the runs table. **That line is failure-safe on
+  purpose**: a failed run renders only its status word, with the message in
+  the tooltip, and the line is `nowrap` + `text-overflow: ellipsis`. The
+  earlier version printed the message inline and a WrongPasswordError sentence
+  spilled across the top of the page, truncated mid-word. Do not put run
+  messages back into the page text.
+- Per-notice state is three dots in the row's Status cell — PDF, date, draft —
+  filled green when done, hollow when not, each with its own tooltip and
+  aria-label.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
   Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a

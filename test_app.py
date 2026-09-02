@@ -767,7 +767,9 @@ _page_now = lambda: "".join(
     pathlib.Path(f"app/static/{f}").read_text()
     for f in ("index.html", "app.js", "style.css"))
 _page = _page_now()
-for hook in ("f-ay", "f-name", "f-nodue", "applyFilters", "dueInDays"):
+for hook in ("f-ay", "f-name", "f-nodue", "applyFilters", "dueInDays",
+             "s-total", "s-week", "s-nodue", "s-docs", "s-drafts",
+             "renderStats", "renderLastSync"):
     check(f"dashboard ships {hook}", hook in _page)
 
 def _days(d):
@@ -1444,14 +1446,33 @@ check("the drawer keeps Copy and Regenerate",
 # 25 - the overview: what do I have, what has been done ----------------------
 _p = _page_now()
 
-# (a) the aggregate bar is gone; draft state is shown per row instead
-check("no aggregate counts remain in the page",
-      not any(k in _p for k in ("Drafts ready", "Due this week", "Missing date",
-                                "docs saved")))
+# (a) five cards, counted over everything the account holds
+for label in ("Total notices", "Due this week", "Missing date", "Docs saved",
+              "Drafts ready"):
+    check(f"the overview shows {label!r}", label in _p)
+check("the fifth card counts the drafts",
+      "s-drafts" in _p and "rows.filter(n => n.has_draft).length" in _p)
 check("each row still shows whether it has a draft",
-      "n.has_draft" in _p and "'Draft'" in _p)
+      "n.has_draft" in _p and "'draft'" in _p)
 check("the API still reports draft state per notice", "has_draft" in
       pathlib.Path("app/db.py").read_text())
+check("the cards count everything, not the filtered view",
+      "function renderStats(rows)" in _p
+      and "renderStats(visibleRows" not in _p)
+
+_STATS = [dict(n) for n in SAMPLE]
+for row, drafted in zip(_STATS, (1, 0, 1, 0, 0)):
+    row["has_draft"] = drafted
+_count = lambda f: len([n for n in _STATS if f(n)])
+check("Total notices counts every row", len(_STATS) == 5)
+check("Due this week counts today through day 7",
+      _count(lambda n: n["due_date"] and 0 <= _days(n["due_date"]) <= 7) == 2)
+check("Missing date counts the blanks", _count(lambda n: not n["due_date"]) == 1)
+check("Docs saved counts stored PDFs", _count(lambda n: n["has_pdf"]) == 4)
+check("Drafts ready counts the notices that have one",
+      _count(lambda n: n["has_draft"]) == 2)
+check("a notice can be counted by more than one card",
+      _count(lambda n: n["has_pdf"] and n["has_draft"]) == 2)
 
 # (b) the last-sync line, off the runs table
 with db.connect() as con:
@@ -1480,12 +1501,19 @@ with TestClient(main.app) as client:
     check("a failed run reports no counts rather than zeros it did not earn",
           d["last_run"]["pdfs_saved"] is None, str(d["last_run"]))
 
-# The dashboard no longer prints a last-sync line - the owner asked for that
-# bar gone - but the run is still recorded, and the log shows what happened
-# while it happens.
-check("the page no longer prints a last-sync line",
-      "renderLastSync" not in _p and "Last sync" not in _p)
-check("the run is still recorded server-side for whatever shows it next",
+# The line is back, but failure-safe: the reason a failed run must not print
+# its message inline is that the message is a whole sentence, and it used to
+# spill across the top of the page.
+check("the dashboard renders the last run",
+      "renderLastSync" in _p and "Last sync" in _p)
+check("a failed run says only that it failed",
+      "run.status !== 'done'" in _p
+      and 'class="bad" title="${esc(run.message' in _p)
+check("the line cannot wrap or spill",
+      "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" in _p)
+check("it says so plainly when nothing has run yet",
+      "No sync has finished yet." in _p)
+check("the run is still recorded server-side",
       "last_run" in pathlib.Path("app/main.py").read_text())
 
 # a real sync writes those counts through
@@ -1507,12 +1535,15 @@ check("the scraper counts notices it had never seen before",
       'stats["new_notices"] += 1' in _scraper_now
       and '"new_notices": 0' in _scraper_now)
 
-# (c) the per-row checklist
-check("each row carries the three ticks",
-      "function statusCell(" in _p and "'PDF', n.has_pdf" in _p
-      and "'Draft', n.has_draft" in _p)
-check("a mark is a tick or a dot, nothing longer",
-      "&check;" in _p and "&middot;" in _p and ".ticks .tick.on" in _p)
+# (c) the per-row checklist: three dots
+check("each row carries the three dots",
+      "function statusCell(" in _p and "'PDF', !!n.has_pdf" in _p
+      and "'date', !!n.due_date" in _p and "'draft', !!n.has_draft" in _p)
+check("a done dot is filled green, a pending one is hollow",
+      ".tick.on { background: var(--ok); border-color: var(--ok); }" in _p
+      and "border: 1.5px solid var(--divider); background: none;" in _p)
+check("every dot says what it means", 'title="${esc(label)}: ${' in _p
+      and "aria-label=\"${esc(label)} ${on ? 'done' : 'not yet'}\"" in _p)
 check("the table has a Status column for them",
       "<th>Status</th>" in _p)
 check("the wider table still spans its empty state", 'colspan="6"' in _p

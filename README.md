@@ -69,9 +69,11 @@ except on the login and OTP screens, which are never captured.
               browser's temp copy is deleted as soon as the bytes are in.
 - [x] Step 9  Row buttons: View (reads the PDF in the page), Save,
               ✦ Date (asks Claude for a missing one) and Draft.
-- [x] Step 10 Overview at the top: the headline numbers, a "Last sync" line
-              (new notices, PDFs saved, already held) and a per-notice
-              PDF / date / draft checklist in the table.
+- [x] Step 10 Overview at the top: five stat cards (total, due this week,
+              missing date, docs saved, drafts ready), a one-line "Last sync"
+              (new notices, PDFs saved, already held; a failed run shows only
+              its status, reason in the tooltip) and a per-notice
+              PDF / date / draft dot checklist in the table.
 
 ## First-run note
 
