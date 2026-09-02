@@ -75,6 +75,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the error text. TESTED (test_app.py): the credential rules above, /api/otp
   relay, /api/notices, 404 on missing PDF, WS handshake,
   /api/notices/{ref_id}/ask-claude is a 501 stub (build step 5).
+- Preview vs Download: `/api/notices/{ref_id}/pdf?inline=1` serves the stored
+  file as `Content-Disposition: inline` with `application/pdf`, so the browser
+  renders it in a new tab; without the flag it stays an attachment download.
 - Dashboard summary + filters: four cards above the table (total notices, due
   in the next 7 days, missing due date, docs saved) computed from
   /api/notices, and a filter row (assessment year dropdown built from the data,

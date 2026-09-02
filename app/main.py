@@ -351,12 +351,17 @@ async def notices():
 
 
 @app.get("/api/notices/{ref_id}/pdf")
-async def notice_pdf(ref_id: str):
+async def notice_pdf(ref_id: str, inline: int = 0):
+    """inline=1 renders in the browser's PDF viewer; the default downloads."""
     with db.connect() as con:
         row = con.execute(
             "SELECT pdf_path FROM notices WHERE ref_id=?", (ref_id,)).fetchone()
     if not row or not row["pdf_path"] or not Path(row["pdf_path"]).exists():
         return JSONResponse({"error": "no PDF stored for this notice"}, 404)
+    if inline:
+        return FileResponse(
+            row["pdf_path"], media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{ref_id}.pdf"'})
     return FileResponse(row["pdf_path"], filename=f"{ref_id}.pdf")
 
 

@@ -763,7 +763,8 @@ main.settings.app_password = ""        # leave the rest of the suite unlocked
 # page ships them and that the maths they implement is right on real row shapes.
 import datetime                                                      # noqa: E402
 
-_page = pathlib.Path("app/static/index.html").read_text()
+_page_now = lambda: pathlib.Path("app/static/index.html").read_text()
+_page = _page_now()
 for hook in ("s-total", "s-week", "s-nodue", "s-docs", "f-ay", "f-name",
              "f-nodue", "renderStats", "applyFilters", "dueInDays"):
     check(f"dashboard ships {hook}", hook in _page)
@@ -810,6 +811,38 @@ check("name filter is a case-insensitive contains",
 check("missing-due-date toggle keeps only blanks",
       [n["proceeding_name"] for n in _filtered(SAMPLE, nodue=True)] == ["Issue Letter"])
 check("filters combine", len(_filtered(SAMPLE, ay="2020-21", name="penalty")) == 1)
+
+
+# 17 - preview vs download ---------------------------------------------------
+main.settings.app_password = ""
+_pdf_dir = TMP.parent / "notices"
+_pdf_dir.mkdir(exist_ok=True)
+_pdf = _pdf_dir / "100118320996.pdf"
+_pdf.write_bytes(b"%PDF-1.4\n% a stored notice\n%%EOF\n")
+with db.connect() as con:
+    con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES (?)", ("100118320996",))
+    con.execute("UPDATE notices SET pdf_path=? WHERE ref_id=?", (str(_pdf), "100118320996"))
+
+with TestClient(main.app) as client:
+    r = client.get("/api/notices/100118320996/pdf?inline=1")
+    check("preview serves the PDF inline",
+          r.status_code == 200 and "inline" in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", "none"))
+    check("preview declares the PDF media type",
+          r.headers.get("content-type", "").startswith("application/pdf"),
+          r.headers.get("content-type", "none"))
+    check("preview returns the stored bytes", r.content.startswith(b"%PDF"))
+
+    r = client.get("/api/notices/100118320996/pdf")
+    check("download still attaches",
+          r.status_code == 200
+          and "attachment" in r.headers.get("content-disposition", ""),
+          r.headers.get("content-disposition", "none"))
+    check("a missing PDF is still 404 either way",
+          client.get("/api/notices/does-not-exist/pdf?inline=1").status_code == 404)
+
+check("the row offers Preview alongside Download",
+      "preview(" in _page_now() and "Download" in _page_now())
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
