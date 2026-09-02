@@ -118,6 +118,16 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   (assessment year, proceeding-name contains, missing-due-date toggle) stay
   pure frontend over the rows already fetched.
   `list_notices()` supplies `has_pdf` and `has_draft` for all of it.
+- The dashboard is built in the **VCFO Suite design language** (the owner's
+  other repo, ~/Documents/vcfo-suite), so the two products look related:
+  deep navy surfaces (#030d1f / #071529 / #09182e / #0d1d34), blue action
+  (#5a8ff3 dark, #2563eb light), status as a solid/-soft/-text triple, chips
+  as tinted fills with no outline, radii 10/8/6 with pills only for chips,
+  Manrope + Space Grotesk + IBM Plex Mono self-hosted. Note vcfo's THEME.md is
+  stale - it documents a violet theme its own globals.css no longer uses;
+  the CSS is the source of truth. The hero (greeting, ring, stat strip) is
+  their DashHero, including its rule that the headline numbers live in the
+  hero and are NOT repeated in a card band beneath it.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
   Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a

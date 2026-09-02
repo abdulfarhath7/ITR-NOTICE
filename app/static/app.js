@@ -245,7 +245,9 @@ function dueChip(n) {
   }
   const d = dueInDays(n.due_date);
   if (d === null) return `<span class="chip none">${esc(n.due_date)}</span>`;
-  const cls = d < 3 ? 'late' : d <= 14 ? 'soon' : 'ok';
+  // vcfo's countdown tones: overdue or under a week is danger, under a month
+  // is warning, beyond that is fine.
+  const cls = d < 7 ? 'late' : d < 30 ? 'soon' : 'ok';
   const label = d < 0 ? `overdue ${Math.abs(d)}d` : d === 0 ? 'today' : `${d}d`;
   const badge = n.due_date_source === 'claude'
     ? `<span class="ai-chip" title="${esc(n.due_date_basis || 'found by Claude')}">&#10022; by Claude</span>`
@@ -375,7 +377,7 @@ function applyFilters() {
   tb.innerHTML = rows.map(n => `<tr>
       <td>${esc(n.notice_us || '—')}
         <div class="sub">${esc(n.description || '')}</div>
-        <div class="din">DIN ${esc(n.ref_id || '')}</div></td>
+        <div><span class="idchip">${esc(n.ref_id || '')}</span></div></td>
       <td>${esc(n.proceeding_name || '—')}
         <div class="sub mono">${esc(n.pan || '')} · AY ${esc(n.assessment_year || '—')}</div></td>
       <td class="mono">${esc(n.issued_on || '—')}</td>
