@@ -312,12 +312,13 @@ tr:hover .rowacts, .rowacts:focus-within { opacity: 1; }
 .lastsync b { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .lastsync .bad { color: var(--danger-text); border-bottom: 1px dotted currentColor; cursor: help; }
 
-/* Per-notice checklist: three dots - PDF, date, draft. Filled when done,
-   hollow when not, each with its own tooltip. */
+/* Per-notice checklist: four dots - PDF, date, draft, responded. Filled
+   when done, hollow when not, dashed when the portal never said. */
 .ticks { display: flex; gap: 6px; align-items: center; }
 .tick { width: 8px; height: 8px; border-radius: 50%; display: block;
         border: 1.5px solid var(--divider); background: none; }
 .tick.on { background: var(--ok); border-color: var(--ok); }
+.tick.unknown { border-style: dashed; border-color: var(--faint); }
 th.right, td.right { text-align: right; }
 
 /* ------------------------------------------------- the notice viewer */

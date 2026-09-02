@@ -93,6 +93,9 @@ same password as everything else.
               nothing captured while a password or OTP is on screen.
 - [x] Step 13 Pipeline bar over the log, and a Ctrl/Cmd+K command palette
               (sync, theme, speed, filters, open any notice).
+- [x] Step 14 Reads whether a reply is already filed on the portal (from
+              which button the card shows - it never clicks either) and
+              shows it as a fourth dot on the row.
 - [x] Step 14 Summary report: "Position at a glance" buckets that filter the
               table, an attention list of what is overdue or due within three
               days, and an Excel export (Summary / Attention / All notices).

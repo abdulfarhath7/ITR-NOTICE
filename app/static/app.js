@@ -438,15 +438,24 @@ function fillYears(rows) {
 // the document, do we know the deadline, is there a draft waiting. Filled
 // green when done, hollow grey when not, and each one says which it is.
 function statusCell(n) {
+  // responded is the one tri-state: 1 filed, 0 not filed, null the portal
+  // never said. Unknown is drawn dashed rather than claiming "not yet".
+  const replied = n.responded === null || n.responded === undefined
+    ? null : !!n.responded;
   const marks = [
     ['PDF', !!n.has_pdf, n.has_pdf ? 'PDF saved' : 'no PDF stored yet'],
     ['date', !!n.due_date, n.due_date
       ? `due ${n.due_date}` : 'no due date on this notice'],
     ['draft', !!n.has_draft, n.has_draft ? 'draft written' : 'no draft yet'],
+    ['responded on portal', replied, replied === null
+      ? 'the portal did not say at the last sync'
+      : replied ? 'a reply is filed on the portal' : 'no reply filed yet'],
   ];
   return `<div class="ticks">${marks.map(([label, on, title]) =>
-    `<span class="tick${on ? ' on' : ''}" role="img" title="${esc(label)}: ${
-      esc(title)}" aria-label="${esc(label)} ${on ? 'done' : 'not yet'}"></span>`
+    `<span class="tick${on ? ' on' : on === null ? ' unknown' : ''}" role="img"
+       title="${esc(label)}: ${esc(title)}"
+       aria-label="${esc(label)} ${on === null ? 'unknown'
+         : on ? 'done' : 'not yet'}"></span>`
   ).join('')}</div>`;
 }
 

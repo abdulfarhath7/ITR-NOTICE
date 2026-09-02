@@ -321,6 +321,9 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
 
         if db.notice_exists(con, n["ref_id"]):
             stats["skipped_cached"] += 1       # cache rule: never fetch twice
+            # ...but the reply status is not cached: it changes between syncs,
+            # so a notice we skip downloading still gets this refreshed.
+            db.set_responded(con, n["ref_id"], n["responded"])
             continue
 
         pdf = notice.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
@@ -391,6 +394,19 @@ async def _parse_proceeding(card, tab_key, sub_key) -> dict:
     }
 
 
+# Read-only, and this is the read: which of the two response buttons the card
+# shows tells us whether a reply has been filed. Neither button is ever
+# clicked - "submit response" and "view response" are both in FORBIDDEN.
+def _responded_from(text: str) -> int | None:
+    """1 = a reply exists, 0 = none filed yet, None = the card did not say."""
+    low = text.lower()
+    if "view response" in low:
+        return 1
+    if "submit response" in low:
+        return 0
+    return None
+
+
 async def _parse_notice(card, proceeding_id) -> dict:
     text = await card.inner_text()
     due = _after(text, "Response Due Date")
@@ -415,6 +431,7 @@ async def _parse_notice(card, proceeding_id) -> dict:
         "due_date": due or None,                       # empty stays NULL
         "due_date_source": "portal" if due else None,
         "ao_viewed_on": _after(text, "Response viewed by AO on"),
+        "responded": _responded_from(text),
         "pdf_blob": None,
     }
 

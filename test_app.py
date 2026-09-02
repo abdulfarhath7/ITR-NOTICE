@@ -1566,8 +1566,9 @@ check("each row carries the three dots",
 check("a done dot is filled green, a pending one is hollow",
       ".tick.on { background: var(--ok); border-color: var(--ok); }" in _p
       and "border: 1.5px solid var(--divider); background: none;" in _p)
-check("every dot says what it means", 'title="${esc(label)}: ${' in _p
-      and "aria-label=\"${esc(label)} ${on ? 'done' : 'not yet'}\"" in _p)
+check("every dot says what it means",
+      'title="${esc(label)}: ${esc(title)}"' in _p
+      and "aria-label=\"${esc(label)} ${on === null ? 'unknown'" in _p)
 check("the table has a Status column for them",
       "<th>Status</th>" in _p)
 check("the wider table still spans its empty state", 'colspan="6"' in _p
@@ -1933,6 +1934,70 @@ check("the caution line survives",
 check("Export sits next to Sync in the header",
       '<button class="ghost" id="export"' in _p
       and "location.href = '/api/export.xlsx'" in _p)
+
+
+# 28 - has a reply been filed? ------------------------------------------------
+# Read off the card, never by clicking: "View Response" means a reply exists,
+# "Submit Response" means none does. Both buttons stay in FORBIDDEN.
+check("the real card, which shows View Response, reads as responded",
+      n["responded"] == 1, str(n["responded"]))
+
+_await_reply = REAL_NOTICE.replace("View Response", "Submit Response")
+check("a card showing Submit Response reads as not responded",
+      asyncio.run(scraper._parse_notice(TextCard(_await_reply), 1))["responded"] == 0)
+
+_neither = REAL_NOTICE.replace("View Response\n", "")
+_parsed = asyncio.run(scraper._parse_notice(TextCard(_neither), 1))
+check("a card with neither button leaves it unknown, not false",
+      _parsed["responded"] is None, str(_parsed["responded"]))
+check("'Seek/View Adjournment' is not mistaken for a filed reply",
+      "Seek/View Adjournment" in _neither and _parsed["responded"] is None)
+check("the portal's own casing does not matter",
+      scraper._responded_from("submit response") == 0
+      and scraper._responded_from("VIEW RESPONSE") == 1)
+check("neither button is ever clickable from here",
+      all(b in scraper.FORBIDDEN for b in ("submit response", "view response")))
+
+# it is stored, and unlike the PDF it is refreshed on every sync
+with db.connect() as con:
+    base = {"proceeding_id": None, "ref_id": "reply-test", "notice_us": None,
+            "doc_ref_id": None, "description": None, "issued_on": None,
+            "served_on": None, "due_date": None, "due_date_source": None,
+            "ao_viewed_on": None, "responded": 0, "pdf_blob": b"%PDF-x"}
+    db.upsert_notice(con, base)
+    check("a first sync stores the flag",
+          db.get_notice(con, "reply-test")["responded"] == 0)
+
+    db.upsert_notice(con, dict(base, responded=1, pdf_blob=None))
+    check("a later sync overwrites it - this is not cached like the PDF",
+          db.get_notice(con, "reply-test")["responded"] == 1)
+
+    db.upsert_notice(con, dict(base, responded=None, pdf_blob=None))
+    check("a sync that could not tell keeps the last known answer",
+          db.get_notice(con, "reply-test")["responded"] == 1)
+
+    db.set_responded(con, "reply-test", 0)
+    check("a cached notice still gets its flag refreshed",
+          db.get_notice(con, "reply-test")["responded"] == 0)
+    db.set_responded(con, "reply-test", None)
+    check("refreshing with 'unknown' changes nothing",
+          db.get_notice(con, "reply-test")["responded"] == 0)
+
+check("the scraper refreshes it even for notices it skips downloading",
+      'db.set_responded(con, n["ref_id"], n["responded"])'
+      in pathlib.Path("app/portal/scraper.py").read_text())
+
+with TestClient(main.app) as client:
+    row = next(r for r in client.get("/api/notices").json()["notices"]
+               if r["ref_id"] == "reply-test")
+    check("the dashboard is told", row["responded"] == 0, str(row.get("responded")))
+
+_p = _page_now()
+check("the row's checklist has a fourth dot for it",
+      "'responded on portal'" in _p)
+check("unknown is drawn dashed rather than claimed as 'not yet'",
+      ".tick.unknown { border-style: dashed;" in _p
+      and "the portal did not say at the last sync" in _p)
 
 
 print()

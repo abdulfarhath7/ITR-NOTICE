@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS notices (
     due_date        TEXT,                      -- NULL when portal shows none
     due_date_source TEXT,                      -- 'portal' | 'claude' | NULL
     ao_viewed_on    TEXT,
+    responded       INTEGER,                   -- 1 filed, 0 not filed, NULL unknown
     pdf_path        TEXT,                      -- legacy: PDFs used to be files
     pdf_blob        BLOB,                      -- the PDF itself, one row = one file
     downloaded_at   TEXT,
@@ -82,6 +83,10 @@ MIGRATIONS = {
         # database is the only copy now, so a backup is one file and moving
         # the app to another machine carries the documents with it.
         ("pdf_blob", "ALTER TABLE notices ADD COLUMN pdf_blob BLOB"),
+        # whether a reply has been filed on the portal, read from which button
+        # the notice card shows. Unlike the PDF this is NOT cached: it changes
+        # the moment the owner files something, so every sync rewrites it.
+        ("responded", "ALTER TABLE notices ADD COLUMN responded INTEGER"),
     ],
     "runs": [
         # the counts behind the "Last sync" line
@@ -193,22 +198,41 @@ def get_notice_pdf(con, ref_id: str) -> bytes | None:
 
 
 def upsert_notice(con, n: dict) -> None:
+    # A caller that predates the reply flag means "I could not tell", which
+    # the COALESCE below leaves as whatever is already stored.
+    n = {"responded": None, **n}
     con.execute(
         """INSERT INTO notices
            (proceeding_id, ref_id, notice_us, doc_ref_id, description,
             issued_on, served_on, due_date, due_date_source, ao_viewed_on,
-            pdf_blob, downloaded_at)
+            responded, pdf_blob, downloaded_at)
            VALUES (:proceeding_id,:ref_id,:notice_us,:doc_ref_id,:description,
                    :issued_on,:served_on,:due_date,:due_date_source,:ao_viewed_on,
-                   :pdf_blob, CASE WHEN :pdf_blob IS NULL THEN NULL
+                   :responded, :pdf_blob, CASE WHEN :pdf_blob IS NULL THEN NULL
                                    ELSE datetime('now') END)
            ON CONFLICT(ref_id) DO UPDATE SET
                due_date=COALESCE(notices.due_date, excluded.due_date),
+               -- the live value wins; only "we could not tell" keeps the old one
+               responded=COALESCE(excluded.responded, notices.responded),
                pdf_blob=COALESCE(notices.pdf_blob, excluded.pdf_blob),
                downloaded_at=COALESCE(notices.downloaded_at,
                                       excluded.downloaded_at)""",
         n,
     )
+
+
+def set_responded(con, ref_id: str, responded: int | None) -> None:
+    """Refresh the filed/not-filed flag on a notice we already hold.
+
+    A reply can be filed at any time, so this is rewritten on every sync -
+    the opposite of the PDF, which is fetched once and never again. A sync
+    that could not tell (no Submit/View Response button on the card) passes
+    None and leaves the last known answer alone.
+    """
+    if responded is None:
+        return
+    con.execute("UPDATE notices SET responded=? WHERE ref_id=?",
+                (responded, ref_id))
 
 
 def set_claude_due_date(con, ref_id: str, due_date: str, basis: str | None = None) -> None:
@@ -269,7 +293,7 @@ def list_notices(con):
         """SELECT n.id, n.proceeding_id, n.ref_id, n.notice_us, n.doc_ref_id,
                   n.description, n.issued_on, n.served_on, n.due_date,
                   n.due_date_source, n.due_date_basis, n.ao_viewed_on,
-                  n.downloaded_at, n.first_seen,
+                  n.responded, n.downloaded_at, n.first_seen,
                   n.pdf_blob IS NOT NULL AS has_pdf,
                   EXISTS(SELECT 1 FROM drafts d WHERE d.ref_id = n.ref_id)
                       AS has_draft,

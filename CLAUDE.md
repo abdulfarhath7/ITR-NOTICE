@@ -171,9 +171,20 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   earlier version printed the message inline and a WrongPasswordError sentence
   spilled across the top of the page, truncated mid-word. Do not put run
   messages back into the page text.
-- Per-notice state is three dots in the row's Status cell — PDF, date, draft —
-  filled green when done, hollow when not, each with its own tooltip and
-  aria-label.
+- Per-notice state is four dots in the row's Status cell — PDF, date, draft,
+  responded on portal — filled green when done, hollow when not, dashed when
+  unknown, each with its own tooltip and aria-label.
+- Responded status: the notice card shows either "Submit Response" (nothing
+  filed) or "View Response" (a reply exists), so `_responded_from(card_text)`
+  reads which one is there — **neither is ever clicked; both stay in
+  FORBIDDEN**. Stored as `notices.responded` (1 / 0 / NULL unknown). This is
+  the one field that is deliberately NOT cached: a reply can be filed at any
+  time, so every sync rewrites it, including for notices whose PDF is already
+  held (`db.set_responded()` runs before the cache `continue`). An unknown
+  reading never clobbers a known one — the upsert COALESCEs
+  `excluded.responded` over the stored value. TESTED (section 28): both button
+  texts, neither, casing, and that "Seek/View Adjournment" is not mistaken for
+  a filed reply.
 - Table: sticky 11px uppercase muted headers, hairline row separators only,
   mono + tabular-nums for identifiers and dates, and the row's action buttons
   appear on hover (`:focus-within` for the keyboard, always on a touch
