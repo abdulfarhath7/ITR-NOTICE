@@ -767,7 +767,7 @@ _page_now = lambda: "".join(
     pathlib.Path(f"app/static/{f}").read_text()
     for f in ("index.html", "app.js", "style.css"))
 _page = _page_now()
-for hook in ("s-total", "s-week", "s-nodue", "s-docs", "f-ay", "f-name",
+for hook in ("strip", "ringtext", "herosub", "f-ay", "f-name",
              "f-nodue", "renderStats", "applyFilters", "dueInDays"):
     check(f"dashboard ships {hook}", hook in _page)
 
@@ -840,8 +840,8 @@ with TestClient(main.app) as client:
     check("a missing PDF is still 404 either way",
           client.get("/api/notices/does-not-exist/pdf?inline=1").status_code == 404)
 
-check("the row offers Preview alongside Download",
-      "preview(" in _page_now() and "Download" in _page_now())
+check("the row offers View alongside Save",
+      "view(" in _page_now() and "savePdf(" in _page_now())
 
 
 # 18 - Ask Claude for a missing due date --------------------------------------
@@ -1394,6 +1394,47 @@ check("the scraper stores the downloaded bytes",
 check("Claude is handed the bytes, not a path",
       "def _pdf_block(data: bytes)" in
       pathlib.Path("app/claude_client.py").read_text())
+
+
+# 24 - the row buttons -------------------------------------------------------
+# Short labels, always visible, right-aligned, and View reads the PDF without
+# leaving the page.
+_p = _page_now()
+check("the header's primary button is just 'Sync'",
+      '<button class="primary" id="sync">Sync</button>' in _p)
+for label, hook in (("View", 'view(\'${esc(n.ref_id)}\')'),
+                    ("Save", 'savePdf(\'${esc(n.ref_id)}\')'),
+                    ("Draft", '>Draft</button>')):
+    check(f"the row has a {label} button", hook in _p)
+check("the ask-Claude button is the short '\u2726 Date'",
+      "const DATE_BTN = '&#10022; Date';" in _p)
+check("\u2726 Date is only on rows with no due date",
+      "${(!n.due_date && n.has_pdf)" in _p)
+check("View and Save only appear once a PDF is held",
+      "${n.has_pdf ? `<button onclick=\"view(" in _p)
+for gone in ("Generate response", "Ask Claude", ">Sync now<", ">Preview<"):
+    check(f"the long label {gone!r} is gone", gone not in _p)
+check("the buttons are not hidden until hover",
+      "justify-content: flex-end" in _p and "tr:hover .rowacts" not in _p)
+
+check("View opens an in-page modal, not a new tab",
+      'id="viewer"' in _p and "window.open" not in _p)
+check("the modal renders the PDF in a big iframe on the inline endpoint",
+      "$('v-frame').src = `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`" in _p)
+check("the modal has a dark overlay",
+      ".modal { position: fixed; inset: 0;" in _p and "background: rgba(3, 4, 6, .72)" in _p)
+check("clicking the overlay closes it",
+      "viewer.onclick = ev => { if (ev.target === viewer) closeViewer(); }" in _p)
+check("Esc closes it too", "palClose(); closeViewer();" in _p)
+check("closing stops the PDF plugin behind the page",
+      "$('v-frame').src = 'about:blank'" in _p)
+check("Save asks the server for the attachment copy",
+      "location.href = `/api/notices/${encodeURIComponent(refId)}/pdf`" in _p)
+check("a found date is tagged 'by Claude'", "&#10022; by Claude" in _p)
+check("the Draft button opens the drawer with summary, checklist and reply",
+      "generateDraft(" in _p and "d-checklist" in _p and "d-summary" in _p)
+check("the drawer keeps Copy and Regenerate",
+      "d-copy" in _p and "d-regen" in _p and "regenerate=1" in _p)
 
 
 print()

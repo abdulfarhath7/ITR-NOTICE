@@ -130,11 +130,21 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   `{"type":"progress","stage":...,"counts":{...}}` at login / list / walk /
   download / done. Note the stored dict is `hub.last_progress` — naming it
   `hub.progress` shadowed the method and broke every sync.
-- `app/static/index.html` — working dashboard: credentials form (masked
-  password, shown when the server holds no login and re-shown with an error
-  after a rejected password), "Change login" in the header, Sync button, live
+- `app/static/index.html` + `app/static/app.js` + `app/static/style.css` —
+  the dashboard: credentials form (masked password, shown when the server
+  holds no login and re-shown with an error after a rejected password),
+  "Change login" in the header, the header's primary **Sync** button, live
   log, OTP input that appears on `otp_required`, notices table with overdue
-  highlight, "no due date" pill, "by Claude" tag, per-notice Download.
+  highlight, "no due date" pill and the "✦ by Claude" tag.
+- Row buttons, short labels, always visible and right-aligned:
+  **View** (in-page modal — dark overlay, big iframe on
+  `/api/notices/{ref}/pdf?inline=1`, closed by Esc or a click on the overlay,
+  and the iframe is reset to about:blank on close so the PDF plugin stops),
+  **Save** (`location.href` to the same endpoint without `inline`, which the
+  server answers as an attachment), **✦ Date** (only on rows with no due date;
+  the ask-Claude call, spinner, then the date and its tag appear in place) and
+  **Draft** (the drawer: summary, document checklist, editable reply, Copy and
+  Regenerate, under the "DRAFT — review before filing" banner).
 - `test_app.py` — TestClient script plus fake-page unit tests for the settle
   loop, no browser. Run `.venv/bin/python test_app.py`.
 

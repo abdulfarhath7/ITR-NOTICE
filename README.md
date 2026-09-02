@@ -66,6 +66,8 @@ except on the login and OTP screens, which are never captured.
               browser action even mid-sync.
 - [x] Step 8  Notice PDFs are stored in the database itself, not in a folder
               of files - back up data/itr.db and you have everything.
+- [x] Step 9  Row buttons: View (reads the PDF in the page), Save,
+              ✦ Date (asks Claude for a missing one) and Draft.
 
 ## First-run note
 

@@ -223,6 +223,9 @@ document.querySelectorAll('.seg button').forEach(b => {
 paintSpeed();
 
 /* ----------------------------------------------------------------- table */
+// The one button that spends money, marked with the same ✦ as everything
+// else Claude wrote on this page.
+const DATE_BTN = '&#10022; Date';
 let NOTICES = [];
 let LOADING = true;
 
@@ -245,32 +248,48 @@ function dueChip(n) {
   const cls = d < 3 ? 'late' : d <= 14 ? 'soon' : 'ok';
   const label = d < 0 ? `overdue ${Math.abs(d)}d` : d === 0 ? 'today' : `${d}d`;
   const badge = n.due_date_source === 'claude'
-    ? `<span class="ai-chip" title="${esc(n.due_date_basis || 'found by Claude')}">&#10022; Claude</span>`
+    ? `<span class="ai-chip" title="${esc(n.due_date_basis || 'found by Claude')}">&#10022; by Claude</span>`
     : '';
   return `<span class="chip ${cls}" title="${esc(n.due_date)}">${label}</span>${badge}`;
 }
 
-function renderStats(rows) {
-  const week = rows.filter(n => { const d = dueInDays(n.due_date); return d !== null && d >= 0 && d <= 7; });
-  countUp($('s-total'), rows.length);
-  countUp($('s-week'), week.length);
-  countUp($('s-nodue'), rows.filter(n => !n.due_date).length);
-  countUp($('s-docs'), rows.filter(n => n.has_pdf).length);
+function greetWord() {
+  const h = new Date().getHours();
+  return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
 }
 
-function countUp(el, to) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    el.textContent = to; return;
-  }
-  const from = parseInt(el.textContent, 10) || 0;
-  if (from === to) { el.textContent = to; return; }
-  const started = performance.now(), dur = 320;
-  const tick = now => {
-    const k = Math.min(1, (now - started) / dur);
-    el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
-    if (k < 1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
+// The hero carries the headline numbers, after vcfo's DashHero. Its own note
+// says not to repeat them in a card band underneath, so there isn't one.
+function renderStats(rows) {
+  const days = n => dueInDays(n.due_date);
+  const week = rows.filter(n => { const d = days(n); return d !== null && d >= 0 && d <= 7; }).length;
+  const overdue = rows.filter(n => { const d = days(n); return d !== null && d < 0; }).length;
+  const noDue = rows.filter(n => !n.due_date).length;
+  const docs = rows.filter(n => n.has_pdf).length;
+
+  $('now').textContent = new Date().toLocaleString(undefined,
+    { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  $('greeting').textContent = `Good ${greetWord()}`;
+  $('herosub').textContent = rows.length
+    ? `${rows.length} notice${rows.length === 1 ? '' : 's'} on this account`
+    : 'Nothing synced yet — press Sync to fetch your notices.';
+
+  // ring: how many notices we actually hold the PDF for
+  const pct = rows.length ? Math.min(1, docs / rows.length) : 0;
+  const c = 2 * Math.PI * 18;
+  $('ringval').setAttribute('stroke-dasharray', `${(pct * c).toFixed(1)} ${c.toFixed(1)}`);
+  $('ringtext').textContent = docs;
+  $('ring').setAttribute('aria-label', `${docs} of ${rows.length} notices have a saved document`);
+
+  const stats = [
+    { label: 'Due this week', value: week, hot: week > 0 },
+    { label: 'Overdue', value: overdue, hot: overdue > 0 },
+    { label: 'Missing date', value: noDue, hot: noDue > 0 },
+    { label: 'Total', value: rows.length },
+  ];
+  $('strip').innerHTML = stats.map(s =>
+    `<span class="item${s.hot ? ' hot' : ''}"><span class="v">${s.value}</span>
+       <span class="l">${esc(s.label)}</span></span>`).join('');
 }
 
 function fillYears(rows) {
@@ -329,11 +348,12 @@ function applyFilters() {
       <td class="mono">${esc(n.issued_on || '—')}</td>
       <td>${dueChip(n)}</td>
       <td><div class="rowacts">
-        ${n.has_pdf ? `<button onclick="preview('${esc(n.ref_id)}')">Preview</button>` : ''}
+        ${n.has_pdf ? `<button onclick="view('${esc(n.ref_id)}')">View</button>
+                       <button onclick="savePdf('${esc(n.ref_id)}')">Save</button>` : ''}
         ${(!n.due_date && n.has_pdf)
-          ? `<button onclick="askClaude('${esc(n.ref_id)}', this)">Ask Claude</button>` : ''}
+          ? `<button onclick="askClaude('${esc(n.ref_id)}', this)">${DATE_BTN}</button>` : ''}
         ${n.has_pdf
-          ? `<button class="primary" onclick="generateDraft('${esc(n.ref_id)}', this)">Generate response</button>` : ''}
+          ? `<button class="primary" onclick="generateDraft('${esc(n.ref_id)}', this)">Draft</button>` : ''}
       </div></td>
     </tr>`).join('');
 }
@@ -363,9 +383,31 @@ for (const id of ['f-ay', 'f-name', 'f-nodue']) {
 }
 
 /* --------------------------------------------------------------- actions */
-function preview(refId) {
-  window.open(`/api/notices/${refId}/pdf?inline=1`, '_blank', 'noopener');
+// Read it here, in a modal, rather than in a tab: the point of the table is
+// that you never leave it.
+const viewer = $('viewer');
+
+function view(refId) {
+  $('v-ref').textContent = refId;
+  $('v-frame').src = `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`;
+  viewer.classList.add('show');
+  $('v-close').focus();
 }
+
+function closeViewer() {
+  viewer.classList.remove('show');
+  $('v-frame').src = 'about:blank';   // stop the PDF plugin running behind it
+}
+
+// The server already answers this one with Content-Disposition: attachment,
+// so the browser saves it instead of navigating anywhere.
+function savePdf(refId) {
+  location.href = `/api/notices/${encodeURIComponent(refId)}/pdf`;
+}
+
+$('v-close').onclick = closeViewer;
+$('v-save').onclick = () => savePdf($('v-ref').textContent);
+viewer.onclick = ev => { if (ev.target === viewer) closeViewer(); };
 
 async function askClaude(refId, btn) {
   btn.disabled = true;
@@ -393,7 +435,7 @@ async function askClaude(refId, btn) {
   } catch (e) {
     toast('Could not reach the server.');
   } finally {
-    if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Ask Claude'; }
+    if (btn.isConnected) { btn.disabled = false; btn.innerHTML = DATE_BTN; }
   }
 }
 
@@ -447,7 +489,7 @@ async function generateDraft(refId, btn, regen) {
   } catch (e) {
     toast('Could not reach the server.');
   } finally {
-    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label || 'Generate response'; }
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label || 'Draft'; }
   }
 }
 
@@ -487,7 +529,7 @@ function commands() {
     label: `Open notice ${n.ref_id}`,
     hint: (n.description || n.proceeding_name || '').slice(0, 40),
     haystack: `${n.ref_id} ${n.description || ''} ${n.proceeding_name || ''}`,
-    run: () => preview(n.ref_id),
+    run: () => view(n.ref_id),
   }));
   return base.concat(notices);
 }
@@ -545,7 +587,7 @@ palInput.addEventListener('keydown', ev => {
 document.addEventListener('keydown', ev => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); palOpen(); return; }
-  if (ev.key === 'Escape') { palClose(); drawer.classList.remove('show'); return; }
+  if (ev.key === 'Escape') { palClose(); closeViewer(); drawer.classList.remove('show'); return; }
   if (typing) return;
   if (ev.key === 's') { ev.preventDefault(); startSync(); }
   if (ev.key === '/') { ev.preventDefault(); $('f-name').focus(); }
