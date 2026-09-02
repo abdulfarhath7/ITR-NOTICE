@@ -66,6 +66,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   `FAILED_LOGIN_DELAY` (2s). Changing APP_PASSWORD invalidates every cookie.
   **secure=False until this is behind TLS** — on plain http the password and
   cookie are readable and replayable by anyone on the path.
+- `drafts` table: one row per notice (ref_id primary key) holding summary,
+  checklist_json and draft_text. Regenerate overwrites; it never accumulates.
 - `app/claude_client.py` — the Claude API calls. Model `claude-sonnet-4-6`,
   async SDK client, PDF sent as a base64 document block, answers pinned by
   `output_config={"format": {"type": "json_schema", ...}}` so the reply is a
@@ -208,9 +210,15 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
    nullable column and show it as a tooltip/subtitle. Cache rule is sacred:
    if due_date_source='claude' already, return the stored value, never call
    the API again.
-3. **Step 6 — draft replies (LAST).** New endpoint: send the notice PDF to
-   Claude, get a structured draft reply + list of documents demanded.
-   Output is a DRAFT for the owner to review — never auto-submit anything.
+3. **Step 6 — draft replies. DONE** (kept here for the rule that outlives it.)
+   POST /api/notices/{ref_id}/draft sends the stored PDF to Claude and gets
+   back a plain-language summary, a checklist of documents demanded, and a
+   draft reply, stored one-per-notice in the `drafts` table. `?regenerate=1`
+   is the only thing that spends a second call. The dashboard shows it in a
+   side panel with the draft editable and a Copy button, headed "DRAFT —
+   review before filing. This tool never submits to the portal."
+   **That stays true: never add portal-submission code.** A test greps the
+   backend for submit-shaped names and fails if one appears.
 
 ## Hard guardrails — never violate, never "improve" away
 

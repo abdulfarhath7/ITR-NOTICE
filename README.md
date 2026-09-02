@@ -47,7 +47,9 @@ Run the tests with:
 - [x] Step 4d Preview a stored notice in the browser (Download unchanged)
 - [x] Step 5  Ask-Claude due date: "Ask Claude" on rows the portal left blank,
               answer cached forever, basis shown as a tooltip
-- [ ] Step 6  Claude drafts a reply
+- [x] Step 6  Claude drafts a reply: summary, document checklist and an
+              editable draft in a side panel. Always a draft - this tool
+              never submits anything to the portal.
 
 ## First-run note
 

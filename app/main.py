@@ -17,6 +17,7 @@ login resumes on the very same open browser page.
 import asyncio
 import hashlib
 import hmac
+import json
 import time
 from pathlib import Path
 
@@ -416,6 +417,60 @@ async def ask_claude(ref_id: str):
             db.set_claude_due_date(con, ref_id, due_date, basis)
     return {"ref_id": ref_id, "due_date": due_date, "basis": basis,
             "source": "claude" if due_date else None, "cached": False}
+
+
+# ------------------------------------------------------- draft a response
+# READ-ONLY GUARDRAIL: this produces text for the owner to read, edit and file
+# himself. There is no portal-submission code here and there must never be.
+@app.post("/api/notices/{ref_id}/draft")
+async def draft_response(ref_id: str, regenerate: int = 0):
+    """Summary + document checklist + a draft reply, from the stored PDF.
+
+    Cached like the due date: one generation per notice, unless the owner
+    explicitly asks to regenerate.
+    """
+    with db.connect() as con:
+        row = db.get_notice(con, ref_id)
+        if row is None:
+            return JSONResponse({"error": "no such notice"}, status_code=404)
+        existing = db.get_draft(con, ref_id)
+        if existing is not None and not regenerate:
+            return {"ref_id": ref_id, "summary": existing["summary"],
+                    "checklist": json.loads(existing["checklist_json"] or "[]"),
+                    "draft_text": existing["draft_text"],
+                    "generated_at": existing["generated_at"], "cached": True}
+        pdf = _stored_pdf(row)
+        notice_us = row["notice_us"]
+        proceeding = con.execute(
+            "SELECT assessee_name, assessment_year FROM proceedings WHERE id=?",
+            (row["proceeding_id"],)).fetchone() if row["proceeding_id"] else None
+
+    if not pdf:
+        return JSONResponse(
+            {"error": "no PDF stored for this notice yet - run a sync first"},
+            status_code=404)
+    if not claude_client.have_key():
+        return JSONResponse({"error": "add API key in .env"}, status_code=503)
+
+    try:
+        answer = await claude_client.draft_from_pdf(
+            pdf, ref_id=ref_id, notice_us=notice_us,
+            assessee=proceeding["assessee_name"] if proceeding else None,
+            assessment_year=proceeding["assessment_year"] if proceeding else None)
+    except claude_client.ClaudeUnavailable as e:
+        return JSONResponse({"error": str(e)}, status_code=503)
+    except Exception as e:
+        return JSONResponse({"error": f"Claude call failed: {e!r}"},
+                            status_code=502)
+
+    checklist = answer.get("checklist") or []
+    with db.connect() as con:
+        db.save_draft(con, ref_id, answer.get("summary") or "",
+                      json.dumps(checklist), answer.get("draft_reply") or "")
+        saved = db.get_draft(con, ref_id)
+    return {"ref_id": ref_id, "summary": saved["summary"], "checklist": checklist,
+            "draft_text": saved["draft_text"], "generated_at": saved["generated_at"],
+            "cached": False}
 
 
 # ---------------------------------------------------------------- ws + static

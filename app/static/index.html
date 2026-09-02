@@ -47,6 +47,21 @@
          font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;
          max-width:80vw}
   #toast.show{opacity:1}
+  #drawer{position:fixed;inset:0;background:rgba(15,23,32,.45);display:none;
+          z-index:50}
+  #drawer.show{display:block}
+  #drawer .panel{position:absolute;top:0;right:0;height:100%;width:min(720px,100%);
+                 background:var(--card);box-shadow:-8px 0 30px rgba(0,0,0,.16);
+                 display:flex;flex-direction:column}
+  #drawer header{justify-content:space-between}
+  #drawer .body{padding:20px 24px;overflow-y:auto;display:grid;gap:18px}
+  .banner{background:var(--amberbg);border:1px solid #fcd34d;color:#7c2d12;
+          border-radius:9px;padding:10px 13px;font-size:13px}
+  #d-checklist{margin:0;padding-left:20px;display:grid;gap:5px}
+  #d-text{width:100%;min-height:320px;font:13.5px/1.6 ui-monospace,monospace;
+          padding:13px;border:1px solid var(--line);border-radius:9px;resize:vertical}
+  .h{font-size:12.5px;color:var(--mut);text-transform:uppercase;
+     letter-spacing:.5px;margin:0 0 6px}
   #log{padding:14px 20px;max-height:180px;overflow-y:auto;
        font-family:ui-monospace,monospace;font-size:13px;color:var(--mut);
        white-space:pre-wrap}
@@ -144,6 +159,28 @@
     </table>
   </div>
 </main>
+
+<div id="drawer" role="dialog" aria-modal="true" aria-label="Draft response">
+  <div class="panel">
+    <header>
+      <h1>Draft response</h1>
+      <span class="mut" id="d-meta"></span>
+      <button id="d-regen" class="link">Regenerate</button>
+      <button id="d-close" class="link">Close</button>
+    </header>
+    <div class="body">
+      <p class="banner"><strong>DRAFT - review before filing.</strong>
+         This tool never submits to the portal.</p>
+      <div><p class="h">What this notice asks for</p>
+           <div id="d-summary"></div></div>
+      <div><p class="h">Documents required</p>
+           <ul id="d-checklist"></ul></div>
+      <div><p class="h">Draft reply (editable)</p>
+           <textarea id="d-text" spellcheck="false"></textarea>
+           <button id="d-copy" style="margin-top:10px">Copy draft</button></div>
+    </div>
+  </div>
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -286,6 +323,61 @@ async function askClaude(refId, btn) {
   }
 }
 
+// --- draft panel ---------------------------------------------------------
+let DRAFT_REF = null;
+const drawer = document.getElementById('drawer');
+
+function showDraft(d) {
+  DRAFT_REF = d.ref_id;
+  document.getElementById('d-summary').textContent = d.summary || '(no summary)';
+  document.getElementById('d-checklist').innerHTML =
+    (d.checklist && d.checklist.length)
+      ? d.checklist.map(c => `<li>${esc(c)}</li>`).join('')
+      : '<li class="mut">Nothing specific demanded.</li>';
+  document.getElementById('d-text').value = d.draft_text || '';
+  document.getElementById('d-meta').textContent =
+    (d.cached ? 'saved ' : 'generated ') + (d.generated_at || '');
+  drawer.classList.add('show');
+}
+
+async function generateDraft(refId, btn, regenerate) {
+  const label = btn && btn.textContent;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
+  try {
+    const url = `/api/notices/${refId}/draft` + (regenerate ? '?regenerate=1' : '');
+    const r = await fetch(url, {method: 'POST'});
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || 'Could not generate a draft.'); return; }
+    showDraft(d);
+  } catch (e) {
+    toast('Could not reach the server.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label || 'Generate response'; }
+  }
+}
+
+document.getElementById('d-close').onclick = () => drawer.classList.remove('show');
+drawer.onclick = ev => { if (ev.target === drawer) drawer.classList.remove('show'); };
+document.addEventListener('keydown',
+  ev => { if (ev.key === 'Escape') drawer.classList.remove('show'); });
+
+document.getElementById('d-regen').onclick = async () => {
+  if (!DRAFT_REF) return;
+  // Regenerate is the only thing that spends a second call on the same notice.
+  await generateDraft(DRAFT_REF, document.getElementById('d-regen'), true);
+};
+
+document.getElementById('d-copy').onclick = async () => {
+  const text = document.getElementById('d-text').value;
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Draft copied.');
+  } catch (e) {
+    document.getElementById('d-text').select();
+    toast('Press Ctrl+C to copy.');
+  }
+};
+
 // Preview opens the same file with inline=1, which serves it as
 // Content-Disposition: inline so the browser renders it instead of saving it.
 function preview(refId) {
@@ -355,7 +447,8 @@ function applyFilters() {
         + (n.pdf_path ? `<button class="ask" onclick="askClaude('${n.ref_id}', this)">Ask Claude</button>` : '');
     const doc = n.pdf_path
       ? `<button onclick="preview('${n.ref_id}')">Preview</button>
-         <a href="/api/notices/${n.ref_id}/pdf"><button>Download</button></a>`
+         <a href="/api/notices/${n.ref_id}/pdf"><button>Download</button></a>
+         <button onclick="generateDraft('${n.ref_id}', this)">Generate response</button>`
       : '<span class="mut">-</span>';
     return `<tr>
       <td>${n.notice_us || '-'}<div class="mut">${n.description || ''}<br>DIN ${n.ref_id || ''}</div></td>

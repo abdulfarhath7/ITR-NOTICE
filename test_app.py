@@ -957,6 +957,87 @@ check("the due-date schema pins the strict JSON shape",
 check("the row offers Ask Claude only when a PDF is stored",
       "askClaude(" in _page_now() and "n.pdf_path ?" in _page_now())
 
+
+# 19 - generate a draft response ---------------------------------------------
+DRAFT_CALLS = []
+
+
+async def fake_draft(pdf_path, *, ref_id, notice_us=None, assessee=None,
+                     assessment_year=None):
+    DRAFT_CALLS.append({"ref_id": ref_id, "notice_us": notice_us,
+                        "assessee": assessee, "assessment_year": assessment_year})
+    return {"summary": "The officer wants proof of the deduction you claimed.",
+            "checklist": ["Bank statement for FY 2019-20", "Copy of the invoice"],
+            "draft_reply": "To the Assessing Officer,\n\nRe: notice "
+                           f"{ref_id}. [Fill in the reply here.]"}
+
+
+main.claude_client.draft_from_pdf = fake_draft
+main.claude_client.have_key = lambda: True
+
+with db.connect() as con:
+    pid = db.upsert_proceeding(con, {
+        "tab": "self", "sub_tab": "action", "proceeding_name": "Issue Letter",
+        "pan": "AAACU3358G", "assessee_name": "CAMBRIDGE TECHNOLOGY ENTERPRISES LIMITED",
+        "assessment_year": "2020-21", "financial_year": "2019-20",
+        "applicable_act": "Income Tax Act 1961", "status": "Open",
+        "closure_date": None, "closure_order": None})
+    con.execute("UPDATE notices SET proceeding_id=?, notice_us='142(1)' "
+                "WHERE ref_id='100118320996'", (pid,))
+
+with TestClient(main.app) as client:
+    DRAFT_CALLS.clear()
+    r = client.post("/api/notices/100118320996/draft")
+    d = r.json()
+    check("draft returns a summary", r.status_code == 200
+          and "deduction" in d["summary"], r.text[:80])
+    check("draft returns the document checklist", d["checklist"] ==
+          ["Bank statement for FY 2019-20", "Copy of the invoice"], str(d["checklist"]))
+    check("draft returns editable reply text", "Assessing Officer" in d["draft_text"])
+    check("the notice's own context is sent to Claude",
+          DRAFT_CALLS and DRAFT_CALLS[0]["notice_us"] == "142(1)"
+          and DRAFT_CALLS[0]["assessment_year"] == "2020-21", str(DRAFT_CALLS[:1]))
+
+    DRAFT_CALLS.clear()
+    r2 = client.post("/api/notices/100118320996/draft")
+    check("a second open is served from the drafts table, no second call",
+          r2.json()["cached"] is True and not DRAFT_CALLS, str(DRAFT_CALLS))
+    check("the cached draft keeps its checklist",
+          len(r2.json()["checklist"]) == 2)
+
+    DRAFT_CALLS.clear()
+    r3 = client.post("/api/notices/100118320996/draft?regenerate=1")
+    check("Regenerate is the one thing that calls again",
+          r3.json()["cached"] is False and len(DRAFT_CALLS) == 1, str(DRAFT_CALLS))
+    with db.connect() as con:
+        check("regenerating overwrites rather than piling up rows",
+              con.execute("SELECT count(*) n FROM drafts WHERE ref_id=?",
+                          ("100118320996",)).fetchone()["n"] == 1)
+
+    main.claude_client.have_key = lambda: False
+    check("no API key is reported, not crashed",
+          client.post("/api/notices/no-deadline/draft").status_code == 503)
+    main.claude_client.have_key = lambda: True
+    check("a notice with no PDF cannot be drafted",
+          client.post("/api/notices/no-pdf/draft").status_code == 404)
+    check("an unknown notice is 404",
+          client.post("/api/notices/nope/draft").status_code == 404)
+
+check("the draft schema pins summary, checklist and reply",
+      claude_client.DRAFT_SCHEMA["required"] == ["summary", "checklist", "draft_reply"])
+_p = _page_now()
+check("the panel says DRAFT and that nothing is submitted",
+      "DRAFT - review before filing" in _p and "never submits to the portal" in _p)
+check("the panel has an editable draft and a Copy button",
+      "<textarea id=\"d-text\"" in _p and "d-copy" in _p)
+
+# the read-only guardrail, still absolute
+_backend = (pathlib.Path("app/main.py").read_text()
+            + pathlib.Path("app/portal/scraper.py").read_text()
+            + pathlib.Path("app/claude_client.py").read_text())
+for banned in ("submitResponse", "submit_response", "fileAppeal", "/submit"):
+    check(f"no portal-submission code anywhere ({banned})", banned not in _backend)
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)
