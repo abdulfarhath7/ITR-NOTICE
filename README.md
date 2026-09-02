@@ -45,7 +45,8 @@ Run the tests with:
               WebSocket (leave it empty only on localhost)
 - [x] Step 4c Dashboard summary cards + year/name/missing-due-date filters
 - [x] Step 4d Preview a stored notice in the browser (Download unchanged)
-- [ ] Step 5  Ask-Claude due date (endpoint stubbed at /api/notices/{id}/ask-claude)
+- [x] Step 5  Ask-Claude due date: "Ask Claude" on rows the portal left blank,
+              answer cached forever, basis shown as a tooltip
 - [ ] Step 6  Claude drafts a reply
 
 ## First-run note

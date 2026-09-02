@@ -844,6 +844,119 @@ with TestClient(main.app) as client:
 check("the row offers Preview alongside Download",
       "preview(" in _page_now() and "Download" in _page_now())
 
+
+# 18 - Ask Claude for a missing due date --------------------------------------
+# The Claude call itself is stubbed: these tests are about the cache rule, the
+# guardrail that a portal date is never overwritten, and the no-key path.
+from app import claude_client                                        # noqa: E402
+
+CALLS = []
+
+
+async def fake_due_date(pdf_path, *, ref_id, issued_on=None, served_on=None):
+    CALLS.append({"ref_id": ref_id, "issued_on": issued_on, "served_on": served_on})
+    return {"due_date": "15-Sep-2026",
+            "basis": "notice says within 15 days of service on 18-Aug-2026"}
+
+
+async def fake_no_date(pdf_path, **kw):
+    CALLS.append({"ref_id": kw.get("ref_id")})
+    return {"due_date": None, "basis": "this letter sets no deadline"}
+
+
+REAL_HAVE_KEY = claude_client.have_key      # the stubs below shadow the module
+main.claude_client.due_date_from_pdf = fake_due_date
+main.claude_client.have_key = lambda: True
+
+with db.connect() as con:
+    con.execute("UPDATE notices SET due_date=NULL, due_date_source=NULL, "
+                "due_date_basis=NULL, issued_on='17-Aug-2026', served_on='18-Aug-2026' "
+                "WHERE ref_id='100118320996'")
+
+with TestClient(main.app) as client:
+    CALLS.clear()
+    r = client.post("/api/notices/100118320996/ask-claude")
+    d = r.json()
+    check("Ask Claude returns a date", r.status_code == 200
+          and d["due_date"] == "15-Sep-2026", r.text[:90])
+    check("the basis comes back with it", "15 days" in (d["basis"] or ""), str(d["basis"]))
+    check("the portal dates are passed to Claude as context",
+          CALLS and CALLS[0]["issued_on"] == "17-Aug-2026"
+          and CALLS[0]["served_on"] == "18-Aug-2026", str(CALLS[:1]))
+
+    with db.connect() as con:
+        row = db.get_notice(con, "100118320996")
+    check("the date is stored and tagged as Claude's",
+          row["due_date"] == "15-Sep-2026" and row["due_date_source"] == "claude")
+    check("the basis is stored in its own column",
+          "15 days" in (row["due_date_basis"] or ""))
+
+    CALLS.clear()
+    r2 = client.post("/api/notices/100118320996/ask-claude")
+    check("asking again is served from cache, never re-called",
+          r2.json()["cached"] is True and not CALLS, str(CALLS))
+    check("the cached answer still carries the basis",
+          "15 days" in (r2.json()["basis"] or ""))
+
+    # a portal date must never be replaced by a Claude one
+    with db.connect() as con:
+        con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('portal-dated')")
+        con.execute("UPDATE notices SET due_date='01-Oct-2026', due_date_source='portal', "
+                    "pdf_path=? WHERE ref_id='portal-dated'", (str(_pdf),))
+    CALLS.clear()
+    r3 = client.post("/api/notices/portal-dated/ask-claude")
+    check("a portal date is returned untouched and Claude is not called",
+          r3.json()["due_date"] == "01-Oct-2026"
+          and r3.json()["source"] == "portal" and not CALLS, str(CALLS))
+
+    # Claude finding no deadline is a normal outcome, not an error
+    main.claude_client.due_date_from_pdf = fake_no_date
+    with db.connect() as con:
+        con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('no-deadline')")
+        con.execute("UPDATE notices SET pdf_path=? WHERE ref_id='no-deadline'",
+                    (str(_pdf),))
+    r4 = client.post("/api/notices/no-deadline/ask-claude")
+    check("no deadline in the notice returns null, not an error",
+          r4.status_code == 200 and r4.json()["due_date"] is None, r4.text[:80])
+    with db.connect() as con:
+        check("nothing is written when there is no date",
+              db.get_notice(con, "no-deadline")["due_date"] is None)
+
+    # missing prerequisites
+    main.claude_client.have_key = lambda: False
+    r5 = client.post("/api/notices/no-deadline/ask-claude")
+    check("no API key gives the 'add API key in .env' message",
+          r5.status_code == 503 and "API key" in r5.json()["error"], r5.text[:80])
+    main.claude_client.have_key = lambda: True
+
+    with db.connect() as con:
+        con.execute("INSERT OR IGNORE INTO notices (ref_id) VALUES ('no-pdf')")
+    r6 = client.post("/api/notices/no-pdf/ask-claude")
+    check("a notice with no stored PDF says so", r6.status_code == 404,
+          r6.text[:80])
+    check("an unknown notice is 404",
+          client.post("/api/notices/nope/ask-claude").status_code == 404)
+
+claude_client.have_key = REAL_HAVE_KEY      # done stubbing; test the real one
+_real_key = claude_client.settings.anthropic_api_key
+claude_client.settings.anthropic_api_key = "sk-ant-add-later"
+check("the .env.example placeholder does not count as a key",
+      not claude_client.have_key())
+claude_client.settings.anthropic_api_key = ""
+check("an empty key does not count as a key", not claude_client.have_key())
+claude_client.settings.anthropic_api_key = "sk-ant-a-real-looking-key-value"
+check("a real-looking key counts", claude_client.have_key())
+claude_client.settings.anthropic_api_key = _real_key
+check("the model is the one the owner asked for",
+      claude_client.MODEL == "claude-sonnet-4-6", claude_client.MODEL)
+check("the PDF is sent as a document block",
+      claude_client._pdf_block(str(_pdf))["type"] == "document")
+check("the due-date schema pins the strict JSON shape",
+      claude_client.DUE_DATE_SCHEMA["required"] == ["due_date", "basis"]
+      and claude_client.DUE_DATE_SCHEMA["additionalProperties"] is False)
+check("the row offers Ask Claude only when a PDF is stored",
+      "askClaude(" in _page_now() and "n.pdf_path ?" in _page_now())
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)

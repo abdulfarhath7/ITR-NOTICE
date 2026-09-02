@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db
+from . import claude_client, db
 from .config import settings
 from .portal.session import PortalSession, WrongPasswordError
 
@@ -365,14 +365,57 @@ async def notice_pdf(ref_id: str, inline: int = 0):
     return FileResponse(row["pdf_path"], filename=f"{ref_id}.pdf")
 
 
-# --------------------------------------------------------- future: Ask Claude
+# ------------------------------------------------------------- Ask Claude
+def _stored_pdf(row) -> str | None:
+    path = row["pdf_path"] if row is not None else None
+    return path if path and Path(path).exists() else None
+
+
 @app.post("/api/notices/{ref_id}/ask-claude")
 async def ask_claude(ref_id: str):
-    """Build step 5. Will read the stored PDF, send it to the Claude API,
-    extract or infer the due date, then db.set_claude_due_date(...).
-    Cached forever after the first answer."""
-    return JSONResponse(
-        {"error": "not built yet - this is build step 5"}, status_code=501)
+    """Read the stored PDF and ask Claude for the response due date.
+
+    Cache rule: once a date is stored with due_date_source='claude' it is
+    returned as-is forever. Claude is never asked twice about a notice.
+    """
+    with db.connect() as con:
+        row = db.get_notice(con, ref_id)
+        if row is None:
+            return JSONResponse({"error": "no such notice"}, status_code=404)
+        if row["due_date"] and row["due_date_source"] == "claude":
+            return {"ref_id": ref_id, "due_date": row["due_date"],
+                    "basis": row["due_date_basis"], "source": "claude",
+                    "cached": True}
+        if row["due_date"]:
+            # A portal date is the truth; Claude never gets to overwrite it.
+            return {"ref_id": ref_id, "due_date": row["due_date"],
+                    "basis": None, "source": row["due_date_source"], "cached": True}
+        pdf = _stored_pdf(row)
+        issued_on, served_on = row["issued_on"], row["served_on"]
+
+    if not pdf:
+        return JSONResponse(
+            {"error": "no PDF stored for this notice yet - run a sync first"},
+            status_code=404)
+    if not claude_client.have_key():
+        return JSONResponse({"error": "add API key in .env"}, status_code=503)
+
+    try:
+        answer = await claude_client.due_date_from_pdf(
+            pdf, ref_id=ref_id, issued_on=issued_on, served_on=served_on)
+    except claude_client.ClaudeUnavailable as e:
+        return JSONResponse({"error": str(e)}, status_code=503)
+    except Exception as e:
+        return JSONResponse({"error": f"Claude call failed: {e!r}"},
+                            status_code=502)
+
+    due_date = (answer.get("due_date") or "").strip() or None
+    basis = (answer.get("basis") or "").strip() or None
+    if due_date:
+        with db.connect() as con:
+            db.set_claude_due_date(con, ref_id, due_date, basis)
+    return {"ref_id": ref_id, "due_date": due_date, "basis": basis,
+            "source": "claude" if due_date else None, "cached": False}
 
 
 # ---------------------------------------------------------------- ws + static

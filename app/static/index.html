@@ -37,6 +37,16 @@
                      border:1px solid var(--line)}
   .link{background:none;border:0;padding:0;color:var(--blue);cursor:pointer;
         font-size:13px;text-decoration:underline}
+  .ask{font-size:12px;padding:4px 10px;margin-left:6px}
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);
+        border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;
+        vertical-align:-1px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+         background:#1c2733;color:#fff;padding:10px 16px;border-radius:9px;
+         font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;
+         max-width:80vw}
+  #toast.show{opacity:1}
   #log{padding:14px 20px;max-height:180px;overflow-y:auto;
        font-family:ui-monospace,monospace;font-size:13px;color:var(--mut);
        white-space:pre-wrap}
@@ -135,6 +145,8 @@
   </div>
 </main>
 
+<div id="toast" role="status" aria-live="polite"></div>
+
 <script>
 const log = m => { const el = document.getElementById('log');
   el.textContent += "\n" + m; el.scrollTop = el.scrollHeight; };
@@ -230,6 +242,50 @@ document.getElementById('otpsend').onclick = async () => {
 
 let NOTICES = [];
 
+const esc = t => String(t).replace(/[&<>"]/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+}
+
+// Ask Claude for a due date the portal never printed. The answer is stored
+// server-side, so a second click on the same notice never costs another call.
+async function askClaude(refId, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+  try {
+    const r = await fetch(`/api/notices/${refId}/ask-claude`, {method: 'POST'});
+    const d = await r.json();
+    if (!r.ok) {
+      toast(d.error || 'Could not ask Claude.');
+      btn.disabled = false; btn.textContent = 'Ask Claude';
+      return;
+    }
+    if (d.due_date) {
+      const row = NOTICES.find(n => n.ref_id === refId);
+      if (row) { row.due_date = d.due_date;
+                 row.due_date_source = d.source || 'claude';
+                 row.due_date_basis = d.basis; }
+      renderStats(NOTICES);
+      applyFilters();
+      toast(`Due ${d.due_date}${d.basis ? ' - ' + d.basis : ''}`);
+    } else {
+      // Quietly: plenty of letters genuinely set no deadline.
+      btn.replaceWith(Object.assign(document.createElement('span'),
+        {className: 'mut', textContent: ' no date stated',
+         title: d.basis || 'Claude found no deadline in this notice'}));
+    }
+  } catch (e) {
+    toast('Could not reach the server.');
+    btn.disabled = false; btn.textContent = 'Ask Claude';
+  }
+}
+
 // Preview opens the same file with inline=1, which serves it as
 // Content-Disposition: inline so the browser renders it instead of saving it.
 function preview(refId) {
@@ -292,8 +348,11 @@ function applyFilters() {
   tb.innerHTML = rows.map(n => {
     const due = n.due_date
       ? `<span class="${new Date(n.due_date) < new Date() ? 'overdue' : ''}">${n.due_date}</span>`
-        + (n.due_date_source === 'claude' ? '<span class="tag">by Claude</span>' : '')
-      : '<span class="empty">no due date</span>';
+        + (n.due_date_source === 'claude'
+            ? `<span class="tag" title="${esc(n.due_date_basis || 'found by Claude')}">by Claude</span>`
+            : '')
+      : `<span class="empty">no due date</span>`
+        + (n.pdf_path ? `<button class="ask" onclick="askClaude('${n.ref_id}', this)">Ask Claude</button>` : '');
     const doc = n.pdf_path
       ? `<button onclick="preview('${n.ref_id}')">Preview</button>
          <a href="/api/notices/${n.ref_id}/pdf"><button>Download</button></a>`

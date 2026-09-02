@@ -66,6 +66,10 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   `FAILED_LOGIN_DELAY` (2s). Changing APP_PASSWORD invalidates every cookie.
   **secure=False until this is behind TLS** — on plain http the password and
   cookie are readable and replayable by anyone on the path.
+- `app/claude_client.py` — the Claude API calls. Model `claude-sonnet-4-6`,
+  async SDK client, PDF sent as a base64 document block, answers pinned by
+  `output_config={"format": {"type": "json_schema", ...}}` so the reply is a
+  dict, not prose. `have_key()` treats the .env.example placeholder as missing.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
   holder on `EventHub` (`set_credentials` / `credentials` / `has_credentials` /
   `clear_credentials`). POST /api/credentials stores the login and starts the
@@ -188,7 +192,9 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
    walk both tabs. A failure leaves `data/debug/fail-*.png` and holds the
    window open for HOLD_ON_ERROR seconds. Then set the README checkbox for
    step 3 to "verified".
-2. **Step 5 — Ask-Claude due date.** Implement the 501 stub:
+2. **Step 5 — Ask-Claude due date. DONE** (kept here for the rules it must
+   keep obeying.) Implemented in `app/claude_client.py` +
+   POST /api/notices/{ref_id}/ask-claude:
    read the stored PDF for ref_id → send to Claude API (model
    claude-sonnet-4-6 unless owner says otherwise, anthropic Python SDK,
    key from ANTHROPIC_API_KEY) with the PDF as a document block → ask for the
