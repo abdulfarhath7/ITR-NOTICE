@@ -58,6 +58,14 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the walk raises `DownloadLimitReached` the moment the cap is met. Everything
   already stored stays stored, so pressing Sync again carries on where the
   capped run stopped - the notice cache makes that free.
+- Access lock: `APP_PASSWORD` in .env gates the whole app. Unset = open, with
+  a loud startup warning (localhost dev only). Set = every HTTP request and the
+  WebSocket handshake need a cookie: `<issued-unix-seconds>.<hmac-sha256 of it
+  keyed by APP_PASSWORD>`, httpOnly, samesite=lax, 12h. `/api/*` gets 401 JSON,
+  anything else gets the password page; a wrong password costs
+  `FAILED_LOGIN_DELAY` (2s). Changing APP_PASSWORD invalidates every cookie.
+  **secure=False until this is behind TLS** — on plain http the password and
+  cookie are readable and replayable by anyone on the path.
 - `app/main.py` — REST + WebSocket event hub, and the in-memory credential
   holder on `EventHub` (`set_credentials` / `credentials` / `has_credentials` /
   `clear_credentials`). POST /api/credentials stores the login and starts the

@@ -15,10 +15,13 @@ The OTP relay in one sentence: login pauses on an asyncio.Event, the UI gets an
 login resumes on the very same open browser page.
 """
 import asyncio
+import hashlib
+import hmac
+import time
 from pathlib import Path
 
-from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import Body, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -27,6 +30,126 @@ from .config import settings
 from .portal.session import PortalSession, WrongPasswordError
 
 app = FastAPI(title="ITR notice tool")
+
+
+# ----------------------------------------------------------------- access lock
+# The tool is meant to sit on a public URL, so everything behind it - the
+# dashboard, every API route and the WebSocket - is gated on one password from
+# APP_PASSWORD. The cookie is a timestamp signed with that password: no
+# database, no extra dependency, and changing the password invalidates every
+# cookie already handed out.
+#
+# WARNING: over plain http the password and this cookie cross the wire in the
+# clear and can be replayed by anyone on the path. Put TLS in front before
+# trusting it (see the secure= TODO below).
+COOKIE_NAME = "itr_session"
+COOKIE_MAX_AGE = 12 * 3600          # seconds; re-enter the password once a day
+FAILED_LOGIN_DELAY = 2.0            # seconds, per wrong attempt
+
+LOGIN_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITR notice tool</title>
+<style>
+ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f6f8fa;
+      font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1c2733}
+ form{background:#fff;border:1px solid #e3e7ec;border-radius:12px;padding:28px;
+      width:320px;display:grid;gap:12px}
+ h1{font-size:16px;margin:0 0 4px}
+ input,button{font:inherit;padding:9px 12px;border-radius:8px;border:1px solid #e3e7ec}
+ button{background:#1a56db;border-color:#1a56db;color:#fff;cursor:pointer}
+ .err{color:#b91c1c;font-size:13px;min-height:18px;margin:0}
+ .mut{color:#6b7683;font-size:12.5px;margin:0}
+</style></head><body>
+<form id="f">
+  <h1>ITR notice tool</h1>
+  <p class="mut">Enter the dashboard password.</p>
+  <input id="p" type="password" autocomplete="current-password" autofocus
+         aria-label="Dashboard password">
+  <button type="submit">Sign in</button>
+  <p class="err" id="e"></p>
+</form>
+<script>
+document.getElementById('f').onsubmit = async ev => {
+  ev.preventDefault();
+  const e = document.getElementById('e');
+  e.textContent = 'Checking...';
+  const r = await fetch('/login', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({password: document.getElementById('p').value})});
+  if (r.ok) { location.href = '/'; return; }
+  e.textContent = 'Wrong password.';
+  document.getElementById('p').value = '';
+};
+</script></body></html>"""
+
+
+def _auth_on() -> bool:
+    """Read through settings every time so a test can flip it."""
+    return bool(settings.app_password)
+
+
+def _sign(issued: str) -> str:
+    return hmac.new(settings.app_password.encode(), issued.encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def _new_cookie() -> str:
+    issued = str(int(time.time()))
+    return f"{issued}.{_sign(issued)}"
+
+
+def _cookie_ok(value: str | None) -> bool:
+    if not value or "." not in value:
+        return False
+    issued, sig = value.rsplit(".", 1)
+    if not hmac.compare_digest(sig, _sign(issued)):
+        return False
+    try:
+        age = time.time() - int(issued)
+    except ValueError:
+        return False
+    return 0 <= age <= COOKIE_MAX_AGE
+
+
+@app.middleware("http")
+async def require_password(request: Request, call_next):
+    if not _auth_on() or request.url.path in ("/login", "/logout"):
+        return await call_next(request)
+    if _cookie_ok(request.cookies.get(COOKIE_NAME)):
+        return await call_next(request)
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"error": "not signed in"}, status_code=401)
+    return HTMLResponse(LOGIN_PAGE, status_code=401)
+
+
+class LoginIn(BaseModel):
+    password: str
+
+
+@app.post("/login")
+async def login(body: LoginIn):
+    if not _auth_on():
+        return {"ok": True, "auth": "disabled"}
+    if not hmac.compare_digest(body.password, settings.app_password):
+        await asyncio.sleep(FAILED_LOGIN_DELAY)      # slow down guessing
+        return JSONResponse({"error": "wrong password"}, status_code=401)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        COOKIE_NAME, _new_cookie(), max_age=COOKIE_MAX_AGE,
+        httponly=True, samesite="lax",
+        # TODO: secure=True once this is served over https - on plain http the
+        # cookie is readable and replayable by anyone on the network path.
+        secure=False,
+    )
+    return resp
+
+
+@app.post("/logout")
+async def logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(COOKIE_NAME)
+    return resp
 
 
 # ------------------------------------------------------------------ event hub
@@ -250,6 +373,10 @@ async def ask_claude(ref_id: str):
 # ---------------------------------------------------------------- ws + static
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
+    # Middleware does not run for websockets, so the gate is repeated here.
+    if _auth_on() and not _cookie_ok(ws.cookies.get(COOKIE_NAME)):
+        await ws.close(code=1008)        # policy violation
+        return
     await ws.accept()
     hub.sockets.append(ws)
     await ws.send_json({"type": "state", "state": hub.state})
@@ -264,6 +391,14 @@ async def ws_endpoint(ws: WebSocket):
 @app.on_event("startup")
 async def startup():
     db.init_db()
+    if not _auth_on():
+        line = "!" * 72
+        print(f"\n{line}\n"
+              "  APP_PASSWORD is not set: this dashboard is OPEN to anyone who\n"
+              "  can reach this port. Fine on localhost, NOT fine on a public\n"
+              "  URL - your notices and your portal session are behind it.\n"
+              "  Set APP_PASSWORD in .env before exposing this.\n"
+              f"{line}\n", flush=True)
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static",

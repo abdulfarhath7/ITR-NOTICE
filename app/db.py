@@ -47,6 +47,14 @@ CREATE TABLE IF NOT EXISTS notices (
     first_seen      TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS drafts (
+    ref_id         TEXT PRIMARY KEY,          -- one draft per notice
+    generated_at   TEXT DEFAULT (datetime('now')),
+    summary        TEXT,                      -- plain-language: what is demanded
+    checklist_json TEXT,                      -- JSON array of documents wanted
+    draft_text     TEXT                       -- the reply, for the owner to edit
+);
+
 CREATE TABLE IF NOT EXISTS runs (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     started   TEXT DEFAULT (datetime('now')),
@@ -57,10 +65,25 @@ CREATE TABLE IF NOT EXISTS runs (
 """
 
 
+# Columns added after the first release. The db file already exists on the
+# owner's machine, so each one is added only if it is missing.
+MIGRATIONS = {
+    "notices": [
+        # one line from Claude explaining where a due date came from
+        ("due_date_basis", "ALTER TABLE notices ADD COLUMN due_date_basis TEXT"),
+    ],
+}
+
+
 def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as con:
         con.executescript(SCHEMA)
+        for table, columns in MIGRATIONS.items():
+            have = {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
+            for column, ddl in columns:
+                if column not in have:
+                    con.execute(ddl)
 
 
 @contextmanager
@@ -129,12 +152,35 @@ def upsert_notice(con, n: dict) -> None:
     )
 
 
-def set_claude_due_date(con, ref_id: str, due_date: str) -> None:
+def set_claude_due_date(con, ref_id: str, due_date: str, basis: str | None = None) -> None:
     """Fill a missing due date found by Claude. Never overwrites a portal date."""
     con.execute(
-        """UPDATE notices SET due_date=?, due_date_source='claude'
+        """UPDATE notices SET due_date=?, due_date_source='claude', due_date_basis=?
            WHERE ref_id=? AND due_date IS NULL""",
-        (due_date, ref_id),
+        (due_date, basis, ref_id),
+    )
+
+
+def get_notice(con, ref_id: str):
+    return con.execute("SELECT * FROM notices WHERE ref_id=?", (ref_id,)).fetchone()
+
+
+def get_draft(con, ref_id: str):
+    return con.execute("SELECT * FROM drafts WHERE ref_id=?", (ref_id,)).fetchone()
+
+
+def save_draft(con, ref_id: str, summary: str, checklist_json: str,
+               draft_text: str) -> None:
+    """One draft per notice; Regenerate deliberately overwrites it."""
+    con.execute(
+        """INSERT INTO drafts (ref_id, summary, checklist_json, draft_text)
+           VALUES (?,?,?,?)
+           ON CONFLICT(ref_id) DO UPDATE SET
+               summary=excluded.summary,
+               checklist_json=excluded.checklist_json,
+               draft_text=excluded.draft_text,
+               generated_at=datetime('now')""",
+        (ref_id, summary, checklist_json, draft_text),
     )
 
 

@@ -41,6 +41,8 @@ Run the tests with:
 - [x] Step 3  Scraper structure: tabs x sub-tabs, notice fields, PDF download,
               cache (never re-downloads a stored notice)
 - [x] Step 4  Minimal dashboard: sync, live log, OTP box, notices table
+- [x] Step 4b Access lock: APP_PASSWORD gates the dashboard, the API and the
+              WebSocket (leave it empty only on localhost)
 - [ ] Step 5  Ask-Claude due date (endpoint stubbed at /api/notices/{id}/ask-claude)
 - [ ] Step 6  Claude drafts a reply
 
@@ -55,6 +57,8 @@ paste the log + a screenshot back into the chat, and they get tightened.
 - Never clicks Submit/Respond/Appeal - read-only by construction.
 - Never retries a rejected password (the portal locks accounts): the login is
   dropped and the dashboard asks again.
+- The whole app sits behind APP_PASSWORD when that is set; unset, it warns
+  loudly at startup and stays open (fine on localhost, not on a public URL).
 - Portal credentials live in server memory only - not in .env, not in SQLite,
   never logged, never returned by any endpoint. .env holds only the Anthropic
   key and HEADLESS.

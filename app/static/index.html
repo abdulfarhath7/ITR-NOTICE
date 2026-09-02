@@ -50,6 +50,19 @@
   .empty{color:var(--amber);background:var(--amberbg);font-size:12.5px;
          padding:2px 9px;border-radius:99px}
   .overdue{color:#b91c1c;font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:16px 18px}
+  .stat .n{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1.15}
+  .stat .k{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .stat.warn .n{color:var(--amber)}
+  .stat.due .n{color:#b45309}
+  .filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+           padding:14px 18px}
+  .filters select,.filters input[type=text]{font:inherit;padding:7px 10px;
+           border:1px solid var(--line);border-radius:8px;background:var(--card)}
+  .filters label{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .filters .spacer{margin-left:auto;font-size:12.5px;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -62,6 +75,7 @@
   <button id="sync" class="primary">Sync now</button>
   <span id="state" class="mut">idle</span>
   <button id="changelogin" class="link">Change login</button>
+  <button id="signout" class="link">Log out</button>
 </header>
 
 <main>
@@ -87,6 +101,28 @@
   </div>
 
   <div class="card"><div id="log">Ready.</div></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="s-total">0</div>
+      <div class="k">Total notices</div></div>
+    <div class="stat due"><div class="n" id="s-week">0</div>
+      <div class="k">Due this week</div></div>
+    <div class="stat warn"><div class="n" id="s-nodue">0</div>
+      <div class="k">Missing due date</div></div>
+    <div class="stat"><div class="n" id="s-docs">0</div>
+      <div class="k">Docs saved</div></div>
+  </div>
+
+  <div class="card filters">
+    <label>Assessment year
+      <select id="f-ay"><option value="">All</option></select>
+    </label>
+    <label>Proceeding
+      <input id="f-name" type="text" placeholder="name contains...">
+    </label>
+    <label><input id="f-nodue" type="checkbox"> Missing due date only</label>
+    <span class="spacer" id="f-count"></span>
+  </div>
 
   <div class="card">
     <table>
@@ -167,6 +203,11 @@ document.getElementById('credsend').onclick = async () => {
   log('Login sent (server memory only). Sync started');
 };
 
+document.getElementById('signout').onclick = async () => {
+  await fetch('/logout', {method:'POST'});
+  location.reload();
+};
+
 document.getElementById('changelogin').onclick = async () => {
   await fetch('/api/credentials', {method:'DELETE'});
   document.getElementById('uid').value = '';
@@ -186,12 +227,62 @@ document.getElementById('otpsend').onclick = async () => {
   state('running');
 };
 
-async function loadNotices() {
-  const d = await (await fetch('/api/notices')).json();
-  if (d.state === 'credentials_required') showCreds(); else state(d.state);
+let NOTICES = [];
+
+// "This week" is the next 7 days, today included; the portal prints dates as
+// 17-Aug-2026, which Date.parse handles.
+function dueInDays(due) {
+  if (!due) return null;
+  const t = Date.parse(due);
+  if (Number.isNaN(t)) return null;
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+  return Math.round((t - midnight.getTime()) / 86400000);
+}
+
+function renderStats(rows) {
+  const dueWeek = rows.filter(n => { const d = dueInDays(n.due_date);
+                                     return d !== null && d >= 0 && d <= 7; }).length;
+  document.getElementById('s-total').textContent = rows.length;
+  document.getElementById('s-week').textContent = dueWeek;
+  document.getElementById('s-nodue').textContent =
+    rows.filter(n => !n.due_date).length;
+  document.getElementById('s-docs').textContent =
+    rows.filter(n => n.pdf_path).length;
+}
+
+function fillYears(rows) {
+  const sel = document.getElementById('f-ay');
+  const years = [...new Set(rows.map(n => n.assessment_year).filter(Boolean))].sort();
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">All</option>'
+    + years.map(y => `<option>${y}</option>`).join('');
+  if (years.includes(keep)) sel.value = keep;
+}
+
+function visibleRows() {
+  const ay = document.getElementById('f-ay').value;
+  const name = document.getElementById('f-name').value.trim().toLowerCase();
+  const noDue = document.getElementById('f-nodue').checked;
+  return NOTICES.filter(n =>
+    (!ay || n.assessment_year === ay)
+    && (!name || (n.proceeding_name || '').toLowerCase().includes(name))
+    && (!noDue || !n.due_date));
+}
+
+function applyFilters() {
+  const rows = visibleRows();
   const tb = document.getElementById('rows');
-  if (!d.notices.length) return;
-  tb.innerHTML = d.notices.map(n => {
+  document.getElementById('f-count').textContent =
+    rows.length === NOTICES.length
+      ? `${NOTICES.length} notice(s)`
+      : `${rows.length} of ${NOTICES.length} notice(s)`;
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="mut">'
+      + (NOTICES.length ? 'Nothing matches these filters.'
+                        : 'No notices yet - run a sync.') + '</td></tr>';
+    return;
+  }
+  tb.innerHTML = rows.map(n => {
     const due = n.due_date
       ? `<span class="${new Date(n.due_date) < new Date() ? 'overdue' : ''}">${n.due_date}</span>`
         + (n.due_date_source === 'claude' ? '<span class="tag">by Claude</span>' : '')
@@ -205,6 +296,21 @@ async function loadNotices() {
       <td>${n.issued_on || '-'}</td>
       <td>${due}</td><td>${doc}</td></tr>`;
   }).join('');
+}
+
+async function loadNotices() {
+  const d = await (await fetch('/api/notices')).json();
+  if (d.state === 'credentials_required') showCreds(); else state(d.state);
+  NOTICES = d.notices || [];
+  renderStats(NOTICES);          // the cards count everything, not the filtered view
+  fillYears(NOTICES);
+  applyFilters();
+}
+
+for (const id of ['f-ay', 'f-name', 'f-nodue']) {
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change',
+                      applyFilters);
 }
 loadNotices();
 </script>

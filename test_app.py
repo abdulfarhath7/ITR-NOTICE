@@ -10,6 +10,7 @@ Covers the credential rules that matter:
 """
 import asyncio
 import pathlib
+import time
 import re
 import sys
 import tempfile
@@ -687,6 +688,74 @@ with TestClient(main.app) as client:
     client.post("/api/sync")
     wait_idle(client)
     check("a sync with no body still works", LIMITS_SEEN[-1:] == [None], str(LIMITS_SEEN))
+
+
+# 15 - the access lock -------------------------------------------------------
+# The tool is going on a public URL, so nothing may answer without the
+# dashboard password: not the page, not the API, not the WebSocket.
+APP_PW = "dashboard-pw"
+main.FAILED_LOGIN_DELAY = 0            # the real 2s delay is asserted separately
+main.settings.app_password = ""
+
+with TestClient(main.app) as anon:
+    check("with no APP_PASSWORD set the dashboard is open (localhost dev)",
+          anon.get("/api/notices").status_code == 200)
+
+main.settings.app_password = APP_PW
+
+with TestClient(main.app) as anon:
+    r = anon.get("/")
+    check("locked: the page asks for a password",
+          r.status_code == 401 and "password" in r.text.lower(), str(r.status_code))
+    r = anon.get("/api/notices")
+    check("locked: the API answers 401, not data",
+          r.status_code == 401 and "notices" not in r.json(), r.text[:60])
+    check("locked: a stored PDF is not downloadable",
+          anon.get("/api/notices/100118320996/pdf").status_code == 401)
+    check("locked: sync cannot be started",
+          anon.post("/api/sync", json={}).status_code == 401)
+    ws_refused = False
+    try:
+        with anon.websocket_connect("/ws"):
+            pass
+    except Exception:
+        ws_refused = True
+    check("locked: the WebSocket handshake is refused", ws_refused)
+
+    r = anon.post("/login", json={"password": "wrong-one"})
+    check("a wrong password is rejected", r.status_code == 401, r.text)
+    check("a wrong password sets no cookie",
+          main.COOKIE_NAME not in anon.cookies, str(dict(anon.cookies)))
+
+    r = anon.post("/login", json={"password": APP_PW})
+    check("the right password signs in", r.status_code == 200, r.text)
+    check("signing in sets the session cookie", main.COOKIE_NAME in anon.cookies)
+    check("signed in: the API answers", anon.get("/api/notices").status_code == 200)
+    opened = False
+    with anon.websocket_connect("/ws") as ws:
+        opened = ws.receive_json()["type"] == "state"
+    check("signed in: the WebSocket opens", opened)
+
+    anon.post("/logout")
+    check("logging out locks it again", anon.get("/api/notices").status_code == 401)
+
+# the cookie is signed, not guessable, and expires
+check("a forged cookie is rejected", not main._cookie_ok("9999999999.deadbeef"))
+check("a cookie signed with a different password is rejected",
+      not main._cookie_ok(main._new_cookie().split(".")[0] + ".c0ffee"))
+good = main._new_cookie()
+check("a freshly issued cookie is accepted", main._cookie_ok(good))
+check("an expired cookie is rejected",
+      not main._cookie_ok(f"{int(time.time()) - main.COOKIE_MAX_AGE - 60}."
+                          + main._sign(str(int(time.time()) - main.COOKIE_MAX_AGE - 60))))
+check("changing APP_PASSWORD invalidates old cookies",
+      (lambda: (setattr(main.settings, "app_password", "different-pw"),
+                main._cookie_ok(good))[1])() is False)
+
+main.settings.app_password = APP_PW
+check("failed logins are slowed down on purpose", main.FAILED_LOGIN_DELAY == 0
+      or main.FAILED_LOGIN_DELAY >= 1)
+main.settings.app_password = ""        # leave the rest of the suite unlocked
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

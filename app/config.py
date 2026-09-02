@@ -14,6 +14,8 @@ _DATA = Path(__file__).resolve().parent.parent / "data"
 
 class Settings:
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    # Gate for the whole dashboard. Empty = wide open (localhost dev only).
+    app_password: str = os.getenv("APP_PASSWORD", "")
     headless: bool = os.getenv("HEADLESS", "true").lower() == "true"
     # Watching a headed run at full speed shows nothing useful, so slow the
     # browser down. Ignored when headless - nobody is looking.
