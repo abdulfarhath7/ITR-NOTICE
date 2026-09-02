@@ -1407,7 +1407,7 @@ check("Claude is handed the bytes, not a path",
 # leaving the page.
 _p = _page_now()
 check("the header's primary button is just 'Sync'",
-      '<button class="primary" id="sync">Sync</button>' in _p)
+      '<button class="primary accent" id="sync">Sync</button>' in _p)
 for label, hook in (("View", 'view(\'${esc(n.ref_id)}\')'),
                     ("Save", 'savePdf(\'${esc(n.ref_id)}\')'),
                     ("Draft", '>Draft</button>')):
@@ -1420,15 +1420,17 @@ check("View and Save only appear once a PDF is held",
       "${n.has_pdf ? `<button onclick=\"view(" in _p)
 for gone in ("Generate response", "Ask Claude", ">Sync now<", ">Preview<"):
     check(f"the long label {gone!r} is gone", gone not in _p)
-check("the buttons are not hidden until hover",
-      "justify-content: flex-end" in _p and "tr:hover .rowacts" not in _p)
+check("the buttons are right-aligned and reachable without a mouse",
+      "justify-content: flex-end" in _p and ".rowacts:focus-within" in _p)
 
 check("View opens an in-page modal, not a new tab",
       'id="viewer"' in _p and "window.open" not in _p)
 check("the modal renders the PDF in a big iframe on the inline endpoint",
       "$('v-frame').src = `/api/notices/${encodeURIComponent(refId)}/pdf?inline=1`" in _p)
-check("the modal has a dark overlay",
-      ".modal { position: fixed; inset: 0;" in _p and "background: rgba(3, 4, 6, .72)" in _p)
+check("the modal has a dark overlay that follows the theme",
+      ".modal { position: fixed; inset: 0;" in _p
+      and "background: var(--overlay);" in _p
+      and "--overlay: rgba(6, 7, 9, .72);" in _p)
 check("clicking the overlay closes it",
       "viewer.onclick = ev => { if (ev.target === viewer) closeViewer(); }" in _p)
 check("Esc closes it too", "palClose(); closeViewer();" in _p)
@@ -1550,6 +1552,95 @@ check("the wider table still spans its empty state", 'colspan="6"' in _p
       and 'colspan="5"' not in _p)
 check("writing a draft ticks the row without a refetch",
       "row.has_draft = 1;" in _p)
+
+
+# 26 - the theme ------------------------------------------------------------
+# Dark by default, light on [data-theme], colour only where it means
+# something, and exactly one gradient.
+_css = pathlib.Path("app/static/style.css").read_text()
+_p = _page_now()
+
+for name, value in (("--bg", "#0a0b0d"), ("--panel", "#131417"),
+                    ("--hairline", "#26272b"), ("--text", "#ececf1"),
+                    ("--muted", "#8b8d98")):
+    check(f"dark {name} is {value}", f"{name}: {value};" in _css)
+for meaning, value in (("overdue", "#ef4444"), ("missing date", "#f59e0b"),
+                       ("done", "#22c55e"), ("Claude", "#6e79f7")):
+    check(f"{meaning} is {value}", value in _css)
+
+check("there is one accent gradient",
+      _css.count("linear-gradient(135deg, #5b63f0 0%, #8b5cf6 100%)") == 1)
+check("it is reserved for Sync and Draft",
+      _p.count('class="primary accent" id="sync"') == 1
+      and 'class="primary accent" onclick="generateDraft(' in _p)
+check("the gradient class is defined once and used nowhere else in CSS",
+      _css.count(".accent { background: var(--accent);") == 1)
+check("Claude's hue is never the action colour",
+      "--ai: #6e79f7;" in _css and "--action: #5b63f0;" in _css)
+
+check("dark is the default and light is opt-in",
+      'data-theme="dark"' in _p and "[data-theme='light']" in _css)
+check("the theme is a cookie, not localStorage",
+      "document.cookie = `theme=" in _p
+      and "localStorage." not in _p and "localStorage[" not in _p)
+check("every semantic token is redefined for light",
+      all(f"  {t}:" in _css.split("[data-theme='light']")[1].split("}")[0]
+          for t in ("--bg", "--panel", "--text", "--muted", "--ok", "--warn",
+                    "--danger", "--ai", "--overlay")))
+
+check("Geist is what the page actually asks for",
+      "font-family: 'Geist';" in _css and "font-family: 'Geist Mono';" in _css
+      and "/fonts/Geist-Variable.woff2" in _p
+      and "/fonts/GeistMono-Variable.woff2" in _p)
+check("both stacks still fall back to the system face",
+      "'Geist', system-ui" in _css and "'Geist Mono', ui-monospace" in _css)
+check("the fonts it preloads are the fonts it uses",
+      "manrope" not in _p and "space-grotesk" not in _p and "ibm-plex" not in _p)
+
+# table polish
+check("headers are 11px uppercase muted",
+      "font: 600 11px var(--sans); text-transform: uppercase;" in _css
+      and "background: var(--panel); color: var(--muted);" in _css)
+check("the header row sticks", "position: sticky; top: 0; z-index: 2;" in _css)
+check("rows are separated by hairlines only",
+      "border-top: 1px solid var(--hairline)" in _css)
+check("the row's actions appear on hover, focus, or on a touch device",
+      "tr:hover .rowacts, .rowacts:focus-within { opacity: 1; }" in _css
+      and "@media (hover: none) { .rowacts { opacity: 1; } }" in _css)
+check("dates and identifiers are mono and line up",
+      "td.mono, .idchip { font-variant-numeric: tabular-nums; }" in _css)
+
+# countdown chips
+check("a countdown reads 12d / 3d / overdue 2d",
+      "`overdue ${Math.abs(d)}d`" in _p and "`${d}d`" in _p)
+check("green with room, amber inside two weeks, red inside three days",
+      "d < 3 ? 'late' : d <= 14 ? 'soon' : 'ok'" in _p
+      and ".chip.ok { color: var(--ok-text)" in _css
+      and ".chip.soon { color: var(--warn-text)" in _css
+      and ".chip.late { color: var(--danger-text)" in _css)
+
+# the Claude surfaces
+check("an AI card is bordered in Claude's hue with a ✦ mark",
+      "border-left: 2px solid var(--ai)" in _css and "&#10022;" in _p)
+check("its footer credits Claude, with the time and the basis",
+      "&#10022; Generated by Claude" in _p and "relTime(" in _p
+      and "' · basis: '" in _p)
+check("Regenerate is a quiet link, not a button",
+      ".ai-foot .regen" in _css and "text-decoration: underline" in _css)
+
+# motion, focus, loading
+check("every animation sits behind prefers-reduced-motion",
+      _css.count("@media (prefers-reduced-motion: no-preference)") >= 3
+      and "@media (prefers-reduced-motion: reduce)" not in _css)
+check("transitions are in the 150-200ms band",
+      "transition: opacity .15s ease" in _css
+      and "transition: transform .2s cubic-bezier(.32,.72,0,1)" in _css)
+check("focus is visible", ":focus-visible { outline: 2px solid var(--action)" in _css)
+check("loading shimmers rather than jumping",
+      "@keyframes shimmer" in _css and "SKELETON" in _p)
+check("the empty state is designed, not a bare sentence",
+      '<div class="title">' in _p and '<div class="desc">' in _p
+      and ".empty-state .title" in _css)
 
 
 print()

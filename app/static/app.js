@@ -250,7 +250,9 @@ function dueChip(n) {
   if (d === null) return `<span class="chip none">${esc(n.due_date)}</span>`;
   // vcfo's countdown tones: overdue or under a week is danger, under a month
   // is warning, beyond that is fine.
-  const cls = d < 7 ? 'late' : d < 30 ? 'soon' : 'ok';
+  // The brief's bands: red inside three days or already gone, amber to a
+  // fortnight, green beyond it.
+  const cls = d < 3 ? 'late' : d <= 14 ? 'soon' : 'ok';
   const label = d < 0 ? `overdue ${Math.abs(d)}d` : d === 0 ? 'today' : `${d}d`;
   const badge = n.due_date_source === 'claude'
     ? `<span class="ai-chip" title="${esc(n.due_date_basis || 'found by Claude')}">&#10022; by Claude</span>`
@@ -355,10 +357,13 @@ function applyFilters() {
   if (!rows.length) {
     tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">
         ${EMPTY_SVG}
-        <div class="mut">${NOTICES.length
+        <div class="title">${NOTICES.length
           ? 'Nothing matches these filters.'
           : 'No notices stored yet.'}</div>
-        ${NOTICES.length ? '' : '<button class="primary" onclick="startSync()">Run first sync</button>'}
+        <div class="desc">${NOTICES.length
+          ? 'Clear the year, the name or the missing-date toggle to see the rest.'
+          : 'A sync logs into the portal, walks e-Proceedings and stores every notice PDF here.'}</div>
+        ${NOTICES.length ? '' : '<button class="primary accent" onclick="startSync()">Run first sync</button>'}
       </div></td></tr>`;
     return;
   }
@@ -378,7 +383,7 @@ function applyFilters() {
         ${(!n.due_date && n.has_pdf)
           ? `<button onclick="askClaude('${esc(n.ref_id)}', this)">${DATE_BTN}</button>` : ''}
         ${n.has_pdf
-          ? `<button class="primary" onclick="generateDraft('${esc(n.ref_id)}', this)">Draft</button>` : ''}
+          ? `<button class="primary accent" onclick="generateDraft('${esc(n.ref_id)}', this)">Draft</button>` : ''}
       </div></td>
     </tr>`).join('');
 }

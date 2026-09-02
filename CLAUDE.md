@@ -122,14 +122,19 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   (assessment year, proceeding-name contains, missing-due-date toggle) stay
   pure frontend over the rows already fetched.
   `list_notices()` supplies `has_pdf` and `has_draft` for all of it.
-- The dashboard is built in the **VCFO Suite design language** (the owner's
-  other repo, ~/Documents/vcfo-suite), so the two products look related:
-  deep navy surfaces (#030d1f / #071529 / #09182e / #0d1d34), blue action
-  (#5a8ff3 dark, #2563eb light), status as a solid/-soft/-text triple, chips
-  as tinted fills with no outline, radii 10/8/6 with pills only for chips,
-  Manrope + Space Grotesk + IBM Plex Mono self-hosted. Note vcfo's THEME.md is
-  stale - it documents a violet theme its own globals.css no longer uses;
-  the CSS is the source of truth. The hero band (greeting, ring) stays gone;
+- The dashboard is **dark-first, one accent, colour only where it means
+  something** (the owner chose the build brief's palette over the VCFO
+  borrowings that were here before): ground #0a0b0d, panels #131417,
+  hairlines #26272b, text #ececf1, muted #8b8d98; #ef4444 overdue, #f59e0b
+  missing date, #22c55e done, #6e79f7 for everything Claude wrote — never the
+  action colour, so AI text can never read as a button. Exactly one gradient,
+  `135deg #5b63f0 → #8b5cf6`, worn by exactly two buttons: Sync and Draft
+  (`class="primary accent"`). Status stays a solid/-soft/-text triple, chips
+  are tinted fills with no outline, radii 10/8/6 with pills only for chips.
+  Geist Sans + Geist Mono self-hosted in `app/static/fonts/`; both stacks fall
+  back to the system face, and nothing on the page depends on the webfont
+  loading. Light theme redefines every semantic token under
+  `[data-theme='light']`. The hero band (greeting, ring) stays gone;
   what came back in its place is a plain row of five stat cards — Total
   notices, Due this week, Missing date, Docs saved, Drafts ready, counted over
   everything the account holds and never over the filtered view — and one
@@ -142,6 +147,14 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Per-notice state is three dots in the row's Status cell — PDF, date, draft —
   filled green when done, hollow when not, each with its own tooltip and
   aria-label.
+- Table: sticky 11px uppercase muted headers, hairline row separators only,
+  mono + tabular-nums for identifiers and dates, and the row's action buttons
+  appear on hover (`:focus-within` for the keyboard, always on a touch
+  device). Due dates are countdown chips — `12d` / `3d` / `overdue 2d` — red
+  inside three days or already gone, amber to a fortnight, green beyond it.
+  Skeleton shimmer while loading, a designed empty state with its own title
+  and description. Every animation sits inside a
+  `prefers-reduced-motion: no-preference` guard and runs in 150–200ms.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
   Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a

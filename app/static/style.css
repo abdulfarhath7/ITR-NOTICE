@@ -1,95 +1,103 @@
-/* ITR notice tool - built in the VCFO Suite design language.
-   Tokens taken from vcfo-suite/app/globals.css (OKLCH triplets converted to
-   hex) and THEME.md's semantic palette. Note: THEME.md calls the theme
-   "Graphite Violet", but the CSS it documents actually resolves to deep navy
-   with a blue action colour - the app itself is what is matched here, with
-   violet kept as a categorical accent.
-   Fonts match too: Manrope for text, Space Grotesk for display, IBM Plex Mono
-   for numbers. All self-hosted. */
+/* ITR notice tool - dark-first, one accent, colour only where it means
+   something. The palette is fixed by the build brief: #0a0b0d ground,
+   #131417 panels, #26272b hairlines, #ececf1 text, #8b8d98 muted, with
+   #ef4444 overdue, #f59e0b missing date, #22c55e done and #6e79f7 for
+   everything Claude wrote. The 135deg #5b63f0 -> #8b5cf6 gradient is
+   reserved for two buttons, Sync and Draft, so "the thing that acts" is
+   unmistakable and nothing else competes with it.
 
-@font-face { font-family: 'Manrope'; src: url('/fonts/manrope-latin-wght-normal.woff2') format('woff2-variations');
-             font-weight: 200 800; font-display: swap; }
-@font-face { font-family: 'Space Grotesk'; src: url('/fonts/space-grotesk-latin-wght-normal.woff2') format('woff2-variations');
-             font-weight: 300 700; font-display: swap; }
-@font-face { font-family: 'IBM Plex Mono'; src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
-             font-weight: 400; font-display: swap; }
-@font-face { font-family: 'IBM Plex Mono'; src: url('/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
-             font-weight: 500; font-display: swap; }
+   Geist Sans and Geist Mono are self-hosted in /fonts - no CDN at runtime.
+   TODO: if a font file is ever missing, both stacks fall back to the system
+   UI face and the page still reads correctly - nothing here depends on the
+   webfont loading. */
+
+@font-face { font-family: 'Geist'; src: url('/fonts/Geist-Variable.woff2') format('woff2-variations');
+             font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Geist Mono'; src: url('/fonts/GeistMono-Variable.woff2') format('woff2-variations');
+             font-weight: 100 900; font-display: swap; }
 
 :root {
-  --bg: #030d1f;
-  --surface: #071529;
-  --panel: #09182e;
-  --raised: #0d1d34;
-  --hairline: #1e2e47;
-  --divider: #273952;
+  --bg: #0a0b0d;
+  --surface: #0f1013;
+  --panel: #131417;
+  --raised: #1a1b1f;
+  --hairline: #26272b;
+  --divider: #34353b;
 
-  --text: #eef2f7;
-  --muted: #9da5b0;
-  --faint: #7a818a;
+  --text: #ececf1;
+  --muted: #8b8d98;
+  --faint: #6c6e79;
 
-  --action: #5a8ff3;
-  --action-deep: #4779ea;
-  --action-soft: #152741;
+  /* the app's own actions: the gradient's first stop, used flat */
+  --action: #5b63f0;
+  --action-deep: #4a51d8;
+  --action-soft: #1a1c33;
+  /* the one gradient, and the only place it is allowed: Sync and Draft */
+  --accent: linear-gradient(135deg, #5b63f0 0%, #8b5cf6 100%);
 
-  --violet: #b89eff;
-  --violet-soft: #362b52;
-  --emerald: #39bda0;
-  --sky: #51bfee;
-  --amber: #e6d441;
+  --violet: #8b5cf6;
+  --emerald: #22c55e;
+  --sky: #38bdf8;
+  --amber: #f59e0b;
 
   /* status is a triple: solid dot/rule, -soft tinted chip bg, -text chip label */
-  --ok: #32a88e;      --ok-soft: #0a2a23;    --ok-text: #75cbb4;
-  --warn: #f5886c;    --warn-soft: #472218;  --warn-text: #ffbb9f;
-  --danger: #df676f;  --danger-soft: #3e1e1f; --danger-text: #f7a3a5;
-  --info: #50a9d9;    --info-soft: #152b3b;  --info-text: #8ac7ea;
+  --ok: #22c55e;      --ok-soft: #10291a;    --ok-text: #6ee7a0;
+  --warn: #f59e0b;    --warn-soft: #2d2008;  --warn-text: #fbbf24;
+  --danger: #ef4444;  --danger-soft: #2e1315; --danger-text: #fca5a5;
+  --info: #38bdf8;    --info-soft: #0a2531;  --info-text: #7dd3fc;
 
-  /* Claude output is the violet accent: distinct from the blue the app uses
-     for its own actions, so AI text never reads as a button. */
-  --ai: #b89eff;
-  --ai-soft: #362b52;
+  /* Claude output is its own hue, never the action colour, so AI text can
+     never be mistaken for a button. */
+  --ai: #6e79f7;
+  --ai-soft: #1c1e3c;
 
-  --hero: linear-gradient(135deg, #14356e 0%, #1d2b63 46%, #2a2358 100%);
-  /* "rounded rectangles (Linear/Vercel 8-10px), not pills" - their comment */
+  --overlay: rgba(6, 7, 9, .72);
   --radius: 10px;      /* cards, panels, dialogs */
   --radius-md: 8px;    /* buttons, inputs, toasts */
   --radius-sm: 6px;
-  --radius-lg: 12px;   /* hero */
+  --radius-lg: 12px;
   --pill: 9999px;      /* status chips only */
   --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
-  --sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --display: 'Space Grotesk', var(--sans);
-  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: var(--sans);
+  --mono: 'Geist Mono', ui-monospace, Menlo, monospace;
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg: #f8fafc;
+  --bg: #f7f7f8;
   --surface: #ffffff;
   --panel: #ffffff;
-  --raised: #f1f5f8;
-  --hairline: #e2e7ed;
-  --divider: #d7dee7;
+  --raised: #f1f1f4;
+  --hairline: #e4e4e8;
+  --divider: #d3d3d9;
 
-  --text: #0e182c;
-  --muted: #4a5666;
-  --faint: #6b7688;
+  --text: #18181b;
+  --muted: #52525b;
+  --faint: #71717a;
 
-  --action: #2663eb;
-  --action-deep: #1d4fd0;
-  --action-soft: #e8effd;
+  --action: #4f46e5;
+  --action-deep: #4338ca;
+  --action-soft: #eceefe;
 
-  --violet: #6d40d6;
-  --violet-soft: #efe9fd;
-  --ai: #6d40d6;
-  --ai-soft: #efe9fd;
+  /* the same two stops, darkened just enough to hold white text on white */
+  --accent: linear-gradient(135deg, #4d55e8 0%, #7c3aed 100%);
 
-  --ok: #00876d;      --ok-soft: #def7ef;    --ok-text: #005140;
-  --warn: #f07456;    --warn-soft: #ffece3;  --warn-text: #a52c18;
-  --danger: #d63c51;  --danger-soft: #ffeceb; --danger-text: #972334;
-  --info: #1883b8;    --info-soft: #e1f3ff;  --info-text: #00537e;
+  --violet: #7c3aed;
+  --emerald: #15803d;
+  --sky: #0284c7;
+  --amber: #b45309;
 
-  --shadow: 0 1px 2px rgba(14, 24, 44, .06), 0 10px 30px rgba(14, 24, 44, .08);
+  --ok: #15803d;      --ok-soft: #e7f7ec;    --ok-text: #146c31;
+  --warn: #b45309;    --warn-soft: #fdf2e3;  --warn-text: #92400e;
+  --danger: #dc2626;  --danger-soft: #fdecec; --danger-text: #a41c1c;
+  --info: #0369a1;    --info-soft: #e5f4fd;  --info-text: #075985;
+
+  --ai: #4c53d8;
+  --ai-soft: #eceefe;
+
+  --overlay: rgba(24, 24, 27, .45);
+  --shadow: 0 1px 2px rgba(24, 24, 27, .06), 0 10px 30px rgba(24, 24, 27, .08);
   color-scheme: light;
 }
 
@@ -154,6 +162,10 @@ button:hover { border-color: var(--divider); }
 button:disabled { opacity: .4; pointer-events: none; }
 .primary { background: var(--action); border-color: var(--action); color: #fff; font-weight: 600; }
 .primary:hover { background: var(--action-deep); border-color: var(--action-deep); }
+/* The one gradient in the app, and the only two buttons wearing it: Sync at
+   the top and Draft in a row. Everything else earns attention on its own. */
+.accent { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+.accent:hover { filter: brightness(1.08); border-color: transparent; }
 .ghost { background: none; border: 0; color: var(--muted); padding: 6px 8px; }
 /* one icon per theme: moon while dark (click for light), sun while light */
 .ghost.icon { padding: 6px; line-height: 0; }
@@ -206,19 +218,24 @@ main { max-width: 1180px; margin: 18px auto 60px; padding: 0 22px; display: grid
 .tablewrap { overflow: auto; max-height: 62vh; border-radius: var(--radius-lg); }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 thead th {
-  position: sticky; top: 0; z-index: 2; background: var(--panel); color: var(--faint);
-  font: 800 10.5px var(--sans); text-transform: uppercase; letter-spacing: .07em;
+  position: sticky; top: 0; z-index: 2; background: var(--panel); color: var(--muted);
+  font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .07em;
   text-align: left; padding: 10px 14px; white-space: nowrap;
 }
 /* separation comes from the row's top border, not a header rule */
 tbody td { padding: 12px 14px; border-top: 1px solid var(--hairline); vertical-align: top;
            font-size: 13px; transition: background-color .12s ease; }
 tbody tr:hover td { background: var(--surface); }
-.din { font: 400 11.5px var(--mono); color: var(--faint); }
+.din { font: 400 11.5px var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; }
+td.mono, .idchip { font-variant-numeric: tabular-nums; }
 .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-/* Always visible, right-aligned: the row is a checklist, and a button you
-   have to hover to find is a button you forget exists. */
-.rowacts { display: flex; gap: 6px; justify-content: flex-end; }
+/* The row's actions appear on hover, so a long table reads as data rather
+   than as a wall of buttons. Keyboard users get them on focus, and a device
+   with no hover at all gets them always. */
+.rowacts { display: flex; gap: 6px; justify-content: flex-end; opacity: 0; }
+tr:hover .rowacts, .rowacts:focus-within { opacity: 1; }
+@media (hover: none) { .rowacts { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) { .rowacts { transition: opacity .15s ease; } }
 .rowacts button { font-size: 12px; padding: 4px 9px; white-space: nowrap; }
 
 /* chips: tinted fill, no border - vcfo's badge convention */
@@ -260,7 +277,7 @@ tbody tr:hover td { background: var(--surface); }
           background-size: 300% 100%; animation: shimmer 1.4s ease infinite; }
   .dot.running, .rec i, .step.active .bead { animation: pulse 1.6s ease-in-out infinite; }
   #toast { transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
-  .drawer .panel { transition: transform .32s cubic-bezier(.32,.72,0,1); }
+  .drawer .panel { transition: transform .2s cubic-bezier(.32,.72,0,1); }
   .palette .box { transition: transform .16s cubic-bezier(.2,.8,.2,1), opacity .16s ease; }
 }
 @keyframes shimmer { to { background-position: -300% 0; } }
@@ -295,19 +312,19 @@ tbody tr:hover td { background: var(--surface); }
 th.right, td.right { text-align: right; }
 
 /* ------------------------------------------------- the notice viewer */
-.modal { position: fixed; inset: 0; z-index: 70; display: none; background: rgba(3, 4, 6, .72); }
+.modal { position: fixed; inset: 0; z-index: 70; display: none; background: var(--overlay); }
 .modal.show { display: grid; place-items: center; padding: 3vh 2vw; }
 .modal .sheet {
   width: min(1040px, 96vw); height: min(92vh, 1100px);
-  background: var(--panel); border: 1px solid var(--line);
+  background: var(--panel); border: 1px solid var(--hairline);
   border-radius: var(--radius-lg); box-shadow: var(--shadow);
   display: grid; grid-template-rows: auto 1fr; overflow: hidden;
 }
-.modal .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.modal .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hairline); }
 .modal iframe { width: 100%; height: 100%; border: 0; background: #fff; }
 
 /* -------------------------------------------------------------- drawer */
-.drawer { position: fixed; inset: 0; z-index: 60; display: none; background: rgba(3, 8, 20, .6); }
+.drawer { position: fixed; inset: 0; z-index: 60; display: none; background: var(--overlay); }
 .drawer.show { display: block; }
 .drawer .panel { position: absolute; top: 0; right: 0; height: 100%; width: min(760px, 100%);
                  background: var(--panel); border-left: 1px solid var(--hairline);
@@ -326,7 +343,7 @@ th.right, td.right { text-align: right; }
      color: var(--muted); margin: 0 0 7px; }
 
 /* ------------------------------------------------------------- palette */
-.palette { position: fixed; inset: 0; z-index: 80; display: none; background: rgba(3, 8, 20, .55); }
+.palette { position: fixed; inset: 0; z-index: 80; display: none; background: var(--overlay); }
 .palette.show { display: block; }
 .palette .box { width: min(560px, 92vw); margin: 12vh auto 0; background: var(--panel);
                 border: 1px solid var(--hairline); border-radius: var(--radius-lg);
