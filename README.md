@@ -96,6 +96,9 @@ same password as everything else.
 - [x] Step 14 Reads whether a reply is already filed on the portal (from
               which button the card shows - it never clicks either) and
               shows it as a fourth dot on the row.
+- [x] Step 16 The position report counts replies: a notice answered on the
+              portal is "Responded", never overdue, and the attention list
+              adds the notices with no due date at all.
 - [x] Step 15 The generated response is a document: View it in the page or
               Save the PDF, and "Save edits" rewrites both the text and the
               PDF so they never disagree. Every page is footed

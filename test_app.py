@@ -1758,14 +1758,15 @@ def _proc(con, name, status):
         "closure_date": None, "closure_order": None})
 
 
-def _notice(con, ref, pid, due, pdf=b"%PDF-x%%EOF", source="portal"):
+def _notice(con, ref, pid, due, pdf=b"%PDF-x%%EOF", source="portal",
+            responded=None):
     db.upsert_notice(con, {
         "proceeding_id": pid, "ref_id": ref, "notice_us": "142(1)",
         "doc_ref_id": "ITBA/COM/F/17/2026-27/1092231604(1)",
         "description": f"[ITBA]{ref}", "issued_on": _portal_date(-20),
         "served_on": None, "due_date": due,
         "due_date_source": source if due else None,
-        "ao_viewed_on": None, "pdf_blob": pdf})
+        "ao_viewed_on": None, "responded": responded, "pdf_blob": pdf})
 
 
 with db.connect() as con:
@@ -1779,6 +1780,8 @@ with db.connect() as con:
     _notice(con, "n-40d", _open, _portal_date(40))
     _notice(con, "n-nodate", _open, None, pdf=None)
     _notice(con, "n-closed", _shut, _portal_date(-9))
+    # answered on the portal, and its date has gone: work, or history?
+    _notice(con, "n-answered", _open, _portal_date(-6), responded=1)
     db.save_draft(con, "n-overdue", "summary", "[]", "draft text")
     _S = report.build_summary(con)
 
@@ -1789,10 +1792,18 @@ check("due <=10 days starts at day 4 and ends at day 10", _B["due_10"] == 2, str
 check("on track is everything past ten days", _B["on_track"] == 1, str(_B))
 check("a notice with no due date has its own bucket", _B["no_due_date"] == 1, str(_B))
 check("a closed proceeding is counted separately", _B["closed"] == 1, str(_B))
+check("a filed reply takes the notice out of every urgency bucket",
+      _B["responded"] == 1 and _B["overdue"] == 1, str(_B))
+check("To respond totals everything open with no reply filed",
+      _B["to_respond"] == _B["overdue"] + _B["due_3"] + _B["due_10"]
+      + _B["on_track"] + _B["no_due_date"], str(_B))
 check("a closed notice never lands in an urgency bucket even when its date has gone",
       next(i for i in _S["register"] if i["ref_id"] == "n-closed")["bucket"] == "closed")
-check("every notice is counted exactly once",
-      sum(_B.values()) == len(_S["register"]) == 8, str(_B))
+_EXCLUSIVE = {k: v for k, v in _B.items() if k != "to_respond"}
+check("every notice is counted in exactly one bucket",
+      sum(_EXCLUSIVE.values()) == len(_S["register"]) == 9, str(_B))
+check("To respond is a total of others, not a bucket of its own",
+      _B["to_respond"] <= len(_S["register"]), str(_B))
 
 check("day 3 is critical, day 4 is not",
       report.bucket_of(3, True) == "due_3" and report.bucket_of(4, True) == "due_10")
@@ -1800,14 +1811,23 @@ check("day 10 is the last of the ten-day band",
       report.bucket_of(10, True) == "due_10" and report.bucket_of(11, True) == "on_track")
 check("a closed proceeding is closed whatever its date",
       report.bucket_of(-9, False) == "closed" and report.bucket_of(None, False) == "closed")
+check("a filed reply outranks a date that has already gone",
+      report.bucket_of(-9, True, True) == "responded"
+      and report.bucket_of(-9, True, False) == "overdue")
+check("a notice the portal said nothing about is still work",
+      report.bucket_of(2, True, False) == "due_3")
 check("the portal's own date format parses",
       report.parse_date("17-Aug-2026") == _date(2026, 8, 17))
 check("a date the portal left as '-' is not guessed at",
       report.parse_date("-") is None and report.parse_date(None) is None)
 
 _attn = [i["ref_id"] for i in _S["attention"]]
-check("attention holds only what is overdue or due within three days",
-      _attn == ["n-overdue", "n-2d", "n-3d"], str(_attn))
+check("attention holds overdue, due within three days, and no date at all",
+      _attn == ["n-overdue", "n-2d", "n-3d", "n-nodate"], str(_attn))
+check("an answered notice is never in the attention list",
+      "n-answered" not in _attn, str(_attn))
+check("the no-date one sorts last, having no date to sort by",
+      _attn[-1] == "n-nodate", str(_attn))
 check("days left is negative once the date has gone",
       _S["attention"][0]["days_left"] == -5, str(_S["attention"][0]["days_left"]))
 _first = _S["attention"][0]
@@ -1822,7 +1842,7 @@ check("the register records where each due date came from",
       {i["due_date_source"] for i in _S["register"]} == {"portal", None},
       str({i["due_date_source"] for i in _S["register"]}))
 check("the run line says what was scanned",
-      _S["run"]["notices_scanned"] == 8, str(_S["run"]))
+      _S["run"]["notices_scanned"] == 9, str(_S["run"]))
 
 with TestClient(main.app) as client:
     r = client.get("/api/summary")
@@ -1890,6 +1910,16 @@ with TestClient(main.app) as client:
           "Due date from" in _headers, str(_headers))
     check("it carries the pdf and draft columns",
           "PDF saved" in _headers and "Draft ready" in _headers, str(_headers))
+    check("and whether a reply is already filed",
+          "Responded" in _headers, str(_headers))
+    _replied_col = _headers.index("Responded") + 1
+    check("which reads Yes / No / Unknown, never a bare blank",
+          {_all.cell(row=r, column=_replied_col).value
+           for r in range(2, _all.max_row + 1)} <= {"Yes", "No", "Unknown"},
+          str({_all.cell(row=r, column=_replied_col).value
+               for r in range(2, _all.max_row + 1)}))
+    check("the attention sheet carries it too",
+          "Responded" in [c.value for c in _att[1]], str([c.value for c in _att[1]]))
 
 # the lock covers the report exactly like everything else under /api/
 main.settings.app_password = "dashboard-pw"
@@ -1911,15 +1941,22 @@ check("the report section is titled like the old sheet",
 check("it prints a run-date line", 'id="r-run"' in _p and "notices scanned" in _p)
 check("the buckets are a row of chips that filter the table",
       'id="buckets"' in _p and "data-bucket" in _p
-      and "bucketOf(n) === BUCKET" in _p)
+      and "inBucket(n, BUCKET)" in _p)
+check("the To respond chip filters by the same group the server totals",
+      "BUCKET_GROUPS = {" in _p and "to_respond: ['overdue', 'due_3'" in _p)
+check("the dashboard agrees that a reply outranks a date",
+      "if (n.responded) return 'responded';" in _p)
 check("the dashboard repeats the server's bucket rules exactly",
       "d <= 3" in _p and "d <= 10" in _p and "'no_due_date'" in _p)
 check("overdue is red, three days amber, no-date indigo, on track green, closed muted",
       "overdue: 'late', due_3: 'soon'" in _p
-      and "on_track: 'ok', no_due_date: 'none', closed: 'done'" in _p
+      and "on_track: 'ok', no_due_date: 'none', responded: 'ok', closed: 'done'" in _p
       and ".bchip.none { color: var(--ai)" in _p
       and ".bchip.ok { color: var(--ok-text)" in _p
       and ".bchip.done { color: var(--muted)" in _p)
+check("the attention table says plainly whether a reply is filed",
+      "<th>Responded</th>" in _p and "'Yes' : 'No'" in _p
+      and ">Unknown<" in _p)
 check("the attention table has the tracker's dark header band",
       "table.attn thead th { background: var(--attn-head); color: #fff; }" in _p)
 check("its columns are the sheet's columns",

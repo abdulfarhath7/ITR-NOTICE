@@ -185,6 +185,17 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Per-notice state is four dots in the row's Status cell — PDF, date, draft,
   responded on portal — filled green when done, hollow when not, dashed when
   unknown, each with its own tooltip and aria-label.
+- The report (`app/report.py`) now knows about replies: `bucket_of(days,
+  open_, responded)` puts an answered open notice in its own **Responded**
+  bucket, so a filed reply outranks any date and can never show as overdue.
+  The chips are the seven exclusive buckets — Overdue, Due ≤3 days, Due ≤10
+  days, On track, No due date, Responded, Closed — plus one group chip, **To
+  respond**, which is the total of the five outstanding ones (`GROUPS` in
+  report.py, `BUCKET_GROUPS` in app.js: one rule, two places that must agree).
+  The attention list is overdue + due ≤3 days + no due date at all, answered
+  notices excluded by virtue of their bucket, sorted worst first with the
+  dateless ones last. Both spreadsheet sheets carry a **Responded** column
+  reading Yes / No / Unknown.
 - Responded status: the notice card shows either "Submit Response" (nothing
   filed) or "View Response" (a reply exists), so `_responded_from(card_text)`
   reads which one is there — **neither is ever clicked; both stay in

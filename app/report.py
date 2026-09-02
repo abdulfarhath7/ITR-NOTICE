@@ -9,7 +9,9 @@ Two callers, one set of numbers:
 The bucket rules live here and nowhere else. A notice is "open" while its
 proceeding is not Closed; only open notices land in an urgency bucket, and a
 closed one is counted on its own line, so a notice that has already been
-answered can never show up as overdue.
+answered can never show up as overdue. Since the scraper started reading the
+portal's Submit/View Response button, "answered" means that too: a notice with
+a reply already filed is counted as Responded and never as work outstanding.
 """
 import io
 from datetime import date, datetime
@@ -21,15 +23,24 @@ from . import db
 DATE_FORMATS = ("%d-%b-%Y", "%d-%B-%Y", "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y")
 
 # key -> the words the dashboard and the spreadsheet both use, in this order.
+# Every notice lands in exactly one of these.
 BUCKETS = [
     ("overdue", "Overdue"),
     ("due_3", "Due ≤3 days"),
     ("due_10", "Due ≤10 days"),
     ("on_track", "On track (>10d)"),
     ("no_due_date", "No due date yet"),
-    ("closed", "Closed / responded"),
+    ("responded", "Responded"),
+    ("closed", "Closed"),
 ]
 BUCKET_LABEL = dict(BUCKETS)
+
+# ...and one chip that is a total of several: everything still open with no
+# reply filed. It leads the row because it is the question the office asks
+# first - how much is left to do.
+GROUPS = [("to_respond", "To respond",
+           ("overdue", "due_3", "due_10", "on_track", "no_due_date"))]
+GROUP_MEMBERS = {key: members for key, _, members in GROUPS}
 
 TITLE = "Position at a glance"
 CAUTION = "Draft for review — verify every figure against the portal."
@@ -55,10 +66,17 @@ def is_open(status) -> bool:
     return (status or "").strip().lower() != "closed"
 
 
-def bucket_of(days: int | None, open_: bool) -> str:
-    """Negative days means the deadline has already gone."""
+def bucket_of(days: int | None, open_: bool, responded: bool = False) -> str:
+    """Negative days means the deadline has already gone.
+
+    A filed reply outranks every deadline: once the portal shows "View
+    Response" the notice is answered, and a passed date on an answered notice
+    is history, not work.
+    """
     if not open_:
         return "closed"
+    if responded:
+        return "responded"
     if days is None:
         return "no_due_date"
     if days < 0:
@@ -74,6 +92,10 @@ def _item(row: dict, today: date) -> dict:
     due = parse_date(row.get("due_date"))
     days = (due - today).days if due else None
     open_ = is_open(row.get("status"))
+    # 1 filed, 0 not filed, NULL the portal never said - and "never said" is
+    # treated as unanswered, because the alternative is quietly dropping a
+    # notice off the list of things to do.
+    responded = row.get("responded")
     return {
         "ref_id": row.get("ref_id"),
         "description": row.get("description"),
@@ -85,7 +107,8 @@ def _item(row: dict, today: date) -> dict:
         "due_date": row.get("due_date"),
         "due_date_source": row.get("due_date_source"),
         "days_left": days,
-        "bucket": bucket_of(days, open_),
+        "bucket": bucket_of(days, open_, bool(responded)),
+        "responded": responded,
         "status": row.get("status"),
         "open": open_,
         "has_pdf": bool(row.get("has_pdf")),
@@ -102,10 +125,17 @@ def build_summary(con, today: date | None = None) -> dict:
     counts = {key: 0 for key, _ in BUCKETS}
     for item in register:
         counts[item["bucket"]] += 1
+    for key, _, members in GROUPS:
+        counts[key] = sum(counts[m] for m in members)
 
-    # Overdue first, then whatever runs out soonest.
-    attention = sorted((i for i in register if i["bucket"] in ("overdue", "due_3")),
-                       key=lambda i: (i["days_left"] is None, i["days_left"]))
+    # What a person has to act on: the dates that have gone, the ones about to,
+    # and the notices with no date at all - which are the easiest to forget.
+    # Anything already answered is not here, by virtue of its bucket.
+    attention = sorted(
+        (i for i in register
+         if i["bucket"] in ("overdue", "due_3", "no_due_date")),
+        key=lambda i: (i["days_left"] is None,
+                       i["days_left"] if i["days_left"] is not None else 0))
 
     row = db.last_run(con)
     run = {
@@ -124,7 +154,9 @@ def build_summary(con, today: date | None = None) -> dict:
         "generated_on": today.isoformat(),
         "run": run,
         "buckets": [{"key": key, "label": label, "count": counts[key]}
-                    for key, label in BUCKETS],
+                    for key, label, _ in GROUPS]
+                   + [{"key": key, "label": label, "count": counts[key]}
+                      for key, label in BUCKETS],
         "attention": attention,
         "register": register,
     }
@@ -136,11 +168,12 @@ def filename(summary: dict) -> str:
 
 # ------------------------------------------------------------------ Excel
 ATTENTION_HEADERS = ["Client / Description", "PAN", "AY", "Section",
-                     "Due date", "Days left", "PDF saved", "Draft ready"]
+                     "Due date", "Days left", "Responded", "PDF saved",
+                     "Draft ready"]
 REGISTER_HEADERS = ["Reference ID", "Client / Description", "Proceeding", "PAN",
                     "AY", "Section", "Issued on", "Due date", "Due date from",
-                    "Days left", "Position", "Proceeding status", "PDF saved",
-                    "Draft ready"]
+                    "Days left", "Position", "Responded", "Proceeding status",
+                    "PDF saved", "Draft ready"]
 
 DATE_FMT = "DD-MMM-YYYY"
 HEADER_BG = "1F3864"          # the old tracker's dark blue
@@ -153,6 +186,13 @@ def _describe(item: dict) -> str:
 
 def _yes(flag) -> str:
     return "Yes" if flag else "No"
+
+
+def _replied(value) -> str:
+    """Three answers, not two: the portal does not always say."""
+    if value is None:
+        return "Unknown"
+    return "Yes" if value else "No"
 
 
 def _put_date(cell, text) -> None:
@@ -233,6 +273,7 @@ def build_workbook(summary: dict) -> bytes:
     for item in summary["attention"]:
         ws.append([_describe(item), item["pan"] or "", item["assessment_year"] or "",
                    item["notice_us"] or "", None, item["days_left"],
+                   _replied(item["responded"]),
                    _yes(item["has_pdf"]), _yes(item["has_draft"])])
         _put_date(ws.cell(row=ws.max_row, column=5), item["due_date"])
     if not summary["attention"]:
@@ -248,6 +289,7 @@ def build_workbook(summary: dict) -> bytes:
                    item["assessment_year"] or "", item["notice_us"] or "",
                    None, None, item["due_date_source"] or "",
                    item["days_left"], BUCKET_LABEL[item["bucket"]],
+                   _replied(item["responded"]),
                    item["status"] or "", _yes(item["has_pdf"]),
                    _yes(item["has_draft"])])
         _put_date(ws.cell(row=ws.max_row, column=7), item["issued_on"])

@@ -339,20 +339,32 @@ function renderLastSync(run) {
 // disagree; the chip filter below repeats the same rules on the rows already
 // loaded, which is why clicking one costs no round trip.
 const BUCKET_CLASS = {
-  overdue: 'late', due_3: 'soon', due_10: 'watch',
-  on_track: 'ok', no_due_date: 'none', closed: 'done',
+  to_respond: 'watch', overdue: 'late', due_3: 'soon', due_10: 'watch',
+  on_track: 'ok', no_due_date: 'none', responded: 'ok', closed: 'done',
+};
+// "To respond" is a total of the five outstanding buckets, so filtering by it
+// means "any of these" - the same GROUPS table app/report.py counts with.
+const BUCKET_GROUPS = {
+  to_respond: ['overdue', 'due_3', 'due_10', 'on_track', 'no_due_date'],
 };
 let SUMMARY = null;
 let BUCKET = '';                     // the chip filtering the table, '' = none
 
 function bucketOf(n) {
   if (String(n.status || '').trim().toLowerCase() === 'closed') return 'closed';
+  if (n.responded) return 'responded';     // a filed reply outranks any date
   const d = dueInDays(n.due_date);
   if (d === null) return 'no_due_date';
   if (d < 0) return 'overdue';
   if (d <= 3) return 'due_3';
   if (d <= 10) return 'due_10';
   return 'on_track';
+}
+
+function inBucket(n, key) {
+  const group = BUCKET_GROUPS[key];
+  const b = bucketOf(n);
+  return group ? group.includes(b) : b === key;
 }
 
 function renderBuckets(buckets) {
@@ -388,8 +400,9 @@ function renderAttention(items) {
       <td>${esc(i.notice_us || '—')}</td>
       <td class="mono">${esc(i.due_date || '—')}</td>
       <td class="right">${daysCell(i.days_left)}</td>
-      <td>${statusCell({ has_pdf: i.has_pdf, due_date: i.due_date,
-                         has_draft: i.has_draft })}</td>
+      <td>${i.responded === null || i.responded === undefined
+        ? '<span class="mut">Unknown</span>'
+        : (i.responded ? 'Yes' : 'No')}</td>
     </tr>`).join('');
 }
 
@@ -467,7 +480,7 @@ function visibleRows() {
     (!ay || n.assessment_year === ay)
     && (!name || (n.proceeding_name || '').toLowerCase().includes(name))
     && (!noDue || !n.due_date)
-    && (!BUCKET || bucketOf(n) === BUCKET));
+    && (!BUCKET || inBucket(n, BUCKET)));
 }
 
 const SKELETON = Array.from({ length: 5 }, () => `<tr>${
