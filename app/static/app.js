@@ -16,6 +16,9 @@ function readCookie(name) {
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
   document.cookie = `theme=${t}; path=/; max-age=31536000; samesite=lax`;
+  const btn = $('theme');
+  if (btn) btn.setAttribute('aria-label',
+    t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
 }
 setTheme(readCookie('theme') === 'light' ? 'light' : 'dark');
 $('theme').onclick = () =>
@@ -255,53 +258,6 @@ function dueChip(n) {
   return `<span class="chip ${cls}" title="${esc(n.due_date)}">${label}</span>${badge}`;
 }
 
-// The overview bar carries the headline numbers, after vcfo's DashHero stat
-// strip. Its own note says not to repeat them in a card band underneath, so
-// there isn't one.
-function renderStats(rows) {
-  const days = n => dueInDays(n.due_date);
-  const week = rows.filter(n => { const d = days(n); return d !== null && d >= 0 && d <= 7; }).length;
-  const overdue = rows.filter(n => { const d = days(n); return d !== null && d < 0; }).length;
-  const noDue = rows.filter(n => !n.due_date).length;
-  const docs = rows.filter(n => n.has_pdf).length;
-  const drafts = rows.filter(n => n.has_draft).length;
-
-  // ring: how many notices we actually hold the PDF for
-  const pct = rows.length ? Math.min(1, docs / rows.length) : 0;
-  const c = 2 * Math.PI * 18;
-  $('ringval').setAttribute('stroke-dasharray', `${(pct * c).toFixed(1)} ${c.toFixed(1)}`);
-  $('ringtext').textContent = docs;
-  $('ring').setAttribute('aria-label', `${docs} of ${rows.length} notices have a saved document`);
-
-  const stats = [
-    { label: 'Due this week', value: week, hot: week > 0 },
-    { label: 'Overdue', value: overdue, hot: overdue > 0 },
-    { label: 'Missing date', value: noDue, hot: noDue > 0 },
-    { label: 'Drafts ready', value: drafts },
-    { label: 'Total', value: rows.length },
-  ];
-  $('strip').innerHTML = stats.map(s =>
-    `<span class="item${s.hot ? ' hot' : ''}"><span class="v">${s.value}</span>
-       <span class="l">${esc(s.label)}</span></span>`).join('');
-}
-
-// "What has been done": the last finished run, in one line, straight off the
-// runs table. A run that failed says so rather than quietly showing counts.
-function renderLastSync(run) {
-  const el = $('lastsync');
-  if (!run) { el.textContent = 'No sync has finished yet.'; return; }
-  const when = relTime(run.finished) || run.finished;
-  if (run.status !== 'done') {
-    el.innerHTML = `Last sync <b>${esc(when)}</b> — <b>${esc(run.status)}</b>`
-      + (run.message ? ` · ${esc(String(run.message).slice(0, 120))}` : '');
-    return;
-  }
-  const n = v => (v === null || v === undefined ? 0 : v);
-  el.innerHTML = `Last sync <b>${esc(when)}</b> · <b>${n(run.notices_new)}</b> new`
-    + ` · <b>${n(run.pdfs_saved)}</b> PDFs saved`
-    + ` · <b>${n(run.skipped_cached)}</b> already held`;
-}
-
 function fillYears(rows) {
   const sel = $('f-ay');
   const years = [...new Set(rows.map(n => n.assessment_year).filter(Boolean))].sort();
@@ -391,8 +347,6 @@ async function loadNotices() {
     LOADING = false;
     if (d.state === 'credentials_required') showGate('creds'); else setState(d.state);
     NOTICES = d.notices || [];
-    renderStats(NOTICES);
-    renderLastSync(d.last_run);
     fillYears(NOTICES);
     applyFilters();
   } catch (e) {
@@ -449,7 +403,6 @@ async function askClaude(refId, btn) {
         row.due_date_source = d.source || 'claude';
         row.due_date_basis = d.basis;
       }
-      renderStats(NOTICES);
       applyFilters();
       toast(`Due ${d.due_date}${d.basis ? ' — ' + d.basis : ''}`);
     } else {
@@ -512,11 +465,10 @@ async function generateDraft(refId, btn, regen) {
     const d = await r.json();
     if (!r.ok) { toast(d.error || 'Could not generate a draft.'); return; }
     showDraft(d);
-    // the row's draft tick and the "Drafts ready" number, without a refetch
+    // the row's draft tick, without a refetch
     const row = NOTICES.find(n => n.ref_id === refId);
     if (row && !row.has_draft) {
       row.has_draft = 1;
-      renderStats(NOTICES);
       applyFilters();
     }
   } catch (e) {

@@ -125,9 +125,11 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   as tinted fills with no outline, radii 10/8/6 with pills only for chips,
   Manrope + Space Grotesk + IBM Plex Mono self-hosted. Note vcfo's THEME.md is
   stale - it documents a violet theme its own globals.css no longer uses;
-  the CSS is the source of truth. The overview bar (stat strip + ring) is
-  their DashHero stripped of its greeting, and keeps its rule that the headline numbers live in the
-  hero and are NOT repeated in a card band beneath it.
+  the CSS is the source of truth. There is deliberately no hero or
+  overview bar: the owner removed it. The table is the page, and per-notice
+  state (PDF / date / draft ticks) lives in the row rather than in an
+  aggregate strip. The last run is still recorded server-side; nothing renders
+  it at the moment.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
   Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a

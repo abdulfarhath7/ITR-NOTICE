@@ -767,8 +767,7 @@ _page_now = lambda: "".join(
     pathlib.Path(f"app/static/{f}").read_text()
     for f in ("index.html", "app.js", "style.css"))
 _page = _page_now()
-for hook in ("strip", "ringtext", "lastsync", "f-ay", "f-name",
-             "f-nodue", "renderStats", "applyFilters", "dueInDays"):
+for hook in ("f-ay", "f-name", "f-nodue", "applyFilters", "dueInDays"):
     check(f"dashboard ships {hook}", hook in _page)
 
 def _days(d):
@@ -1440,18 +1439,14 @@ check("the drawer keeps Copy and Regenerate",
 # 25 - the overview: what do I have, what has been done ----------------------
 _p = _page_now()
 
-# (a) the headline numbers, including the one the drafts table owns
-check("the overview counts drafts ready",
-      "n.has_draft" in _p and "Drafts ready" in _p)
-for label in ("Due this week", "Missing date", "Total", "Drafts ready"):
-    check(f"the overview shows {label!r}", label in _p)
-
-_STAT_SAMPLE = [dict(n) for n in SAMPLE]
-for row, drafted in zip(_STAT_SAMPLE, (1, 0, 1, 0, 0)):
-    row["has_draft"] = drafted
-check("Drafts ready counts the notices that have one",
-      len([n for n in _STAT_SAMPLE if n["has_draft"]]) == 2)
-check("Total is every notice, filtered or not", len(_STAT_SAMPLE) == 5)
+# (a) the aggregate bar is gone; draft state is shown per row instead
+check("no aggregate counts remain in the page",
+      not any(k in _p for k in ("Drafts ready", "Due this week", "Missing date",
+                                "docs saved")))
+check("each row still shows whether it has a draft",
+      "n.has_draft" in _p and "'Draft'" in _p)
+check("the API still reports draft state per notice", "has_draft" in
+      pathlib.Path("app/db.py").read_text())
 
 # (b) the last-sync line, off the runs table
 with db.connect() as con:
@@ -1480,11 +1475,13 @@ with TestClient(main.app) as client:
     check("a failed run reports no counts rather than zeros it did not earn",
           d["last_run"]["pdfs_saved"] is None, str(d["last_run"]))
 
-check("the dashboard renders the last run, failure included",
-      "renderLastSync" in _p and "Last sync" in _p
-      and "run.status !== 'done'" in _p)
-check("it says so plainly when nothing has run yet",
-      "No sync has finished yet." in _p)
+# The dashboard no longer prints a last-sync line - the owner asked for that
+# bar gone - but the run is still recorded, and the log shows what happened
+# while it happens.
+check("the page no longer prints a last-sync line",
+      "renderLastSync" not in _p and "Last sync" not in _p)
+check("the run is still recorded server-side for whatever shows it next",
+      "last_run" in pathlib.Path("app/main.py").read_text())
 
 # a real sync writes those counts through
 with TestClient(main.app) as client:
