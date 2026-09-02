@@ -179,6 +179,7 @@ class EventHub:
         # Last pipeline stage and last viewport frame, replayed to a browser
         # that connects or refreshes mid-sync.
         self.last_progress: dict | None = None
+        self.last_login_phase: str | None = None
         self.last_frame: str | None = None
         self.last_log: str = ""
         # How many NEW PDFs a run may fetch. None = every notice.
@@ -227,6 +228,16 @@ class EventHub:
         table on this, throttled, so rows appear during the sync instead of
         all at once at the end."""
         await self._broadcast({"type": "notice_added", "ref_id": ref_id})
+
+    async def login_phase(self, phase: str) -> None:
+        """Where the login has got to. No screenshot is sent during any of
+        these - the viewport draws this instead of sitting dark."""
+        # The settle loop polls, so the same phase can be reached repeatedly;
+        # only the change is worth pushing.
+        if phase == self.last_login_phase:
+            return
+        self.last_login_phase = phase
+        await self._broadcast({"type": "login_phase", "phase": phase})
 
     async def progress(self, stage: str, **counts) -> None:
         """One pipeline stage moved. The dashboard draws the stepper from this."""

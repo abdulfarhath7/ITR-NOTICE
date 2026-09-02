@@ -254,6 +254,12 @@ class FakeLoc:
     async def input_value(self):
         return self._text
 
+    async def is_checked(self):
+        return False
+
+    async def check(self):
+        self.clicked = True
+
     def get_by_role(self, role, name=None, exact=None):
         return self._children.get(name, FakeLoc())
 
@@ -2400,6 +2406,154 @@ check("the scraper explains the download shelf a headed run shows",
 scraper._download, scraper._click_back = _REAL_DOWNLOAD, _REAL_BACK
 db.DB_PATH = _MAIN_DB2
 
+
+
+# 26 - the login phases the viewport animates --------------------------------
+# The card used to sit dark through login because frames are (correctly)
+# withheld while credentials are on screen. It now animates these phases - so
+# they must actually be emitted, in order, and no frame may slip out between
+# the first one and "done".
+class PhaseHub:
+    """A hub that records everything the session pushes at it."""
+
+    def __init__(self, otp_code=None):
+        self.events = []
+        self.state = "running"
+        self.otp_code = otp_code
+        self.logs = []
+
+    async def login_phase(self, phase):
+        self.events.append(("phase", phase))
+
+    async def log(self, msg):
+        self.logs.append(msg)
+
+    async def viewport(self, jpeg):
+        self.events.append(("frame", None))
+
+    async def request_otp(self):
+        self.events.append(("phase", "otp-relayed"))
+        return self.otp_code or "123456"
+
+    def pace_seconds(self):        # sync, like the real hub's
+        return 0
+
+
+class LoginPage:
+    """Walks the real login: user id, password, then whatever is configured."""
+
+    def __init__(self, force=False, otp=False, dashboard_after=2):
+        self.reads = 0
+        self.force, self.otp = force, otp
+        self.dashboard_after = dashboard_after
+        self.filled = []
+
+    @property
+    def url(self):
+        self.reads += 1
+        return DASHBOARD if self.reads > self.dashboard_after else LOGIN
+
+    # Only what the flow should actually find is visible: a plain login must
+    # not stumble onto a force-login button or an OTP box.
+    def get_by_placeholder(self, text):
+        if text == "OTP":
+            return FakeLoc(1, True) if self.otp else FakeLoc()
+        return FakeLoc(1, True, "")            # user id / password fields
+
+    def get_by_text(self, text, exact=None):
+        if text == "Enter OTP":
+            return FakeLoc(1, True) if self.otp else FakeLoc()
+        if "secure access" in text:
+            return FakeLoc(1, True, "")
+        return FakeLoc()                       # no error messages on screen
+
+    def get_by_role(self, role, name=None, exact=None):
+        if name in session_mod.FORCE_LOGIN_LABELS:
+            return FakeLoc(1, True, name) if self.force and name == "Login Here" else FakeLoc()
+        return FakeLoc(1, True, name or "")    # Continue
+
+    def locator(self, selector):
+        return FakeLoc(1, True)
+
+    async def goto(self, url, **kw):
+        return None
+
+    async def wait_for_timeout(self, ms):
+        await asyncio.sleep(0)
+
+
+def run_login(page, hub):
+    session_mod.POLL_SECONDS = 0.01
+    session_mod.ERROR_GRACE_SECONDS = 0
+    session_mod.RETRY_PAUSE_SECONDS = 0
+    s = PortalSession(hub, USER_ID, PASSWORD)
+    s.page = page
+    try:
+        asyncio.run(s.login())
+    except Exception as e:                                   # noqa: BLE001
+        return e
+    return None
+
+
+hub = PhaseHub()
+err = run_login(LoginPage(), hub)
+phases = [v for k, v in hub.events if k == "phase"]
+check("a plain login emits opening then credentials then done",
+      phases == ["opening", "credentials", "done"], f"{phases} {err!r}")
+
+hub2 = PhaseHub()
+run_login(LoginPage(force=True), hub2)
+p2 = [v for k, v in hub2.events if k == "phase"]
+check("the other-session popup announces force_login before done",
+      "force_login" in p2 and p2.index("force_login") < p2.index("done"), str(p2))
+
+# the hub is what the browser hears, and it only forwards changes
+_pushed = []
+
+
+class DedupeHub(main.EventHub):
+    async def _broadcast(self, payload):
+        _pushed.append(payload)
+
+
+_h = DedupeHub()
+asyncio.run(_h.login_phase("opening"))
+asyncio.run(_h.login_phase("credentials"))
+asyncio.run(_h.login_phase("credentials"))
+asyncio.run(_h.login_phase("done"))
+check("a phase repeated by the poll loop is pushed once",
+      [m["phase"] for m in _pushed] == ["opening", "credentials", "done"], str(_pushed))
+
+hub3 = PhaseHub()
+run_login(LoginPage(otp=True, dashboard_after=3), hub3)
+p3 = [v for k, v in hub3.events if k == "phase"]
+check("an OTP prompt announces the otp phase",
+      "otp" in p3 and p3.index("otp") < p3.index("done"), str(p3))
+
+for name, h in (("plain", hub), ("force-login", hub2), ("otp", hub3)):
+    kinds = [k for k, _ in h.events]
+    first, last = kinds.index("phase"), len(kinds) - 1 - kinds[::-1].index("phase")
+    check(f"no viewport frame escapes during {name} login",
+          "frame" not in kinds[first:last + 1], str(h.events))
+
+check("every phase the dashboard animates is one the session sends",
+      {"opening", "credentials", "otp", "force_login", "done"}
+      <= set(pathlib.Path("app/portal/session.py").read_text().split()) | set(phases + p2 + p3))
+
+_p = _page_now()
+for phase, copy in (("opening", "Opening portal"), ("credentials", "Entering credentials"),
+                    ("otp", "enter the OTP above"), ("force_login", "taking over"),
+                    ("done", "Logged in")):
+    check(f"the card has copy for {phase!r}", copy in _p)
+check("the OTP phase points at the real OTP box rather than competing with it",
+      "enter the OTP above" in _p)
+check("the REC light is off until a real frame arrives",
+      ".monitor .rec { visibility: hidden; }" in _p
+      and ".monitor.live .rec { visibility: visible; }" in _p
+      and "if (loginPhase) hideLoginStage();" in _p)
+check("a failed login shows a quiet failure rather than hanging on a phase",
+      "Login failed" in _p and "showLoginStage('failed')" in _p)
+check("the phase bar reads as steps, not a spinner", "phasedots" in _p)
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

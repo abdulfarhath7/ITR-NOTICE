@@ -245,7 +245,15 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Live viewport: during a sync the server screenshots the page every
   `VIEWPORT_INTERVAL` (1.5s) at jpeg quality 45 and pushes
   `{"type":"viewport","img":<base64>}` over the existing WebSocket.
-  **It must never show a credential**: `PortalSession.safe_to_capture()` is
+  During login the card shows a staged animation instead of frames - a pulsing
+  lock, the phase in words, and a step bar - fed by
+  `{"type":"login_phase","phase":...}` pushed from `session.announce_phase()`
+  at five real moments: opening, credentials, otp, force_login, done. The hub
+  only forwards a phase when it changes (the settle loop polls). The REC light
+  stays off through every phase and lights only when the first real frame
+  arrives; a rejected password swaps the card to a quiet "Login failed" rather
+  than leaving it stuck mid-phase. This changed nothing about capture:
+  **it must never show a credential**: `PortalSession.safe_to_capture()` is
   false for the whole of `login()` and two seconds after it, and the loop also
   skips every frame while `hub.state == "otp_required"`. Tests cover all three.
 - Pipeline stepper: `hub.progress(stage, **counts)` broadcasts

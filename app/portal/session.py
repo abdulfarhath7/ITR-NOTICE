@@ -101,6 +101,13 @@ async def pace_for(events) -> None:
         await asyncio.sleep(delay)
 
 
+async def announce_phase(events, phase: str) -> None:
+    """Tell the dashboard where login has got to, if the hub can hear it."""
+    hook = getattr(events, "login_phase", None)
+    if hook:
+        await hook(phase)
+
+
 async def first_visible(locator):
     """Return the first match only if a human could actually see it.
 
@@ -180,12 +187,14 @@ class PortalSession:
     async def login(self) -> None:
         page = self.page
         self.in_login = True
+        await announce_phase(self.events, "opening")
         await self.events.log("Opening portal login page")
         await page.goto(LOGIN_URL, wait_until="domcontentloaded")
 
         # --- page 1: User ID ------------------------------------------------
         uid = page.get_by_placeholder("PAN/ AADHAAR/ OTHER USER ID")
         await uid.wait_for(state="visible", timeout=30000)
+        await announce_phase(self.events, "credentials")
         await self.pace()
         await uid.fill(self._user_id)
         await self.pace()
@@ -216,6 +225,7 @@ class PortalSession:
             self.sensitive_until = time.monotonic() + 2
             self.in_login = False
         self._login_time = time.monotonic()
+        await announce_phase(self.events, "done")
         await self.events.log("Logged in")
 
     async def _resubmit_password(self) -> None:
@@ -290,6 +300,7 @@ class PortalSession:
             for label in FORCE_LOGIN_LABELS:
                 btn = await first_visible(page.get_by_role("button", name=label))
                 if btn:
+                    await announce_phase(self.events, "force_login")
                     await self.events.log(
                         f"Another session detected - clicking '{label}'")
                     await self.pace()
@@ -302,6 +313,7 @@ class PortalSession:
             if not otp_box:
                 otp_relayed = False        # prompt gone; a later one is new
             elif not otp_relayed:
+                await announce_phase(self.events, "otp")
                 await self.events.log("Portal is asking for an OTP")
                 code = await self.events.request_otp()
                 field = page.locator(

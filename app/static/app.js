@@ -102,17 +102,67 @@ function renderPipe() {
 renderPipe();
 
 /* -------------------------------------------------------------- viewport */
+/* --- login stage -----------------------------------------------------------
+   No frame is sent while credentials or an OTP are on screen, and that rule is
+   not being relaxed. The card shows the phase instead of sitting dark. */
+const LOGIN_PHASES = [
+  { key: 'opening', text: 'Opening portal\u2026' },
+  { key: 'credentials', text: 'Entering credentials\u2026' },
+  { key: 'force_login', text: 'Another session found \u2014 taking over\u2026' },
+  { key: 'otp', text: 'Waiting for you \u2014 enter the OTP above' },
+  { key: 'done', text: 'Logged in \u2713' },
+];
+let loginPhase = null;
+
+function showLoginStage(phase) {
+  loginPhase = phase;
+  const stage = $('loginstage');
+  const spec = LOGIN_PHASES.find(p => p.key === phase);
+  const at = LOGIN_PHASES.findIndex(p => p.key === phase);
+
+  // frames stop, the stage takes the card
+  const img = $('screen').querySelector('img');
+  if (img) img.classList.remove('in');
+  $('screen-empty').hidden = true;
+  stage.hidden = false;
+  $('monitor').open = true;
+  $('monitor').classList.remove('live');            // REC stays off during login
+
+  stage.className = 'loginstage'
+    + (phase === 'otp' ? ' otp' : phase === 'done' ? ' done'
+       : phase === 'failed' ? ' failed' : '');
+  $('phasetext').textContent = phase === 'failed'
+    ? 'Login failed \u2014 see log'
+    : (spec ? spec.text : 'Signing in\u2026');
+
+  // steps, not an endless spinner: one bar per phase, filled up to this one
+  const steps = LOGIN_PHASES.filter(p => p.key !== 'otp' || phase === 'otp');
+  const here = steps.findIndex(p => p.key === phase);
+  $('phasedots').innerHTML = steps.map((p, i) =>
+    `<i class="${i < here ? 'done on' : i === here ? 'on' : ''}"></i>`).join('');
+  $('mon-hint').textContent = phase === 'failed' ? 'login failed' : 'signing in';
+  return at;
+}
+
+function hideLoginStage() {
+  loginPhase = null;
+  $('loginstage').hidden = true;
+}
+
 function showFrame(b64) {
   const screen = $('screen');
-  $('monitor').classList.add('live');       // the REC light means recording
+  // The first real frame is what turns the REC light on - never the login.
+  if (loginPhase) hideLoginStage();
+  $('monitor').classList.add('live');
+  $('screen-empty').hidden = true;
   let img = screen.querySelector('img');
   if (!img) {
-    screen.innerHTML = '';
     img = document.createElement('img');
     img.alt = 'What the bot is looking at right now';
     screen.appendChild(img);
   }
   img.src = 'data:image/jpeg;base64,' + b64;
+  requestAnimationFrame(() => img.classList.add('in'));   // fade in over 300ms
   $('mon-hint').textContent = 'live';
 }
 
@@ -127,7 +177,11 @@ ws.onmessage = ev => {
     setState(d.state);
     if (d.state === 'credentials_required') showGate('creds');
   }
-  if (d.type === 'credentials_required') { showGate('creds', d.error); setState('login needed'); }
+  if (d.type === 'credentials_required') {
+    showGate('creds', d.error);
+    setState('login needed');
+    if (loginPhase && loginPhase !== 'done') showLoginStage('failed');
+  }
   if (d.type === 'otp_required') {
     showGate('otp');
     setState('waiting for OTP');
@@ -144,9 +198,19 @@ ws.onmessage = ev => {
   }
   if (d.type === 'notice_added') refreshSoon();
   if (d.type === 'speed') { MODE = d.mode; paintSpeed(); }
+  if (d.type === 'login_phase') {
+    showLoginStage(d.phase);
+    // "Logged in" is a beat, not a state: hold it briefly, then wait for the
+    // first frame to replace it.
+    if (d.phase === 'done') setTimeout(() => {
+      if (loginPhase === 'done') $('phasetext').textContent = 'Waiting for the first frame\u2026';
+    }, 600);
+  }
   if (d.type === 'viewport') showFrame(d.img);
   if (d.type === 'sync_finished') {
     setState(d.status);
+    if (loginPhase && d.status !== 'done') showLoginStage('failed');
+    else if (loginPhase) hideLoginStage();
     stageNow = d.status === 'done' ? 'done' : stageNow;
     renderPipe();
     $('mon-hint').textContent = 'run finished';
