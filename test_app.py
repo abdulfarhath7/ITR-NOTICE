@@ -1702,10 +1702,17 @@ check("a progress message is typed and carries stage + counts",
       and msg["counts"] == {"notice": 3, "of": 12, "downloaded": 1}, str(msg))
 main.hub.sockets.remove(rec3)
 
-check("the bar renders counts as a person would say them",
+# The caption used to spell the counts out ("downloading 3 of 12", "card 22 of
+# 40 · Self · For your Action · Issue Letter"). Beside the viewport that panel
+# is narrow, and the sentence wrapped into a wall of text - so the step label
+# carries the words and the caption carries only the numbers. The log below it
+# still says everything in full.
+check("the bar keeps its captions to the numbers",
       "function countText(" in _p
-      and "`downloading ${c.notice} of ${c.of}`" in _p
-      and "`card ${c.card} of ${c.of}`" in _p)
+      and "`${c.notice}/${c.of}`" in _p
+      and "`${c.card}/${c.of}`" in _p)
+check("the step label still names the stage in words",
+      "label: 'Download PDFs'" in _p and "label: 'Walk proceedings'" in _p)
 check("an unrecognised count still shows rather than vanishing",
       "`${esc(k)} ${esc(v)}`" in _p)
 check("done stages tick, the active one pulses",

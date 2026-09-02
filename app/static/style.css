@@ -205,6 +205,17 @@ main { max-width: 1180px; margin: 18px auto 60px; padding: 0 22px; display: grid
 .step .sep { width: 22px; height: 1px; background: var(--hairline); }
 .step .count { font: 400 11.5px var(--mono); color: var(--muted); }
 
+/* The two live panels sit side by side: what the bot sees, and what it is
+   doing. They stack on a narrow screen. */
+.watch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+         gap: 14px; align-items: stretch; }
+.watch > .card { min-width: 0; display: flex; flex-direction: column; }
+.watch .runlog #log { flex: 1; max-height: none; }
+/* one column of steps reads better than a wrapped row in a narrow panel */
+.watch .pipe { flex-direction: column; align-items: flex-start; gap: 7px; }
+.watch .pipe .sep { display: none; }
+@media (max-width: 980px) { .watch { grid-template-columns: 1fr; } }
+
 /* ------------------------------------------------------------- viewport */
 .monitor summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
 .monitor summary::-webkit-details-marker { display: none; }

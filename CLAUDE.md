@@ -256,6 +256,11 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   **it must never show a credential**: `PortalSession.safe_to_capture()` is
   false for the whole of `login()` and two seconds after it, and the loop also
   skips every frame while `hub.state == "otp_required"`. Tests cover all three.
+- The viewport and the run panel sit side by side in `.watch` (1.6fr / 1fr,
+  stacking under 980px). In that narrower column the steps run vertically and
+  the stage caption is numbers only ("22/40") - the step label already says
+  what it is doing, and the log underneath still carries every detail. Note
+  `.status` is the header's indicator; the run panel is `.runlog`.
 - Pipeline stepper: `hub.progress(stage, **counts)` broadcasts
   `{"type":"progress","stage":...,"counts":{...}}` at login / list / walk /
   download / done. Note the stored dict is `hub.last_progress` — naming it

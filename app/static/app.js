@@ -69,18 +69,17 @@ let stageNow = null, stageCounts = {};
 function countText(stage, c) {
   const has = k => c[k] !== null && c[k] !== undefined && c[k] !== '';
   const parts = [];
+  // Deliberately terse: the step is the headline, the log underneath carries
+  // the detail. A stage caption that names the tab, the sub-tab and the
+  // proceeding turns the panel into a wall of text.
   if (stage === 'download' && has('notice') && has('of')) {
-    parts.push(`downloading ${c.notice} of ${c.of}`);
-    if (has('downloaded')) parts.push(`${c.downloaded} saved`);
+    parts.push(`${c.notice}/${c.of}`);
   } else if (stage === 'walk') {
-    if (has('tab')) parts.push([c.tab, c.sub_tab].filter(Boolean).join(' · '));
-    if (has('items')) parts.push(`${c.items} item${c.items === 1 ? '' : 's'}`);
-    if (has('card') && has('of')) parts.push(`card ${c.card} of ${c.of}`);
-    if (has('name')) parts.push(c.name);
+    if (has('card') && has('of')) parts.push(`${c.card}/${c.of}`);
+    else if (has('items')) parts.push(`${c.items}`);
   } else if (stage === 'done') {
     if (has('notices')) parts.push(`${c.notices} notices`);
-    if (has('downloaded')) parts.push(`${c.downloaded} new PDFs`);
-    if (has('skipped_cached')) parts.push(`${c.skipped_cached} already held`);
+    if (has('downloaded')) parts.push(`${c.downloaded} new`);
   }
   if (parts.length) return parts.map(esc).join(' · ');
   return Object.entries(c)
