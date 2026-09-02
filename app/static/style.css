@@ -267,6 +267,15 @@ tbody tr:hover { background: var(--surface); }
 @keyframes shimmer { to { background-position: -300% 0; } }
 @keyframes pulse { 50% { opacity: .35; } }
 
+/* Last sync: one line, under the headline numbers. */
+.lastsync { margin: 10px 0 0; font-size: 12px; color: var(--faint); }
+.lastsync b { color: var(--muted); font-weight: 600; }
+
+/* Per-notice checklist: PDF, date, draft. */
+.ticks { display: flex; gap: 8px; font-size: 11px; color: var(--faint); white-space: nowrap; }
+.ticks .tick.on { color: var(--ok); }
+th.right, td.right { text-align: right; }
+
 /* ------------------------------------------------- the notice viewer */
 .modal { position: fixed; inset: 0; z-index: 70; display: none; background: rgba(3, 4, 6, .72); }
 .modal.show { display: grid; place-items: center; padding: 3vh 2vw; }

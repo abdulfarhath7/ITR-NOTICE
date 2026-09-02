@@ -266,6 +266,7 @@ function renderStats(rows) {
   const overdue = rows.filter(n => { const d = days(n); return d !== null && d < 0; }).length;
   const noDue = rows.filter(n => !n.due_date).length;
   const docs = rows.filter(n => n.has_pdf).length;
+  const drafts = rows.filter(n => n.has_draft).length;
 
   $('now').textContent = new Date().toLocaleString(undefined,
     { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -285,11 +286,29 @@ function renderStats(rows) {
     { label: 'Due this week', value: week, hot: week > 0 },
     { label: 'Overdue', value: overdue, hot: overdue > 0 },
     { label: 'Missing date', value: noDue, hot: noDue > 0 },
+    { label: 'Drafts ready', value: drafts },
     { label: 'Total', value: rows.length },
   ];
   $('strip').innerHTML = stats.map(s =>
     `<span class="item${s.hot ? ' hot' : ''}"><span class="v">${s.value}</span>
        <span class="l">${esc(s.label)}</span></span>`).join('');
+}
+
+// "What has been done": the last finished run, in one line, straight off the
+// runs table. A run that failed says so rather than quietly showing counts.
+function renderLastSync(run) {
+  const el = $('lastsync');
+  if (!run) { el.textContent = 'No sync has finished yet.'; return; }
+  const when = relTime(run.finished) || run.finished;
+  if (run.status !== 'done') {
+    el.innerHTML = `Last sync <b>${esc(when)}</b> — <b>${esc(run.status)}</b>`
+      + (run.message ? ` · ${esc(String(run.message).slice(0, 120))}` : '');
+    return;
+  }
+  const n = v => (v === null || v === undefined ? 0 : v);
+  el.innerHTML = `Last sync <b>${esc(when)}</b> · <b>${n(run.notices_new)}</b> new`
+    + ` · <b>${n(run.pdfs_saved)}</b> PDFs saved`
+    + ` · <b>${n(run.skipped_cached)}</b> already held`;
 }
 
 function fillYears(rows) {
@@ -298,6 +317,20 @@ function fillYears(rows) {
   const keep = sel.value;
   sel.innerHTML = '<option value="">All</option>' + years.map(y => `<option>${esc(y)}</option>`).join('');
   if (years.includes(keep)) sel.value = keep;
+}
+
+// Three marks per row, so the table reads as the checklist it is: do we hold
+// the document, do we know the deadline, is there a draft waiting.
+function statusCell(n) {
+  const marks = [
+    ['PDF', n.has_pdf, n.has_pdf ? 'PDF saved' : 'no PDF stored yet'],
+    ['Date', !!n.due_date, n.due_date
+      ? `due ${n.due_date}` : 'no due date on this notice'],
+    ['Draft', n.has_draft, n.has_draft ? 'draft written' : 'no draft yet'],
+  ];
+  return `<div class="ticks">${marks.map(([label, on, title]) =>
+    `<span class="tick${on ? ' on' : ''}" title="${esc(title)}">${label} ${
+      on ? '&check;' : '&middot;'}</span>`).join('')}</div>`;
 }
 
 function visibleRows() {
@@ -311,7 +344,7 @@ function visibleRows() {
 }
 
 const SKELETON = Array.from({ length: 5 }, () => `<tr>${
-  ['58%', '70%', '40%', '34%', '46%'].map(w =>
+  ['58%', '70%', '40%', '34%', '52%', '46%'].map(w =>
     `<td><div class="skel" style="width:${w}"></div></td>`).join('')}</tr>`).join('');
 
 const EMPTY_SVG = `<svg width="42" height="42" viewBox="0 0 24 24" fill="none"
@@ -329,7 +362,7 @@ function applyFilters() {
     ? `${NOTICES.length} notice(s)` : `${rows.length} of ${NOTICES.length}`;
 
   if (!rows.length) {
-    tb.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state">
         ${EMPTY_SVG}
         <div class="mut">${NOTICES.length
           ? 'Nothing matches these filters.'
@@ -347,7 +380,8 @@ function applyFilters() {
         <div class="sub mono">${esc(n.pan || '')} · AY ${esc(n.assessment_year || '—')}</div></td>
       <td class="mono">${esc(n.issued_on || '—')}</td>
       <td>${dueChip(n)}</td>
-      <td><div class="rowacts">
+      <td>${statusCell(n)}</td>
+      <td class="right"><div class="rowacts">
         ${n.has_pdf ? `<button onclick="view('${esc(n.ref_id)}')">View</button>
                        <button onclick="savePdf('${esc(n.ref_id)}')">Save</button>` : ''}
         ${(!n.due_date && n.has_pdf)
@@ -367,11 +401,12 @@ async function loadNotices() {
     if (d.state === 'credentials_required') showGate('creds'); else setState(d.state);
     NOTICES = d.notices || [];
     renderStats(NOTICES);
+    renderLastSync(d.last_run);
     fillYears(NOTICES);
     applyFilters();
   } catch (e) {
     LOADING = false;
-    $('rows').innerHTML = `<tr><td colspan="5"><div class="empty-state">
+    $('rows').innerHTML = `<tr><td colspan="6"><div class="empty-state">
       <div class="mut">Could not reach the server.</div>
       <button onclick="loadNotices()">Try again</button></div></td></tr>`;
   }
@@ -486,6 +521,13 @@ async function generateDraft(refId, btn, regen) {
     const d = await r.json();
     if (!r.ok) { toast(d.error || 'Could not generate a draft.'); return; }
     showDraft(d);
+    // the row's draft tick and the "Drafts ready" number, without a refetch
+    const row = NOTICES.find(n => n.ref_id === refId);
+    if (row && !row.has_draft) {
+      row.has_draft = 1;
+      renderStats(NOTICES);
+      applyFilters();
+    }
   } catch (e) {
     toast('Could not reach the server.');
   } finally {

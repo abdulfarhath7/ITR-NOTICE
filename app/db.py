@@ -59,11 +59,15 @@ CREATE TABLE IF NOT EXISTS drafts (
 );
 
 CREATE TABLE IF NOT EXISTS runs (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    started   TEXT DEFAULT (datetime('now')),
-    finished  TEXT,
-    status    TEXT DEFAULT 'running',          -- running | done | failed
-    message   TEXT
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    started        TEXT DEFAULT (datetime('now')),
+    finished       TEXT,
+    status         TEXT DEFAULT 'running',     -- running | done | failed
+    message        TEXT,
+    -- what the dashboard's "Last sync" line reads
+    notices_new    INTEGER,                    -- notices never seen before
+    pdfs_saved     INTEGER,                    -- PDFs fetched this run
+    skipped_cached INTEGER                     -- already held, so not fetched
 );
 """
 
@@ -78,6 +82,12 @@ MIGRATIONS = {
         # database is the only copy now, so a backup is one file and moving
         # the app to another machine carries the documents with it.
         ("pdf_blob", "ALTER TABLE notices ADD COLUMN pdf_blob BLOB"),
+    ],
+    "runs": [
+        # the counts behind the "Last sync" line
+        ("notices_new", "ALTER TABLE runs ADD COLUMN notices_new INTEGER"),
+        ("pdfs_saved", "ALTER TABLE runs ADD COLUMN pdfs_saved INTEGER"),
+        ("skipped_cached", "ALTER TABLE runs ADD COLUMN skipped_cached INTEGER"),
     ],
 }
 
@@ -210,6 +220,24 @@ def set_claude_due_date(con, ref_id: str, due_date: str, basis: str | None = Non
     )
 
 
+def finish_run(con, run_id: int, status: str, message: str,
+               counts: dict | None = None) -> None:
+    """Close a run row and record what it actually did."""
+    counts = counts or {}
+    con.execute(
+        """UPDATE runs SET finished=datetime('now'), status=?, message=?,
+               notices_new=?, pdfs_saved=?, skipped_cached=? WHERE id=?""",
+        (status, message, counts.get("new_notices"), counts.get("downloaded"),
+         counts.get("skipped_cached"), run_id))
+
+
+def last_run(con):
+    """The most recent finished run - what the dashboard reports at the top."""
+    return con.execute(
+        "SELECT * FROM runs WHERE finished IS NOT NULL ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+
+
 def get_notice(con, ref_id: str):
     return con.execute("SELECT * FROM notices WHERE ref_id=?", (ref_id,)).fetchone()
 
@@ -243,6 +271,8 @@ def list_notices(con):
                   n.due_date_source, n.due_date_basis, n.ao_viewed_on,
                   n.downloaded_at, n.first_seen,
                   n.pdf_blob IS NOT NULL AS has_pdf,
+                  EXISTS(SELECT 1 FROM drafts d WHERE d.ref_id = n.ref_id)
+                      AS has_draft,
                   p.proceeding_name, p.pan, p.assessment_year, p.status
            FROM notices n LEFT JOIN proceedings p ON p.id = n.proceeding_id
            ORDER BY n.due_date IS NULL, n.due_date"""

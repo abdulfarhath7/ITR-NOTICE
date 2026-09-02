@@ -106,12 +106,18 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
 - Preview vs Download: `/api/notices/{ref_id}/pdf?inline=1` streams the stored
   blob as `Content-Disposition: inline` with `application/pdf`, so the browser
   renders it; without the flag it is an attachment download.
-- Dashboard summary + filters: four cards above the table (total notices, due
-  in the next 7 days, missing due date, docs saved) computed from
-  /api/notices, and a filter row (assessment year dropdown built from the data,
-  proceeding-name contains, missing-due-date toggle). Filtering is pure
-  frontend over the rows already fetched; the cards always count everything,
-  not the filtered view.
+- Overview, above the table, all computed from one /api/notices call:
+  (a) the hero strip — due this week, overdue, missing date, drafts ready,
+  total — plus a ring for documents held; (b) a "Last sync" line reading the
+  newest finished row of `runs`, which now carries `notices_new`,
+  `pdfs_saved` and `skipped_cached` (written by `db.finish_run()` from the
+  scraper's stats; a failed run shows its status and message instead of
+  counts it did not earn); (c) a Status cell on every row with three marks —
+  PDF ✓/·, Date ✓/·, Draft ✓/· — so the table reads as the checklist. The
+  numbers always count everything, never the filtered view. Filters
+  (assessment year, proceeding-name contains, missing-due-date toggle) stay
+  pure frontend over the rows already fetched.
+  `list_notices()` supplies `has_pdf` and `has_draft` for all of it.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
   Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a

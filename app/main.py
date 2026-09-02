@@ -270,6 +270,7 @@ async def _run_sync() -> None:
 
     session = PortalSession(hub, creds["user_id"], creds["password"])
     status, message = "done", ""
+    stats: dict = {}
     watcher = None
     try:
         await session.start()
@@ -302,9 +303,7 @@ async def _run_sync() -> None:
         if hub.state != "credentials_required":   # set by the wrong-password path
             hub.state = "idle" if status == "done" else "failed"
         with db.connect() as con:
-            con.execute(
-                "UPDATE runs SET finished=datetime('now'), status=?, message=? "
-                "WHERE id=?", (status, message, run_id))
+            db.finish_run(con, run_id, status, message, stats)
         await hub._broadcast({"type": "sync_finished", "status": status})
 
 
@@ -438,9 +437,13 @@ async def submit_otp(body: OtpIn):
 # ------------------------------------------------------------------- notices
 @app.get("/api/notices")
 async def notices():
+    """Everything the dashboard's overview needs in one call: the rows, and
+    what the last finished run did."""
     with db.connect() as con:
         rows = [dict(r) for r in db.list_notices(con)]
-    return {"state": hub.state, "notices": rows}
+        run = db.last_run(con)
+    return {"state": hub.state, "notices": rows,
+            "last_run": dict(run) if run else None}
 
 
 @app.get("/api/notices/{ref_id}/pdf")

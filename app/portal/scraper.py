@@ -188,8 +188,8 @@ async def _visible_button_names(page) -> list[str]:
 async def run_sync(session: PortalSession, events, limit: int | None = None) -> dict:
     """limit: stop after this many NEW PDFs. None means every notice."""
     page = session.page
-    stats = {"proceedings": 0, "notices": 0, "downloaded": 0, "skipped_cached": 0,
-             "limit": limit, "stopped_early": False}
+    stats = {"proceedings": 0, "notices": 0, "new_notices": 0, "downloaded": 0,
+             "skipped_cached": 0, "limit": limit, "stopped_early": False}
 
     if limit:
         await events.log(f"Download limit: {limit} new PDF(s) this run")
@@ -244,8 +244,9 @@ async def run_sync(session: PortalSession, events, limit: int | None = None) -> 
             "Run Sync again to continue from where this left off.")
 
     await events.log(
-        f"Sync done: {stats['proceedings']} proceedings, {stats['notices']} notices, "
-        f"{stats['downloaded']} new PDFs, {stats['skipped_cached']} already held")
+        f"Sync done: {stats['proceedings']} proceedings, {stats['notices']} notices "
+        f"({stats['new_notices']} new), {stats['downloaded']} new PDFs, "
+        f"{stats['skipped_cached']} already held")
     return stats
 
 
@@ -310,6 +311,8 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
         if not n["ref_id"]:
             continue
         stats["notices"] += 1
+        if db.get_notice(con, n["ref_id"]) is None:
+            stats["new_notices"] += 1          # first time this one has shown up
 
         if db.notice_exists(con, n["ref_id"]):
             stats["skipped_cached"] += 1       # cache rule: never fetch twice

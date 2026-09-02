@@ -1437,6 +1437,88 @@ check("the drawer keeps Copy and Regenerate",
       "d-copy" in _p and "d-regen" in _p and "regenerate=1" in _p)
 
 
+# 25 - the overview: what do I have, what has been done ----------------------
+_p = _page_now()
+
+# (a) the headline numbers, including the one the drafts table owns
+check("the overview counts drafts ready",
+      "n.has_draft" in _p and "Drafts ready" in _p)
+for label in ("Due this week", "Missing date", "Total", "Drafts ready"):
+    check(f"the overview shows {label!r}", label in _p)
+
+_STAT_SAMPLE = [dict(n) for n in SAMPLE]
+for row, drafted in zip(_STAT_SAMPLE, (1, 0, 1, 0, 0)):
+    row["has_draft"] = drafted
+check("Drafts ready counts the notices that have one",
+      len([n for n in _STAT_SAMPLE if n["has_draft"]]) == 2)
+check("Total is every notice, filtered or not", len(_STAT_SAMPLE) == 5)
+
+# (b) the last-sync line, off the runs table
+with db.connect() as con:
+    rid = con.execute("INSERT INTO runs DEFAULT VALUES").lastrowid
+    db.finish_run(con, rid, "done", "{'notices': 9}",
+                  {"new_notices": 4, "downloaded": 3, "skipped_cached": 6})
+    run = db.last_run(con)
+check("a finished run records what it found",
+      run["notices_new"] == 4 and run["pdfs_saved"] == 3
+      and run["skipped_cached"] == 6, str(dict(run)))
+check("it records when it finished and how it went",
+      run["finished"] is not None and run["status"] == "done")
+
+with TestClient(main.app) as client:
+    d = client.get("/api/notices").json()
+    check("the dashboard is told about the last run in the same call",
+          d["last_run"]["notices_new"] == 4 and d["last_run"]["pdfs_saved"] == 3,
+          str(d.get("last_run")))
+
+    with db.connect() as con:
+        rid2 = con.execute("INSERT INTO runs DEFAULT VALUES").lastrowid
+        db.finish_run(con, rid2, "failed", "RuntimeError('no tab')")
+    d = client.get("/api/notices").json()
+    check("the newest run is the one reported",
+          d["last_run"]["status"] == "failed", str(d["last_run"]["status"]))
+    check("a failed run reports no counts rather than zeros it did not earn",
+          d["last_run"]["pdfs_saved"] is None, str(d["last_run"]))
+
+check("the dashboard renders the last run, failure included",
+      "renderLastSync" in _p and "Last sync" in _p
+      and "run.status !== 'done'" in _p)
+check("it says so plainly when nothing has run yet",
+      "No sync has finished yet." in _p)
+
+# a real sync writes those counts through
+with TestClient(main.app) as client:
+    reset()
+    async def counting_run_sync(session, events, limit=None):
+        return {"proceedings": 1, "notices": 5, "new_notices": 2,
+                "downloaded": 2, "skipped_cached": 3}
+    scraper.run_sync = counting_run_sync
+    client.post("/api/credentials", json={"user_id": USER_ID, "password": PASSWORD})
+    wait_idle(client)
+    scraper.run_sync = fake_run_sync
+    run = client.get("/api/notices").json()["last_run"]
+    check("a completed sync leaves its counts behind for the dashboard",
+          run["status"] == "done" and run["notices_new"] == 2
+          and run["pdfs_saved"] == 2 and run["skipped_cached"] == 3, str(run))
+
+check("the scraper counts notices it had never seen before",
+      'stats["new_notices"] += 1' in _scraper_now
+      and '"new_notices": 0' in _scraper_now)
+
+# (c) the per-row checklist
+check("each row carries the three ticks",
+      "function statusCell(" in _p and "'PDF', n.has_pdf" in _p
+      and "'Draft', n.has_draft" in _p)
+check("a mark is a tick or a dot, nothing longer",
+      "&check;" in _p and "&middot;" in _p and ".ticks .tick.on" in _p)
+check("the table has a Status column for them",
+      "<th>Status</th>" in _p)
+check("the wider table still spans its empty state", 'colspan="6"' in _p
+      and 'colspan="5"' not in _p)
+check("writing a draft ticks the row without a refetch",
+      "row.has_draft = 1;" in _p)
+
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)
