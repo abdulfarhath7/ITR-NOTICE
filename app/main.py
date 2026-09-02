@@ -222,6 +222,12 @@ class EventHub:
         self.last_log = msg
         await self._broadcast({"type": "log", "msg": msg})
 
+    async def notice_added(self, ref_id: str) -> None:
+        """One notice is committed and readable. The dashboard refreshes the
+        table on this, throttled, so rows appear during the sync instead of
+        all at once at the end."""
+        await self._broadcast({"type": "notice_added", "ref_id": ref_id})
+
     async def progress(self, stage: str, **counts) -> None:
         """One pipeline stage moved. The dashboard draws the stepper from this."""
         self.last_progress = {"type": "progress", "stage": stage, "counts": counts}

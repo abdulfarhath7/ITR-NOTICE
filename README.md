@@ -96,6 +96,9 @@ same password as everything else.
 - [x] Step 14 Reads whether a reply is already filed on the portal (from
               which button the card shows - it never clicks either) and
               shows it as a fourth dot on the row.
+- [x] Step 17 Notices are saved one at a time, so the table fills up while
+              the sync runs and a crash keeps everything already fetched -
+              the next Sync carries on from there.
 - [x] Step 16 The position report counts replies: a notice answered on the
               portal is "Responded", never overdue, and the attention list
               adds the notices with no due date at all.

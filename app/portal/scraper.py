@@ -26,6 +26,13 @@ not against screenshots. What the real site forced:
   - Items per Page is an Angular mat-select, not a <select>. This account had
     40 items shown 10 at a time, so without it three quarters were missed.
 
+The walk COMMITS AS IT GOES - once per proceeding and once per notice. It
+used to hold one transaction open for the whole sync, which meant the
+dashboard read zero notices until the very end and a crash at notice 38
+threw away the 37 already downloaded. Now a crash keeps everything stored so
+far, and because the cache check keys on what is stored, the next sync
+resumes where this one died instead of fetching it all again.
+
 HARD GUARDRAIL: this module never clicks Submit Response, View Response,
 File Appeal, Seek Video Conferencing, Seek/View Adjournment or any control
 that writes to the portal. Those buttons sit on the same notice card as the
@@ -67,6 +74,16 @@ FORBIDDEN = ("submit response", "view response", "file appeal",
              "e-verify", "withdraw", "pay now",
              # the back/refresh modal's YES logs the session out
              "yes", "logout")
+
+
+async def _announce(events, ref_id: str) -> None:
+    """Tell the dashboard a notice has just landed, so the table can grow
+    while the sync runs. Tolerates an events object without the hook, the
+    same way pace_for() does."""
+    hook = getattr(events, "notice_added", None)
+    if hook is None:
+        return
+    await hook(ref_id)
 
 
 async def _click(locator, label: str, timeout: int | None = None) -> None:
@@ -274,6 +291,7 @@ async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
             await session.pace()
             p = await _parse_proceeding(card, tab_key, sub_key)
             pid = db.upsert_proceeding(con, p)
+            con.commit()          # the notices below hang off this row
             stats["proceedings"] += 1
             await events.log(
                 f"  card {i + 1}/{total}: {p['proceeding_name'] or '(unnamed)'}"
@@ -324,6 +342,8 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
             # ...but the reply status is not cached: it changes between syncs,
             # so a notice we skip downloading still gets this refreshed.
             db.set_responded(con, n["ref_id"], n["responded"])
+            con.commit()
+            await _announce(events, n["ref_id"])
             continue
 
         pdf = notice.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
@@ -335,6 +355,10 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
             if n["pdf_blob"]:
                 stats["downloaded"] += 1
         db.upsert_notice(con, n)
+        # Committed here, one notice at a time: a crash on the next card keeps
+        # this one, and the dashboard can already see it.
+        con.commit()
+        await _announce(events, n["ref_id"])
 
         # Stop the moment the cap is met: the point of a limit is a short run.
         # Everything already stored stays stored, so the next Sync carries on.
@@ -362,11 +386,16 @@ async def _download(session, events, ref_id) -> bytes | None:
             await _safe_click(page, page.get_by_role(
                 "button", name="Download", exact=False).first, "Download", events)
         download = await dl.value
-        # Playwright writes the file to a temp path of its own. Read it back
-        # into memory for the pdf_blob column, then delete it: a notice must
-        # exist in exactly one place, and that place is the database.
-        data = Path(await download.path()).read_bytes()
-        await download.delete()
+        # The download shelf that appears in the headed browser is the portal
+        # handing the file over - the portal's own UI, not storage of ours.
+        # Playwright writes it to a temp path, the bytes go straight into the
+        # pdf_blob column, and that temp file is deleted immediately below
+        # whatever happens. Nothing this tool fetches is left on disk; the
+        # database is the only copy.
+        try:
+            data = Path(await download.path()).read_bytes()
+        finally:
+            await _discard(download)
         await events.log(f"  downloaded {ref_id}.pdf ({len(data) // 1024} KB)")
         return data or None
     except PWTimeout:
@@ -375,6 +404,23 @@ async def _download(session, events, ref_id) -> bytes | None:
     finally:
         await _click_back(page, events)        # back to the notice list
         await page.wait_for_timeout(1000)
+
+
+async def _discard(download) -> None:
+    """Delete the browser's temp copy: Playwright's own delete() first, an
+    unlink as the fallback. Cleanup failing must never fail a sync, but the
+    file not being there afterwards is the point."""
+    try:
+        await download.delete()
+        return
+    except Exception:
+        pass
+    try:
+        path = await download.path()
+        if path:
+            Path(path).unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 # ------------------------------------------------------------------- parsing

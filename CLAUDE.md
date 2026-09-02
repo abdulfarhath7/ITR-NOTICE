@@ -67,6 +67,25 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   A run that finds no tab now raises instead of finishing clean.
   The end-to-end automated walk has still not completed - that is what remains
   of step 1.
+- **The walk commits as it goes** — once per proceeding row, once per notice
+  (metadata + `pdf_blob` together), in `_walk_pages()` and
+  `_collect_notices()`. It used to hold ONE transaction open for the entire
+  sync, so /api/notices and /api/summary read 0 until the run ended and a
+  crash at notice 38 discarded the 37 already downloaded. Never wrap the walk
+  in a single transaction again. Because the cache check keys on what is
+  stored, a crashed run resumes where it died rather than refetching.
+  Each committed notice is announced as `{"type": "notice_added", "ref_id"}`
+  (`hub.notice_added()`, reached through `_announce()` so an events object
+  without the hook still works); the dashboard refreshes the table, the stat
+  cards and the report line on it, throttled to at most one refresh per 2s
+  with a trailing one so the last notice of a run is never left off. The
+  report's "N notices scanned" therefore ticks up live — it counts the
+  register, which is whatever is committed.
+- Download temp files: Playwright writes each download to a temp path; the
+  bytes go into `pdf_blob` and `_discard()` deletes that file immediately in a
+  `finally` (`download.delete()`, falling back to an unlink). The download
+  shelf visible in a headed run is the portal handing the file over — the
+  portal's own UI — and nothing this tool fetches is left on disk.
 - Download limit: the dashboard's "Download at most" box caps how many NEW
   PDFs one run may fetch (blank = every notice). It rides on POST /api/sync
   and POST /api/credentials as `limit`, is held on `hub.download_limit`, and

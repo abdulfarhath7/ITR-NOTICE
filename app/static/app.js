@@ -142,6 +142,7 @@ ws.onmessage = ev => {
     renderPipe();
     $('monitor').open = true;          // a run started: show the viewport
   }
+  if (d.type === 'notice_added') refreshSoon();
   if (d.type === 'speed') { MODE = d.mode; paintSpeed(); }
   if (d.type === 'viewport') showFrame(d.img);
   if (d.type === 'sync_finished') {
@@ -533,6 +534,23 @@ function applyFilters() {
           ? `<button class="primary accent" onclick="generateDraft('${esc(n.ref_id)}', this)">Draft</button>` : ''}
       </div></td>
     </tr>`).join('');
+}
+
+// A sync commits a notice at a time and says so. Refreshing on every one of
+// them would be dozens of round trips a minute, so this collapses them into
+// at most one refresh every 2s, always with a trailing one so the last notice
+// of a run is never left off the table.
+const REFRESH_EVERY = 2000;
+let refreshedAt = 0, refreshTimer = null;
+
+function refreshSoon() {
+  if (refreshTimer) return;
+  const wait = Math.max(0, REFRESH_EVERY - (Date.now() - refreshedAt));
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    refreshedAt = Date.now();
+    loadNotices();                 // table, stat cards and the report line
+  }, wait);
 }
 
 async function loadNotices() {

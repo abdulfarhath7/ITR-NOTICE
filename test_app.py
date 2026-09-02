@@ -2126,6 +2126,281 @@ check("the modal's own Save follows whichever document it is showing",
       "VIEW_SAVE" in _p)
 
 
+# 31 - a sync that dies keeps what it already fetched -------------------------
+# The walk used to hold one transaction open from the first card to the last:
+# the dashboard read zero notices until the very end, and a crash at notice 38
+# threw away the 37 already downloaded. These drive the real _collect_notices
+# with a fake page whose fourth card explodes.
+_CRASH_DB = TMP.parent / "crash.db"
+_MAIN_DB2 = db.DB_PATH
+db.DB_PATH = _CRASH_DB
+db.init_db()
+
+
+class _Btn:
+    """Any button on the page: present, clickable, never actually anything."""
+
+    def __init__(self, count=1):
+        self._count = count
+
+    @property
+    def first(self):
+        return self
+
+    async def count(self):
+        return self._count
+
+    async def click(self, **kw):
+        pass
+
+    async def wait_for(self, **kw):
+        pass
+
+    async def is_visible(self):
+        return False
+
+
+class _Cards:
+    def __init__(self, items):
+        self.items = items
+
+    async def count(self):
+        return len(self.items)
+
+    def nth(self, i):
+        return self.items[i]
+
+    @property
+    def first(self):
+        return self.items[0] if self.items else _Btn(0)
+
+
+class _NoticeCard:
+    def __init__(self, ref, boom=False):
+        self.ref, self.boom = ref, boom
+
+    async def inner_text(self):
+        if self.boom:                     # the browser window closed mid-walk
+            raise RuntimeError("Target page, context or browser has been closed")
+        return REAL_NOTICE.replace("100118320996", self.ref)
+
+    def get_by_role(self, *a, **kw):
+        return _Btn()
+
+    async def count(self):
+        return 1
+
+
+class _WalkPage:
+    url = "https://eportal.incometax.gov.in/iec/foservices/#/viewNotices/all"
+
+    def __init__(self, notices):
+        self.notices = notices
+
+    def locator(self, selector):
+        if selector == scraper.NOTICE_CARD:
+            return _Cards(self.notices)
+        if selector == scraper.PROCEEDING_CARD:
+            return _Cards([_NoticeCard("proceeding")])
+        return _Cards([])                 # the back/refresh modal, absent
+
+    def get_by_role(self, *a, **kw):
+        return _Btn()
+
+    async def wait_for_url(self, *a, **kw):
+        pass
+
+    async def wait_for_timeout(self, ms):
+        pass
+
+
+class _WalkSession:
+    def __init__(self, page):
+        self.page = page
+
+    async def pace(self):
+        pass
+
+    async def ensure_alive(self):
+        pass
+
+
+class _WalkEvents:
+    def __init__(self):
+        self.announced = []
+
+    async def log(self, msg):
+        pass
+
+    async def progress(self, stage, **counts):
+        pass
+
+    async def notice_added(self, ref_id):
+        self.announced.append(ref_id)
+
+
+_REAL_DOWNLOAD, _REAL_BACK = scraper._download, scraper._click_back
+
+
+async def _fake_download(session, events, ref_id):
+    return b"%PDF-1.4 pretend notice %%EOF"
+
+
+async def _fake_back(page, events):
+    pass
+
+
+scraper._download, scraper._click_back = _fake_download, _fake_back
+
+_walk_events = _WalkEvents()
+# the portal's reference ids are digits, and the parser only accepts digits
+_CRASH_REFS = ["900000000001", "900000000002", "900000000003"]
+_page = _WalkPage([_NoticeCard(_CRASH_REFS[0]), _NoticeCard(_CRASH_REFS[1]),
+                   _NoticeCard(_CRASH_REFS[2]),
+                   _NoticeCard("900000000004", boom=True)])
+_stats = {"notices": 0, "new_notices": 0, "downloaded": 0, "skipped_cached": 0,
+          "limit": None}
+_crashed = None
+try:
+    with db.connect() as con:
+        pid = db.upsert_proceeding(con, {
+            "tab": "self", "sub_tab": "action", "proceeding_name": "Crash test",
+            "pan": "AAACU3358G", "assessee_name": "CAMBRIDGE", "assessment_year": "2026-27",
+            "financial_year": None, "applicable_act": None, "status": "Open",
+            "closure_date": None, "closure_order": None})
+        con.commit()
+        asyncio.run(scraper._collect_notices(
+            _WalkSession(_page), _walk_events, con, 0, pid, _stats))
+except RuntimeError as e:
+    _crashed = e
+
+check("the walk really did crash part way through", _crashed is not None,
+      repr(_crashed))
+
+# a brand new connection: only committed rows are visible here
+with db.connect() as con:
+    _kept = [r["ref_id"] for r in db.list_notices(con)]
+    _blobs = [db.get_notice_pdf(con, ref) for ref in _CRASH_REFS]
+check("every notice fetched before the crash is still stored",
+      sorted(_kept) == _CRASH_REFS, str(_kept))
+check("their PDFs survived too, not just the metadata",
+      all(b and bytes(b).startswith(b"%PDF") for b in _blobs), str(_blobs)[:60])
+with db.connect() as con:
+    check("so the next sync skips them instead of fetching them again",
+          all(db.notice_exists(con, ref) for ref in _CRASH_REFS))
+    check("the notice being read when it died was not half-written",
+          db.get_notice(con, "900000000004") is None)
+check("each stored notice was announced to the dashboard as it landed",
+      _walk_events.announced == _CRASH_REFS, str(_walk_events.announced))
+
+# the walk commits as it goes, rather than once at the end
+_scraper_src = pathlib.Path("app/portal/scraper.py").read_text()
+check("the notice loop commits per notice", _scraper_src.count("con.commit()") >= 3)
+check("and the proceeding row is committed before its notices",
+      "con.commit()          # the notices below hang off this row" in _scraper_src)
+check("the dashboard is told, once per committed notice",
+      'await _announce(events, n["ref_id"])' in _scraper_src)
+check("the hub broadcasts it", '"type": "notice_added"' in
+      pathlib.Path("app/main.py").read_text())
+
+rec4 = Recorder()
+main.hub.sockets.append(rec4)
+asyncio.run(main.hub.notice_added("100118320996"))
+check("the message carries the notice's reference",
+      rec4.sent[-1] == {"type": "notice_added", "ref_id": "100118320996"},
+      str(rec4.sent[-1]))
+main.hub.sockets.remove(rec4)
+
+_p = _page_now()
+check("the dashboard refreshes the table when one lands",
+      "if (d.type === 'notice_added') refreshSoon();" in _p)
+check("...at most once every 2 seconds",
+      "const REFRESH_EVERY = 2000;" in _p and "function refreshSoon()" in _p)
+check("...and always a trailing one, so the last notice is never missed",
+      "if (refreshTimer) return;" in _p and "refreshTimer = setTimeout(" in _p)
+check("one refresh redraws the table, the cards and the report line",
+      "loadNotices();                 // table, stat cards and the report line" in _p)
+check("the run line counts what is committed, not what the run promised",
+      '"notices_scanned": len(register)' in pathlib.Path("app/report.py").read_text())
+
+
+# 32 - the browser's temp copy does not outlive the insert ---------------------
+class _Download:
+    def __init__(self, path, delete_raises=False):
+        self._path, self._raises = path, delete_raises
+        self.delete_called = False
+
+    async def path(self):
+        return str(self._path)
+
+    async def delete(self):
+        self.delete_called = True
+        if self._raises:
+            raise RuntimeError("browser has gone away")
+        pathlib.Path(self._path).unlink(missing_ok=True)
+
+
+class _Expect:
+    def __init__(self, download):
+        self._download = download
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    @property
+    def value(self):
+        async def _get():
+            return self._download
+        return _get()
+
+
+class _DownloadPage(_WalkPage):
+    url = "https://eportal.incometax.gov.in/iec/foservices/#/viewDetailedNotice"
+
+    def __init__(self, download):
+        super().__init__([])
+        self.download = download
+
+    def expect_download(self, **kw):
+        return _Expect(self.download)
+
+
+_tmpdir = pathlib.Path(tempfile.mkdtemp(prefix="itr-dl-"))
+scraper._download, scraper._click_back = _REAL_DOWNLOAD, _fake_back
+
+_shelf = _tmpdir / "70000000172639792_Issue Letter_1092231604(1).pdf"
+_shelf.write_bytes(b"%PDF-1.4 the portal's own file %%EOF")
+_dl = _Download(_shelf)
+_bytes = asyncio.run(scraper._download(
+    _WalkSession(_DownloadPage(_dl)), _WalkEvents(), "temp-1"))
+check("the bytes reach us", _bytes == b"%PDF-1.4 the portal's own file %%EOF",
+      str(_bytes)[:40])
+check("and the browser's temp file is gone the moment they do",
+      not _shelf.exists(), str(_shelf))
+
+# delete() failing must still leave nothing behind
+_shelf2 = _tmpdir / "second.pdf"
+_shelf2.write_bytes(b"%PDF-second %%EOF")
+_dl2 = _Download(_shelf2, delete_raises=True)
+_bytes2 = asyncio.run(scraper._download(
+    _WalkSession(_DownloadPage(_dl2)), _WalkEvents(), "temp-2"))
+check("a failed delete() falls back to unlinking the path",
+      _dl2.delete_called and not _shelf2.exists() and _bytes2.startswith(b"%PDF"),
+      str(_shelf2))
+check("nothing at all is left in the download directory",
+      not any(_tmpdir.iterdir()), str(list(_tmpdir.iterdir())))
+check("the scraper explains the download shelf a headed run shows",
+      "download shelf" in _scraper_src
+      and "handing the file over" in _scraper_src
+      and "database is the only copy" in _scraper_src)
+
+scraper._download, scraper._click_back = _REAL_DOWNLOAD, _REAL_BACK
+db.DB_PATH = _MAIN_DB2
+
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)
