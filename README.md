@@ -43,6 +43,7 @@ Run the tests with:
 - [x] Step 4  Minimal dashboard: sync, live log, OTP box, notices table
 - [x] Step 4b Access lock: APP_PASSWORD gates the dashboard, the API and the
               WebSocket (leave it empty only on localhost)
+- [x] Step 4c Dashboard summary cards + year/name/missing-due-date filters
 - [ ] Step 5  Ask-Claude due date (endpoint stubbed at /api/notices/{id}/ask-claude)
 - [ ] Step 6  Claude drafts a reply
 

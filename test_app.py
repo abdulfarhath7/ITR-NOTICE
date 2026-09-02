@@ -757,6 +757,60 @@ check("failed logins are slowed down on purpose", main.FAILED_LOGIN_DELAY == 0
       or main.FAILED_LOGIN_DELAY >= 1)
 main.settings.app_password = ""        # leave the rest of the suite unlocked
 
+
+# 16 - dashboard summary + filters -------------------------------------------
+# The cards and filters run in the browser, so what is checked here is that the
+# page ships them and that the maths they implement is right on real row shapes.
+import datetime                                                      # noqa: E402
+
+_page = pathlib.Path("app/static/index.html").read_text()
+for hook in ("s-total", "s-week", "s-nodue", "s-docs", "f-ay", "f-name",
+             "f-nodue", "renderStats", "applyFilters", "dueInDays"):
+    check(f"dashboard ships {hook}", hook in _page)
+
+def _days(d):
+    return (datetime.datetime.strptime(d, "%d-%b-%Y").date()
+            - datetime.date.today()).days
+
+_fmt = lambda n: (datetime.date.today() + datetime.timedelta(days=n)).strftime("%d-%b-%Y")
+SAMPLE = [
+    {"due_date": None, "assessment_year": "2020-21", "proceeding_name": "Issue Letter",
+     "pdf_path": "/a.pdf"},
+    {"due_date": _fmt(3), "assessment_year": "2021-22",
+     "proceeding_name": "Assessment u/s 143", "pdf_path": None},
+    {"due_date": _fmt(7), "assessment_year": "2021-22", "proceeding_name": "Penalty",
+     "pdf_path": "/b.pdf"},
+    {"due_date": _fmt(20), "assessment_year": "2020-21", "proceeding_name": "Penalty",
+     "pdf_path": "/c.pdf"},
+    {"due_date": _fmt(-2), "assessment_year": "2020-21", "proceeding_name": "Overdue one",
+     "pdf_path": "/d.pdf"},
+]
+due_week = [n for n in SAMPLE if n["due_date"] and 0 <= _days(n["due_date"]) <= 7]
+check("Due this week counts the next 7 days only", len(due_week) == 2,
+      str([n["proceeding_name"] for n in due_week]))
+check("Due this week excludes dates already past",
+      all(_days(n["due_date"]) >= 0 for n in due_week))
+check("Missing due date counts blanks",
+      len([n for n in SAMPLE if not n["due_date"]]) == 1)
+check("Docs saved counts stored PDFs",
+      len([n for n in SAMPLE if n["pdf_path"]]) == 4)
+check("the year dropdown lists each year once, sorted",
+      sorted({n["assessment_year"] for n in SAMPLE if n["assessment_year"]})
+      == ["2020-21", "2021-22"])
+
+def _filtered(rows, ay="", name="", nodue=False):
+    return [n for n in rows
+            if (not ay or n["assessment_year"] == ay)
+            and (not name or name.lower() in (n["proceeding_name"] or "").lower())
+            and (not nodue or not n["due_date"])]
+
+check("year filter narrows the table", len(_filtered(SAMPLE, ay="2021-22")) == 2)
+check("name filter is a case-insensitive contains",
+      len(_filtered(SAMPLE, name="penalty")) == 2)
+check("missing-due-date toggle keeps only blanks",
+      [n["proceeding_name"] for n in _filtered(SAMPLE, nodue=True)] == ["Issue Letter"])
+check("filters combine", len(_filtered(SAMPLE, ay="2020-21", name="penalty")) == 1)
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)

@@ -75,6 +75,12 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   the error text. TESTED (test_app.py): the credential rules above, /api/otp
   relay, /api/notices, 404 on missing PDF, WS handshake,
   /api/notices/{ref_id}/ask-claude is a 501 stub (build step 5).
+- Dashboard summary + filters: four cards above the table (total notices, due
+  in the next 7 days, missing due date, docs saved) computed from
+  /api/notices, and a filter row (assessment year dropdown built from the data,
+  proceeding-name contains, missing-due-date toggle). Filtering is pure
+  frontend over the rows already fetched; the cards always count everything,
+  not the filtered view.
 - `app/static/index.html` — working dashboard: credentials form (masked
   password, shown when the server holds no login and re-shown with an error
   after a rejected password), "Change login" in the header, Sync button, live
