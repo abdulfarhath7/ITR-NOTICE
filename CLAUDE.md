@@ -83,6 +83,20 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   click, parse and download. The delay is re-read on every call, so pressing a
   button in the middle of a sync is felt by the very next action. TESTED
   (test_app.py section 22), including the mid-run change.
+- Pipeline bar: the backend emits `{"type": "progress", "stage", "counts"}`
+  at every transition — `login` (and `login done=True`), `list`, `walk` (per
+  tab/sub-tab and then per card, carrying the human tab labels), `download`
+  (notice N of M) and `done` (the run's totals). The dashboard draws a stepper
+  above the log: ticked stages behind, the active one pulsing, and
+  `countText()` turning the raw counts into "downloading 3 of 12" rather than
+  "notice 3 · of 12". An unrecognised key still prints as `key value`.
+  `hub.last_progress` is replayed to a browser that connects mid-sync.
+- Command palette: Ctrl/Cmd+K, subsequence matching, and the entries are Run
+  sync, Toggle theme, Speed: slow/fast/extreme, Filter: missing due date,
+  Clear filters, Toggle live viewport, and every stored notice (searched by
+  reference id, description or proceeding name; Enter opens the View modal).
+  Esc closes it. `s` starts a sync and `/` focuses the name filter, neither
+  while the focus is in an input, textarea or select.
 - Live viewport: `_viewport_loop()` in main.py screenshots the page every
   `VIEWPORT_INTERVAL` (1.5s) as `type="jpeg", quality=45` and broadcasts
   `{"type": "viewport", "img": <base64>}`. **It captures nothing whenever a

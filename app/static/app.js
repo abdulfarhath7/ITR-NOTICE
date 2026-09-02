@@ -64,13 +64,35 @@ const STAGES = [
 ];
 let stageNow = null, stageCounts = {};
 
+// The server sends raw counts; this is what a person would say out loud.
+// Anything unrecognised still shows, as "key value", rather than vanishing.
+function countText(stage, c) {
+  const has = k => c[k] !== null && c[k] !== undefined && c[k] !== '';
+  const parts = [];
+  if (stage === 'download' && has('notice') && has('of')) {
+    parts.push(`downloading ${c.notice} of ${c.of}`);
+    if (has('downloaded')) parts.push(`${c.downloaded} saved`);
+  } else if (stage === 'walk') {
+    if (has('tab')) parts.push([c.tab, c.sub_tab].filter(Boolean).join(' · '));
+    if (has('items')) parts.push(`${c.items} item${c.items === 1 ? '' : 's'}`);
+    if (has('card') && has('of')) parts.push(`card ${c.card} of ${c.of}`);
+    if (has('name')) parts.push(c.name);
+  } else if (stage === 'done') {
+    if (has('notices')) parts.push(`${c.notices} notices`);
+    if (has('downloaded')) parts.push(`${c.downloaded} new PDFs`);
+    if (has('skipped_cached')) parts.push(`${c.skipped_cached} already held`);
+  }
+  if (parts.length) return parts.map(esc).join(' · ');
+  return Object.entries(c)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
+    .map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ');
+}
+
 function renderPipe() {
   const at = STAGES.findIndex(s => s.key === stageNow);
   $('pipe').innerHTML = STAGES.map((s, i) => {
     const cls = at < 0 ? '' : i < at ? 'done' : i === at ? 'active' : '';
-    const counts = (i === at && stageCounts) ? Object.entries(stageCounts)
-      .filter(([, v]) => v !== null && v !== undefined && v !== '')
-      .map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ') : '';
+    const counts = (i === at && stageCounts) ? countText(stageNow, stageCounts) : '';
     return `<span class="step ${cls}">
         <span class="bead">${cls === 'done' ? '&check;' : i + 1}</span>
         ${esc(s.label)}${counts ? ` <span class="count">${counts}</span>` : ''}

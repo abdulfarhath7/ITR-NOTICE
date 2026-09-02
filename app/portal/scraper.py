@@ -256,6 +256,8 @@ def _limit_reached(stats) -> bool:
 
 
 async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
+    """Every card of every page of one sub-tab. Each card reports where it is,
+    so the dashboard's pipeline bar can say "card 3 of 12" while it works."""
     page = session.page
     seen_pages = 0
     while seen_pages < 50:                     # a sane ceiling, not a real limit
@@ -276,7 +278,10 @@ async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
             await events.log(
                 f"  card {i + 1}/{total}: {p['proceeding_name'] or '(unnamed)'}"
                 f" AY {p['assessment_year'] or '-'}")
-            await events.progress("walk", card=i + 1, of=total,
+            # the human labels, not the db keys - this line is read by a person
+            await events.progress("walk", tab=TABS.get(tab_key, tab_key),
+                                  sub_tab=SUB_TABS.get(sub_key, sub_key),
+                                  card=i + 1, of=total,
                                   name=p["proceeding_name"] or "")
             await _collect_notices(session, events, con, i, pid, stats)
 

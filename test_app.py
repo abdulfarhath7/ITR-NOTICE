@@ -1664,6 +1664,66 @@ check("the empty state is designed, not a bare sentence",
       and ".empty-state .title" in _css)
 
 
+# 27 - the pipeline bar and the command palette ------------------------------
+_p = _page_now()
+_scr = pathlib.Path("app/portal/scraper.py").read_text()
+_main_src = pathlib.Path("app/main.py").read_text()
+
+# the stages the backend actually emits, in the order the bar draws them
+check("the bar's stages are the ones the server sends",
+      "{ key: 'login'" in _p and "{ key: 'list'" in _p and "{ key: 'walk'" in _p
+      and "{ key: 'download'" in _p and "{ key: 'done'" in _p)
+check("login reports itself", 'hub.progress("login")' in _main_src
+      and 'hub.progress("login", done=True)' in _main_src)
+check("opening the list reports itself", 'events.progress("list")' in _scr)
+check("each tab and sub-tab reports itself",
+      'events.progress("walk", tab=tab_label, sub_tab=sub_label' in _scr)
+check("each card says which one it is",
+      "card=i + 1, of=total" in _scr and "TABS.get(tab_key, tab_key)" in _scr)
+check("each download says N of M",
+      'events.progress("download", notice=j + 1, of=total' in _scr)
+check("the run's totals close the bar", 'hub.progress("done"' in _main_src)
+
+rec3 = Recorder()
+main.hub.sockets.append(rec3)
+asyncio.run(main.hub.progress("download", notice=3, of=12, downloaded=1))
+msg = rec3.sent[-1]
+check("a progress message is typed and carries stage + counts",
+      msg["type"] == "progress" and msg["stage"] == "download"
+      and msg["counts"] == {"notice": 3, "of": 12, "downloaded": 1}, str(msg))
+main.hub.sockets.remove(rec3)
+
+check("the bar renders counts as a person would say them",
+      "function countText(" in _p
+      and "`downloading ${c.notice} of ${c.of}`" in _p
+      and "`card ${c.card} of ${c.of}`" in _p)
+check("an unrecognised count still shows rather than vanishing",
+      "`${esc(k)} ${esc(v)}`" in _p)
+check("done stages tick, the active one pulses",
+      "cls === 'done' ? '&check;'" in _p
+      and ".step.active .bead { border-color: var(--action)" in _p)
+
+# the palette
+check("Ctrl/Cmd+K opens it",
+      "(ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k'" in _p)
+for label in ("Run sync", "Toggle theme", "Speed: slow", "Speed: fast",
+              "Speed: extreme", "Filter: missing due date"):
+    check(f"the palette offers {label!r}", label in _p)
+check("it can open a notice, searched by reference or description",
+      "Open notice ${n.ref_id}" in _p
+      and "haystack: `${n.ref_id} ${n.description || ''}" in _p)
+check("Enter on a notice opens the viewer", "run: () => view(n.ref_id)" in _p)
+check("matching is a subsequence, the way a palette should be",
+      "function fuzzy(" in _p and "h.indexOf(ch, i)" in _p)
+check("Esc closes it", "if (ev.key === 'Escape') { palClose();" in _p)
+check("s syncs and / searches",
+      "if (ev.key === 's') { ev.preventDefault(); startSync(); }" in _p
+      and "if (ev.key === '/') { ev.preventDefault(); $('f-name').focus(); }" in _p)
+check("neither fires while you are typing",
+      "/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)" in _p
+      and "if (typing) return;" in _p)
+
+
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")
 sys.exit(1 if failures else 0)
