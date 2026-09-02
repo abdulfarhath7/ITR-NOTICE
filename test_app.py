@@ -767,7 +767,7 @@ _page_now = lambda: "".join(
     pathlib.Path(f"app/static/{f}").read_text()
     for f in ("index.html", "app.js", "style.css"))
 _page = _page_now()
-for hook in ("strip", "ringtext", "herosub", "f-ay", "f-name",
+for hook in ("strip", "ringtext", "lastsync", "f-ay", "f-name",
              "f-nodue", "renderStats", "applyFilters", "dueInDays"):
     check(f"dashboard ships {hook}", hook in _page)
 

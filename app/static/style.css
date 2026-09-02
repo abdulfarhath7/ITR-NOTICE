@@ -178,14 +178,14 @@ main { max-width: 1180px; margin: 18px auto 60px; padding: 0 22px; display: grid
 .hero {
   position: relative; overflow: hidden; border-radius: var(--radius-lg);
   background: var(--hero); border: 1px solid var(--hairline);
-  padding: 16px 22px 18px; color: #fff;
+  padding: 14px 22px 12px; color: #fff;
 }
 .hero .now { font: 500 11px var(--mono); letter-spacing: .04em; color: rgba(255,255,255,.65); }
 .hero h1 { font: 600 1.85rem/1.15 var(--display); letter-spacing: -.02em; margin: 4px 0 0;
            text-shadow: 0 1px 16px rgba(15,23,42,.35); }
 .hero .sub { margin: 5px 0 0; font-size: 13px; color: rgba(255,255,255,.85); }
-.hero .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.hero .rule { height: 1px; background: rgba(255,255,255,.12); margin: 14px 0 10px; }
+.hero .top { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.hero .rule { height: 1px; background: rgba(255,255,255,.12); margin: 12px 0 8px; }
 .hero .strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 18px; }
 .hero .strip .item { display: inline-flex; align-items: baseline; gap: 6px;
                      padding: 2px 14px 2px 0; font-size: 12px; }

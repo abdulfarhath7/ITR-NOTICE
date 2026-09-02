@@ -125,8 +125,8 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   as tinted fills with no outline, radii 10/8/6 with pills only for chips,
   Manrope + Space Grotesk + IBM Plex Mono self-hosted. Note vcfo's THEME.md is
   stale - it documents a violet theme its own globals.css no longer uses;
-  the CSS is the source of truth. The hero (greeting, ring, stat strip) is
-  their DashHero, including its rule that the headline numbers live in the
+  the CSS is the source of truth. The overview bar (stat strip + ring) is
+  their DashHero stripped of its greeting, and keeps its rule that the headline numbers live in the
   hero and are NOT repeated in a card band beneath it.
 - Dashboard v2 is three static files, no build step: `index.html` (markup),
   `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and

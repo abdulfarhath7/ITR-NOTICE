@@ -255,13 +255,9 @@ function dueChip(n) {
   return `<span class="chip ${cls}" title="${esc(n.due_date)}">${label}</span>${badge}`;
 }
 
-function greetWord() {
-  const h = new Date().getHours();
-  return h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
-}
-
-// The hero carries the headline numbers, after vcfo's DashHero. Its own note
-// says not to repeat them in a card band underneath, so there isn't one.
+// The overview bar carries the headline numbers, after vcfo's DashHero stat
+// strip. Its own note says not to repeat them in a card band underneath, so
+// there isn't one.
 function renderStats(rows) {
   const days = n => dueInDays(n.due_date);
   const week = rows.filter(n => { const d = days(n); return d !== null && d >= 0 && d <= 7; }).length;
@@ -269,13 +265,6 @@ function renderStats(rows) {
   const noDue = rows.filter(n => !n.due_date).length;
   const docs = rows.filter(n => n.has_pdf).length;
   const drafts = rows.filter(n => n.has_draft).length;
-
-  $('now').textContent = new Date().toLocaleString(undefined,
-    { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  $('greeting').textContent = `Good ${greetWord()}`;
-  $('herosub').textContent = rows.length
-    ? `${rows.length} notice${rows.length === 1 ? '' : 's'} on this account`
-    : 'Nothing synced yet — press Sync to fetch your notices.';
 
   // ring: how many notices we actually hold the PDF for
   const pct = rows.length ? Math.min(1, docs / rows.length) : 0;
