@@ -83,6 +83,17 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   click, parse and download. The delay is re-read on every call, so pressing a
   button in the middle of a sync is felt by the very next action. TESTED
   (test_app.py section 22), including the mid-run change.
+- Live viewport: `_viewport_loop()` in main.py screenshots the page every
+  `VIEWPORT_INTERVAL` (1.5s) as `type="jpeg", quality=45` and broadcasts
+  `{"type": "viewport", "img": <base64>}`. **It captures nothing whenever a
+  credential could be on screen**: `session.safe_to_capture()` is false for
+  the whole login and for 2s after the password is submitted
+  (`sensitive_until`), and the loop skips every frame while
+  `hub.state == "otp_required"`. TESTED four ways (test_app.py section 20).
+  The dashboard shows it in a collapsed 16:9 monitor card that expands itself
+  when a run starts, with the latest log line as the caption; the REC light is
+  dim until frames actually arrive and says "paused - OTP on screen" when they
+  stop for one.
 - Access lock: `APP_PASSWORD` in .env gates the whole app. Unset = open, with
   a loud startup warning (localhost dev only). Set = every HTTP request and the
   WebSocket handshake need a cookie: `<issued-unix-seconds>.<hmac-sha256 of it

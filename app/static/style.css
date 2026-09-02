@@ -203,8 +203,12 @@ main { max-width: 1180px; margin: 18px auto 60px; padding: 0 22px; display: grid
 /* ------------------------------------------------------------- viewport */
 .monitor summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
 .monitor summary::-webkit-details-marker { display: none; }
-.rec { display: flex; align-items: center; gap: 6px; font: 500 11px var(--mono); color: var(--danger); }
+/* A recording light that is always on is not a recording light. It goes
+   dim until frames are actually arriving, and only pulses while they are. */
+.rec { display: flex; align-items: center; gap: 6px; font: 500 11px var(--mono);
+       color: var(--danger); opacity: .3; }
 .rec i { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); display: block; }
+.monitor.live .rec { opacity: 1; }
 .screen { margin: 0 16px 16px; aspect-ratio: 16 / 9; border-radius: var(--radius);
           border: 1px solid var(--hairline); background: var(--surface);
           overflow: hidden; display: grid; place-items: center; }
@@ -275,7 +279,7 @@ tr:hover .rowacts, .rowacts:focus-within { opacity: 1; }
 @media (prefers-reduced-motion: no-preference) {
   .skel { background: linear-gradient(90deg, var(--surface) 25%, var(--hairline) 37%, var(--surface) 63%);
           background-size: 300% 100%; animation: shimmer 1.4s ease infinite; }
-  .dot.running, .rec i, .step.active .bead { animation: pulse 1.6s ease-in-out infinite; }
+  .dot.running, .monitor.live .rec i, .step.active .bead { animation: pulse 1.6s ease-in-out infinite; }
   #toast { transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
   .drawer .panel { transition: transform .2s cubic-bezier(.32,.72,0,1); }
   .palette .box { transition: transform .16s cubic-bezier(.2,.8,.2,1), opacity .16s ease; }

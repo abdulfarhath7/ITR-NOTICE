@@ -82,6 +82,7 @@ renderPipe();
 /* -------------------------------------------------------------- viewport */
 function showFrame(b64) {
   const screen = $('screen');
+  $('monitor').classList.add('live');       // the REC light means recording
   let img = screen.querySelector('img');
   if (!img) {
     screen.innerHTML = '';
@@ -105,7 +106,14 @@ ws.onmessage = ev => {
     if (d.state === 'credentials_required') showGate('creds');
   }
   if (d.type === 'credentials_required') { showGate('creds', d.error); setState('login needed'); }
-  if (d.type === 'otp_required') { showGate('otp'); setState('waiting for OTP'); }
+  if (d.type === 'otp_required') {
+    showGate('otp');
+    setState('waiting for OTP');
+    // No frames come while the OTP is on screen - say why, rather than
+    // leaving a frozen picture under a pulsing REC light.
+    $('monitor').classList.remove('live');
+    $('mon-hint').textContent = 'paused - OTP on screen';
+  }
   if (d.type === 'progress') {
     stageNow = d.stage;
     stageCounts = d.counts || {};
@@ -119,6 +127,7 @@ ws.onmessage = ev => {
     stageNow = d.status === 'done' ? 'done' : stageNow;
     renderPipe();
     $('mon-hint').textContent = 'run finished';
+    $('monitor').classList.remove('live');
     loadNotices();
   }
 };

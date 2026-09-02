@@ -71,6 +71,8 @@ except on the login and OTP screens, which are never captured.
               ✦ Date (asks Claude for a missing one) and Draft.
 - [x] Step 11 Dark-first theme: one accent gradient on Sync and Draft,
               self-hosted Geist, countdown chips, light theme on a toggle.
+- [x] Step 12 Live viewport: watch the browser work, frame by frame, with
+              nothing captured while a password or OTP is on screen.
 - [x] Step 10 Overview at the top: five stat cards (total, due this week,
               missing date, docs saved, drafts ready), a one-line "Last sync"
               (new notices, PDFs saved, already held; a failed run shows only

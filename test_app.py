@@ -1128,6 +1128,27 @@ asyncio.run(_run_loop(s4, "running"))
 check("NO frames in the quiet window just after the password is submitted",
       s4.page.shots == 0, f"{s4.page.shots} frames")
 
+check("the quiet window after the password is 2 seconds",
+      "self.sensitive_until = time.monotonic() + 2"
+      in pathlib.Path("app/portal/session.py").read_text())
+# read the source, not the module: the loop above turned the interval down
+_main_src = pathlib.Path("app/main.py").read_text()
+check("a frame is a jpeg every 1.5s at quality 45",
+      "VIEWPORT_INTERVAL = 1.5" in _main_src and "VIEWPORT_QUALITY = 45" in _main_src
+      and 'type="jpeg"' in _main_src)
+_mon = _page_now()
+check("the monitor is a 16:9 card that starts collapsed",
+      "aspect-ratio: 16 / 9" in _mon and "<details class=\"card monitor\"" in _mon)
+check("it expands itself when a run starts", "$('monitor').open = true" in _mon)
+check("the REC light only burns while frames are arriving",
+      ".monitor.live .rec { opacity: 1; }" in _mon
+      and "$('monitor').classList.add('live')" in _mon
+      and "$('monitor').classList.remove('live')" in _mon)
+check("and it says why it went quiet for an OTP",
+      "paused - OTP on screen" in _mon)
+check("the latest log line is the caption",
+      "$('caption').textContent = msg.trim()" in _mon)
+
 main.VIEWPORT_INTERVAL = 1.5
 main.hub.state = "idle"
 check("login marks itself sensitive so the loop can skip it",
