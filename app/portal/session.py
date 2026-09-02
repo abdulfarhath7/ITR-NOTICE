@@ -121,6 +121,10 @@ class PortalSession:
         self.browser = None
         self.page: Page | None = None
         self._login_time = 0.0
+        # The live viewport must never broadcast a screen with credentials on
+        # it. Login sets this window; the capture loop skips frames inside it.
+        self.in_login = False
+        self.sensitive_until = 0.0
 
     # ------------------------------------------------------------- lifecycle
     async def start(self) -> None:
@@ -153,6 +157,7 @@ class PortalSession:
     # ----------------------------------------------------------------- login
     async def login(self) -> None:
         page = self.page
+        self.in_login = True
         await self.events.log("Opening portal login page")
         await page.goto(LOGIN_URL, wait_until="domcontentloaded")
 
@@ -176,7 +181,13 @@ class PortalSession:
         await self.events.log("Password submitted")
 
         # --- what happens next: dashboard | force-login | OTP | error -------
-        await self._settle_post_password()
+        try:
+            await self._settle_post_password()
+        finally:
+            # Two more seconds of silence: the password page can still be on
+            # screen for a moment after Continue is pressed.
+            self.sensitive_until = time.monotonic() + 2
+            self.in_login = False
         self._login_time = time.monotonic()
         await self.events.log("Logged in")
 
@@ -292,6 +303,10 @@ class PortalSession:
             return str(dest)
         except Exception:
             return None      # a screenshot failing must never mask the real error
+
+    def safe_to_capture(self) -> bool:
+        """False while anything secret could be on screen."""
+        return not self.in_login and time.monotonic() >= self.sensitive_until
 
     def page_closed(self) -> bool:
         """True once the window is gone - closing it by hand ends the run."""

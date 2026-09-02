@@ -15,6 +15,7 @@ The OTP relay in one sentence: login pauses on an asyncio.Event, the UI gets an
 login resumes on the very same open browser page.
 """
 import asyncio
+import base64
 import hashlib
 import hmac
 import json
@@ -166,6 +167,11 @@ class EventHub:
         self._credentials: dict[str, str] | None = None
         # credentials_required | idle | running | otp_required | failed
         self.state = "credentials_required"
+        # Last pipeline stage and last viewport frame, replayed to a browser
+        # that connects or refreshes mid-sync.
+        self.last_progress: dict | None = None
+        self.last_frame: str | None = None
+        self.last_log: str = ""
         # How many NEW PDFs a run may fetch. None = every notice.
         self.download_limit: int | None = None
 
@@ -189,7 +195,17 @@ class EventHub:
 
     # -------------------------------------------------------------- events
     async def log(self, msg: str) -> None:
+        self.last_log = msg
         await self._broadcast({"type": "log", "msg": msg})
+
+    async def progress(self, stage: str, **counts) -> None:
+        """One pipeline stage moved. The dashboard draws the stepper from this."""
+        self.last_progress = {"type": "progress", "stage": stage, "counts": counts}
+        await self._broadcast(self.last_progress)
+
+    async def viewport(self, jpeg: bytes) -> None:
+        self.last_frame = base64.b64encode(jpeg).decode("ascii")
+        await self._broadcast({"type": "viewport", "img": self.last_frame})
 
     async def request_otp(self) -> str:
         self.state = "otp_required"
@@ -233,11 +249,17 @@ async def _run_sync() -> None:
 
     session = PortalSession(hub, creds["user_id"], creds["password"])
     status, message = "done", ""
+    watcher = None
     try:
         await session.start()
+        watcher = asyncio.create_task(_viewport_loop(session))
+        await hub.progress("login")
         await session.login()
+        await hub.progress("login", done=True)
         stats = await scraper.run_sync(session, hub, limit=hub.download_limit)
         message = str(stats)
+        await hub.progress("done", **{k: v for k, v in stats.items()
+                                      if isinstance(v, int)})
     except WrongPasswordError as e:
         # Hard rule: never retry. Drop the bad login and ask again.
         status, message = "failed", str(e)
@@ -252,7 +274,10 @@ async def _run_sync() -> None:
             await hub.log(f"Sync failed: {e!r}")
         await _after_failure(session)
     finally:
+        if watcher:
+            watcher.cancel()
         await session.stop()
+        hub.last_frame = None
         if hub.state != "credentials_required":   # set by the wrong-password path
             hub.state = "idle" if status == "done" else "failed"
         with db.connect() as con:
@@ -260,6 +285,30 @@ async def _run_sync() -> None:
                 "UPDATE runs SET finished=datetime('now'), status=?, message=? "
                 "WHERE id=?", (status, message, run_id))
         await hub._broadcast({"type": "sync_finished", "status": status})
+
+
+VIEWPORT_INTERVAL = 1.5          # seconds between frames
+VIEWPORT_QUALITY = 45            # jpeg quality; small enough to push over a ws
+
+
+async def _viewport_loop(session) -> None:
+    """Stream what the browser is looking at, so a sync is watchable.
+
+    Skips every frame that could contain a credential: the whole login, two
+    seconds after it, and the entire time the dashboard is holding for an OTP.
+    """
+    while True:
+        await asyncio.sleep(VIEWPORT_INTERVAL)
+        if hub.state == "otp_required" or not session.safe_to_capture():
+            continue
+        if session.page_closed():
+            continue
+        try:
+            frame = await session.page.screenshot(type="jpeg",
+                                                  quality=VIEWPORT_QUALITY)
+        except Exception:
+            continue          # a navigation mid-shot is normal, just skip it
+        await hub.viewport(frame)
 
 
 async def _after_failure(session) -> None:
@@ -483,6 +532,11 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     hub.sockets.append(ws)
     await ws.send_json({"type": "state", "state": hub.state})
+    # Replay enough for a browser that refreshed mid-sync to catch up.
+    if hub.last_progress:
+        await ws.send_json(hub.last_progress)
+    if hub.last_frame:
+        await ws.send_json({"type": "viewport", "img": hub.last_frame})
     try:
         while True:
             await ws.receive_text()      # we only push; ignore inbound chatter

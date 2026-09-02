@@ -90,6 +90,24 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   proceeding-name contains, missing-due-date toggle). Filtering is pure
   frontend over the rows already fetched; the cards always count everything,
   not the filtered view.
+- Dashboard v2 is three static files, no build step: `index.html` (markup),
+  `style.css` (tokens + components), `app.js` (all behaviour). Geist Sans and
+  Geist Mono are self-hosted in `app/static/fonts/` — no CDN at runtime, and a
+  test fails if one reappears. Dark is default; `[data-theme=light]` is the
+  light token set and the choice rides in a cookie, not localStorage.
+  Colour is meaning-only: red overdue, amber missing date, green fine, indigo
+  (#6e79f7) for everything Claude, and the gradient is reserved for Sync and
+  Generate response. Due dates render as countdown chips computed client-side.
+- Live viewport: during a sync the server screenshots the page every
+  `VIEWPORT_INTERVAL` (1.5s) at jpeg quality 45 and pushes
+  `{"type":"viewport","img":<base64>}` over the existing WebSocket.
+  **It must never show a credential**: `PortalSession.safe_to_capture()` is
+  false for the whole of `login()` and two seconds after it, and the loop also
+  skips every frame while `hub.state == "otp_required"`. Tests cover all three.
+- Pipeline stepper: `hub.progress(stage, **counts)` broadcasts
+  `{"type":"progress","stage":...,"counts":{...}}` at login / list / walk /
+  download / done. Note the stored dict is `hub.last_progress` — naming it
+  `hub.progress` shadowed the method and broke every sync.
 - `app/static/index.html` — working dashboard: credentials form (masked
   password, shown when the server holds no login and re-shown with an error
   after a rejected password), "Change login" in the header, Sync button, live

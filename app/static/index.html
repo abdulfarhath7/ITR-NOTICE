@@ -1,478 +1,137 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ITR notice tool</title>
-<style>
-  :root{--ink:#1c2733;--mut:#6b7683;--line:#e3e7ec;--bg:#f6f8fa;--card:#fff;
-        --blue:#1a56db;--amber:#b45309;--amberbg:#fef3c7;--claude:#7c3aed;--claudebg:#ede9fe}
-  *{box-sizing:border-box}
-  body{margin:0;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
-       color:var(--ink);background:var(--bg)}
-  header{display:flex;align-items:center;gap:16px;padding:18px 28px;
-         background:var(--card);border-bottom:1px solid var(--line)}
-  h1{font-size:17px;font-weight:600;margin:0;letter-spacing:.2px}
-  button{font:inherit;border:1px solid var(--line);background:var(--card);
-         border-radius:8px;padding:8px 14px;cursor:pointer}
-  button:hover{background:var(--bg)}
-  .primary{background:var(--blue);border-color:var(--blue);color:#fff}
-  .primary:hover{background:#1648b8}
-  .primary:disabled{opacity:.5;cursor:default}
-  main{max-width:1060px;margin:24px auto;padding:0 20px;display:grid;gap:20px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px}
-  #otp{display:none;padding:16px 20px;background:var(--amberbg);
-       border-color:#fcd34d;align-items:center;gap:12px}
-  #otp.show{display:flex}
-  #otp input{font:inherit;padding:8px 12px;border:1px solid #fcd34d;
-             border-radius:8px;width:130px;letter-spacing:3px}
-  #creds{display:none;padding:16px 20px}
-  #creds.show{display:block}
-  #creds .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  #creds input{font:inherit;padding:8px 12px;border:1px solid var(--line);
-               border-radius:8px;width:210px}
-  #credserr{color:#b91c1c;font-size:13px;margin:0 0 10px}
-  #credserr:empty{display:none}
-  header input#limit{font:inherit;width:74px;padding:6px 8px;border-radius:8px;
-                     border:1px solid var(--line)}
-  .link{background:none;border:0;padding:0;color:var(--blue);cursor:pointer;
-        font-size:13px;text-decoration:underline}
-  .ask{font-size:12px;padding:4px 10px;margin-left:6px}
-  .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);
-        border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;
-        vertical-align:-1px}
-  @keyframes sp{to{transform:rotate(360deg)}}
-  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
-         background:#1c2733;color:#fff;padding:10px 16px;border-radius:9px;
-         font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;
-         max-width:80vw}
-  #toast.show{opacity:1}
-  #drawer{position:fixed;inset:0;background:rgba(15,23,32,.45);display:none;
-          z-index:50}
-  #drawer.show{display:block}
-  #drawer .panel{position:absolute;top:0;right:0;height:100%;width:min(720px,100%);
-                 background:var(--card);box-shadow:-8px 0 30px rgba(0,0,0,.16);
-                 display:flex;flex-direction:column}
-  #drawer header{justify-content:space-between}
-  #drawer .body{padding:20px 24px;overflow-y:auto;display:grid;gap:18px}
-  .banner{background:var(--amberbg);border:1px solid #fcd34d;color:#7c2d12;
-          border-radius:9px;padding:10px 13px;font-size:13px}
-  #d-checklist{margin:0;padding-left:20px;display:grid;gap:5px}
-  #d-text{width:100%;min-height:320px;font:13.5px/1.6 ui-monospace,monospace;
-          padding:13px;border:1px solid var(--line);border-radius:9px;resize:vertical}
-  .h{font-size:12.5px;color:var(--mut);text-transform:uppercase;
-     letter-spacing:.5px;margin:0 0 6px}
-  #log{padding:14px 20px;max-height:180px;overflow-y:auto;
-       font-family:ui-monospace,monospace;font-size:13px;color:var(--mut);
-       white-space:pre-wrap}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{text-align:left;padding:12px 16px;border-top:1px solid var(--line);
-        vertical-align:top}
-  td button{margin-right:6px}
-  th{color:var(--mut);font-weight:500;font-size:12.5px;border-top:0}
-  .mut{color:var(--mut);font-size:12.5px}
-  .tag{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:99px;
-       background:var(--claudebg);color:var(--claude);margin-left:6px}
-  .empty{color:var(--amber);background:var(--amberbg);font-size:12.5px;
-         padding:2px 9px;border-radius:99px}
-  .overdue{color:#b91c1c;font-weight:600}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;
-        padding:16px 18px}
-  .stat .n{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1.15}
-  .stat .k{color:var(--mut);font-size:12.5px;margin-top:2px}
-  .stat.warn .n{color:var(--amber)}
-  .stat.due .n{color:#b45309}
-  .filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;
-           padding:14px 18px}
-  .filters select,.filters input[type=text]{font:inherit;padding:7px 10px;
-           border:1px solid var(--line);border-radius:8px;background:var(--card)}
-  .filters label{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}
-  .filters .spacer{margin-left:auto;font-size:12.5px;color:var(--mut)}
-</style>
+<link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header>
-  <h1>ITR notice tool</h1>
+
+<header class="top">
+  <div class="brand"><span class="mark">IT</span> ITR notice tool</div>
+  <div class="status"><span class="dot" id="dot"></span><span id="state">idle</span></div>
+  <div class="grow"></div>
+
   <label class="mut" for="limit">Download at most</label>
-  <input id="limit" type="number" min="1" step="1" placeholder="all"
-         title="Leave blank to download every notice"
+  <input id="limit" type="number" min="1" step="1" placeholder="all" style="width:78px"
          aria-label="How many new PDFs to download this run">
-  <button id="sync" class="primary">Sync now</button>
-  <span id="state" class="mut">idle</span>
-  <button id="changelogin" class="link">Change login</button>
-  <button id="signout" class="link">Log out</button>
+
+  <div class="seg" role="group" aria-label="Browser speed">
+    <button data-speed="slow" aria-pressed="false">Slow</button>
+    <button data-speed="fast" aria-pressed="true">Fast</button>
+    <button data-speed="extreme" aria-pressed="false">Extreme</button>
+  </div>
+
+  <button class="ghost" id="theme" title="Toggle theme" aria-label="Toggle theme">&#9686;</button>
+  <button class="ghost" id="palette-open" title="Command palette"><span class="kbd">Ctrl K</span></button>
+  <button class="ghost" id="signout">Log out</button>
+  <button class="primary" id="sync">Sync now</button>
 </header>
 
 <main>
-  <div id="creds" class="card">
-    <p id="credserr"></p>
+  <div class="card gate pad" id="creds">
+    <p id="credserr" class="mut" style="color:var(--danger)"></p>
     <strong>Portal login</strong>
-    <p class="mut" style="margin:6px 0 12px">Kept in this server's memory only -
+    <p class="mut" style="margin:6px 0 12px">Kept in this server&#39;s memory only &mdash;
        never written to disk. Restarting the server asks again.</p>
-    <div class="row">
-      <input id="uid" placeholder="PAN / AADHAAR / OTHER USER ID"
-             autocomplete="off" aria-label="Portal user ID">
-      <input id="pwd" type="password" placeholder="Portal password"
-             autocomplete="off" aria-label="Portal password">
-      <button id="credsend" class="primary">Save &amp; sync</button>
+    <div class="filters" style="padding:0">
+      <input id="uid" placeholder="PAN / AADHAAR / OTHER USER ID" autocomplete="off"
+             aria-label="Portal user ID" style="width:270px">
+      <input id="pwd" type="password" placeholder="Portal password" autocomplete="off"
+             aria-label="Portal password" style="width:200px">
+      <button class="primary" id="credsend">Save &amp; sync</button>
     </div>
   </div>
 
-  <div id="otp" class="card">
+  <div class="card gate pad" id="otp">
     <strong>Portal is asking for an OTP</strong>
-    <input id="otpcode" inputmode="numeric" maxlength="6" placeholder="6 digits"
-           aria-label="One time password">
-    <button id="otpsend" class="primary">Send to portal</button>
+    <div class="filters" style="padding:8px 0 0">
+      <input id="otpcode" inputmode="numeric" maxlength="6" placeholder="6 digits"
+             aria-label="One time password" style="width:130px;letter-spacing:3px">
+      <button class="primary" id="otpsend">Send to portal</button>
+    </div>
   </div>
 
-  <div class="card"><div id="log">Ready.</div></div>
+  <section class="stats" id="stats">
+    <div class="stat"><div class="n" id="s-total">&mdash;</div><div class="k">Total notices</div></div>
+    <div class="stat due"><div class="n" id="s-week">&mdash;</div><div class="k">Due this week</div></div>
+    <div class="stat warn"><div class="n" id="s-nodue">&mdash;</div><div class="k">Missing due date</div></div>
+    <div class="stat"><div class="n" id="s-docs">&mdash;</div><div class="k">Docs saved</div></div>
+  </section>
 
-  <div class="stats">
-    <div class="stat"><div class="n" id="s-total">0</div>
-      <div class="k">Total notices</div></div>
-    <div class="stat due"><div class="n" id="s-week">0</div>
-      <div class="k">Due this week</div></div>
-    <div class="stat warn"><div class="n" id="s-nodue">0</div>
-      <div class="k">Missing due date</div></div>
-    <div class="stat"><div class="n" id="s-docs">0</div>
-      <div class="k">Docs saved</div></div>
-  </div>
+  <details class="card monitor" id="monitor">
+    <summary>
+      <span class="rec"><i></i>REC</span>
+      <strong style="font-size:13px">Live viewport</strong>
+      <span class="mut" id="mon-hint">idle &mdash; expands when a sync starts</span>
+    </summary>
+    <div class="screen" id="screen"><span class="mut" id="screen-empty">No frames yet.</span></div>
+    <div class="caption" id="caption"></div>
+  </details>
 
-  <div class="card filters">
-    <label>Assessment year
-      <select id="f-ay"><option value="">All</option></select>
-    </label>
-    <label>Proceeding
-      <input id="f-name" type="text" placeholder="name contains...">
-    </label>
-    <label><input id="f-nodue" type="checkbox"> Missing due date only</label>
-    <span class="spacer" id="f-count"></span>
+  <div class="card">
+    <div class="pad pipe" id="pipe"></div>
+    <div id="log">Ready.</div>
   </div>
 
   <div class="card">
-    <table>
-      <thead><tr>
-        <th>Notice</th><th>Proceeding</th><th>Issued</th><th>Due date</th><th>Doc</th>
-      </tr></thead>
-      <tbody id="rows"><tr><td colspan="5" class="mut">No notices yet - run a sync.</td></tr></tbody>
-    </table>
+    <div class="filters">
+      <label>Assessment year
+        <select id="f-ay"><option value="">All</option></select>
+      </label>
+      <label>Proceeding
+        <input id="f-name" type="text" placeholder="name contains&hellip;  (press /)">
+      </label>
+      <label><input id="f-nodue" type="checkbox"> Missing due date only</label>
+      <span class="mut" id="f-count" style="margin-left:auto"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Notice</th><th>Proceeding</th><th>Issued</th><th>Due</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
   </div>
 </main>
 
-<div id="drawer" role="dialog" aria-modal="true" aria-label="Draft response">
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Draft response">
   <div class="panel">
-    <header>
-      <h1>Draft response</h1>
-      <span class="mut" id="d-meta"></span>
-      <button id="d-regen" class="link">Regenerate</button>
-      <button id="d-close" class="link">Close</button>
-    </header>
-    <div class="body">
-      <p class="banner"><strong>DRAFT - review before filing.</strong>
-         This tool never submits to the portal.</p>
-      <div><p class="h">What this notice asks for</p>
-           <div id="d-summary"></div></div>
-      <div><p class="h">Documents required</p>
-           <ul id="d-checklist"></ul></div>
-      <div><p class="h">Draft reply (editable)</p>
-           <textarea id="d-text" spellcheck="false"></textarea>
-           <button id="d-copy" style="margin-top:10px">Copy draft</button></div>
+    <div class="head">
+      <strong>Draft response</strong>
+      <span class="mut mono" id="d-meta"></span>
+      <span class="grow"></span>
+      <button class="ghost" id="d-close">Close</button>
     </div>
+    <div class="body">
+      <p class="banner"><strong>DRAFT &mdash; review before filing.</strong>
+         This tool never submits to the portal.</p>
+      <div id="d-summary"></div>
+      <div><p class="h">Documents required</p><div id="d-checklist"></div></div>
+      <div>
+        <p class="h">Draft reply (editable)</p>
+        <textarea id="d-text" spellcheck="false"></textarea>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button id="d-copy">Copy draft</button>
+          <button class="ghost" id="d-regen">Regenerate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="box">
+    <input id="pal-input" placeholder="Type a command or a notice&hellip;" aria-label="Command palette">
+    <ul id="pal-list" role="listbox"></ul>
   </div>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script>
-const log = m => { const el = document.getElementById('log');
-  el.textContent += "\n" + m; el.scrollTop = el.scrollHeight; };
-const state = s => document.getElementById('state').textContent = s;
-
-const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')
-                         + location.host + '/ws');
-const creds = document.getElementById('creds');
-function showCreds(err) {
-  creds.classList.add('show');
-  document.getElementById('credserr').textContent = err || '';
-  state('login needed');
-  document.getElementById('uid').focus();
-}
-function hideCreds() {
-  creds.classList.remove('show');
-  document.getElementById('credserr').textContent = '';
-}
-
-ws.onmessage = ev => {
-  const d = JSON.parse(ev.data);
-  if (d.type === 'log') log(d.msg);
-  if (d.type === 'state') { state(d.state);
-    if (d.state === 'credentials_required') showCreds(); }
-  if (d.type === 'credentials_required') showCreds(d.error);
-  if (d.type === 'otp_required') {
-    document.getElementById('otp').classList.add('show'); state('waiting for OTP');
-  }
-  if (d.type === 'sync_finished') { state(d.status); loadNotices(); }
-};
-
-const limitValue = () => {
-  const v = parseInt(document.getElementById('limit').value, 10);
-  return Number.isFinite(v) && v > 0 ? v : null;
-};
-
-document.getElementById('sync').onclick = async () => {
-  const limit = limitValue();
-  const r = await fetch('/api/sync', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({limit})});
-  if (r.status === 409) { log('A sync is already running.'); return; }
-  const d = await r.json();
-  if (d.state === 'credentials_required') { showCreds(); return; }
-  state('running');
-  log(limit ? `Sync started (at most ${limit} new PDFs)` : 'Sync started (all notices)');
-};
-
-document.getElementById('credsend').onclick = async () => {
-  const user_id = document.getElementById('uid').value.trim();
-  const pwdBox = document.getElementById('pwd');
-  const password = pwdBox.value;
-  if (!user_id || !password) {
-    document.getElementById('credserr').textContent =
-      'Enter both the user ID and the password.'; return;
-  }
-  const r = await fetch('/api/credentials', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({user_id, password, limit: limitValue()})});
-  pwdBox.value = '';                 // never leave the password in the DOM
-  if (!r.ok) {
-    const e = await r.json().catch(() => ({}));
-    document.getElementById('credserr').textContent =
-      e.error || 'Could not store the login.'; return;
-  }
-  hideCreds(); state('running');
-  log('Login sent (server memory only). Sync started');
-};
-
-document.getElementById('signout').onclick = async () => {
-  await fetch('/logout', {method:'POST'});
-  location.reload();
-};
-
-document.getElementById('changelogin').onclick = async () => {
-  await fetch('/api/credentials', {method:'DELETE'});
-  document.getElementById('uid').value = '';
-  document.getElementById('pwd').value = '';
-  log('Login forgotten.');
-  showCreds();
-};
-
-document.getElementById('otpsend').onclick = async () => {
-  const code = document.getElementById('otpcode').value.trim();
-  if (!/^\d{4,8}$/.test(code)) { log('Enter the numeric OTP first.'); return; }
-  await fetch('/api/otp', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({code})});
-  document.getElementById('otp').classList.remove('show');
-  document.getElementById('otpcode').value = '';
-  state('running');
-};
-
-let NOTICES = [];
-
-const esc = t => String(t).replace(/[&<>"]/g,
-  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-let toastTimer;
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
-}
-
-// Ask Claude for a due date the portal never printed. The answer is stored
-// server-side, so a second click on the same notice never costs another call.
-async function askClaude(refId, btn) {
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span>';
-  try {
-    const r = await fetch(`/api/notices/${refId}/ask-claude`, {method: 'POST'});
-    const d = await r.json();
-    if (!r.ok) {
-      toast(d.error || 'Could not ask Claude.');
-      btn.disabled = false; btn.textContent = 'Ask Claude';
-      return;
-    }
-    if (d.due_date) {
-      const row = NOTICES.find(n => n.ref_id === refId);
-      if (row) { row.due_date = d.due_date;
-                 row.due_date_source = d.source || 'claude';
-                 row.due_date_basis = d.basis; }
-      renderStats(NOTICES);
-      applyFilters();
-      toast(`Due ${d.due_date}${d.basis ? ' - ' + d.basis : ''}`);
-    } else {
-      // Quietly: plenty of letters genuinely set no deadline.
-      btn.replaceWith(Object.assign(document.createElement('span'),
-        {className: 'mut', textContent: ' no date stated',
-         title: d.basis || 'Claude found no deadline in this notice'}));
-    }
-  } catch (e) {
-    toast('Could not reach the server.');
-    btn.disabled = false; btn.textContent = 'Ask Claude';
-  }
-}
-
-// --- draft panel ---------------------------------------------------------
-let DRAFT_REF = null;
-const drawer = document.getElementById('drawer');
-
-function showDraft(d) {
-  DRAFT_REF = d.ref_id;
-  document.getElementById('d-summary').textContent = d.summary || '(no summary)';
-  document.getElementById('d-checklist').innerHTML =
-    (d.checklist && d.checklist.length)
-      ? d.checklist.map(c => `<li>${esc(c)}</li>`).join('')
-      : '<li class="mut">Nothing specific demanded.</li>';
-  document.getElementById('d-text').value = d.draft_text || '';
-  document.getElementById('d-meta').textContent =
-    (d.cached ? 'saved ' : 'generated ') + (d.generated_at || '');
-  drawer.classList.add('show');
-}
-
-async function generateDraft(refId, btn, regenerate) {
-  const label = btn && btn.textContent;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
-  try {
-    const url = `/api/notices/${refId}/draft` + (regenerate ? '?regenerate=1' : '');
-    const r = await fetch(url, {method: 'POST'});
-    const d = await r.json();
-    if (!r.ok) { toast(d.error || 'Could not generate a draft.'); return; }
-    showDraft(d);
-  } catch (e) {
-    toast('Could not reach the server.');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = label || 'Generate response'; }
-  }
-}
-
-document.getElementById('d-close').onclick = () => drawer.classList.remove('show');
-drawer.onclick = ev => { if (ev.target === drawer) drawer.classList.remove('show'); };
-document.addEventListener('keydown',
-  ev => { if (ev.key === 'Escape') drawer.classList.remove('show'); });
-
-document.getElementById('d-regen').onclick = async () => {
-  if (!DRAFT_REF) return;
-  // Regenerate is the only thing that spends a second call on the same notice.
-  await generateDraft(DRAFT_REF, document.getElementById('d-regen'), true);
-};
-
-document.getElementById('d-copy').onclick = async () => {
-  const text = document.getElementById('d-text').value;
-  try {
-    await navigator.clipboard.writeText(text);
-    toast('Draft copied.');
-  } catch (e) {
-    document.getElementById('d-text').select();
-    toast('Press Ctrl+C to copy.');
-  }
-};
-
-// Preview opens the same file with inline=1, which serves it as
-// Content-Disposition: inline so the browser renders it instead of saving it.
-function preview(refId) {
-  window.open(`/api/notices/${refId}/pdf?inline=1`, '_blank', 'noopener');
-}
-
-// "This week" is the next 7 days, today included; the portal prints dates as
-// 17-Aug-2026, which Date.parse handles.
-function dueInDays(due) {
-  if (!due) return null;
-  const t = Date.parse(due);
-  if (Number.isNaN(t)) return null;
-  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
-  return Math.round((t - midnight.getTime()) / 86400000);
-}
-
-function renderStats(rows) {
-  const dueWeek = rows.filter(n => { const d = dueInDays(n.due_date);
-                                     return d !== null && d >= 0 && d <= 7; }).length;
-  document.getElementById('s-total').textContent = rows.length;
-  document.getElementById('s-week').textContent = dueWeek;
-  document.getElementById('s-nodue').textContent =
-    rows.filter(n => !n.due_date).length;
-  document.getElementById('s-docs').textContent =
-    rows.filter(n => n.pdf_path).length;
-}
-
-function fillYears(rows) {
-  const sel = document.getElementById('f-ay');
-  const years = [...new Set(rows.map(n => n.assessment_year).filter(Boolean))].sort();
-  const keep = sel.value;
-  sel.innerHTML = '<option value="">All</option>'
-    + years.map(y => `<option>${y}</option>`).join('');
-  if (years.includes(keep)) sel.value = keep;
-}
-
-function visibleRows() {
-  const ay = document.getElementById('f-ay').value;
-  const name = document.getElementById('f-name').value.trim().toLowerCase();
-  const noDue = document.getElementById('f-nodue').checked;
-  return NOTICES.filter(n =>
-    (!ay || n.assessment_year === ay)
-    && (!name || (n.proceeding_name || '').toLowerCase().includes(name))
-    && (!noDue || !n.due_date));
-}
-
-function applyFilters() {
-  const rows = visibleRows();
-  const tb = document.getElementById('rows');
-  document.getElementById('f-count').textContent =
-    rows.length === NOTICES.length
-      ? `${NOTICES.length} notice(s)`
-      : `${rows.length} of ${NOTICES.length} notice(s)`;
-  if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="mut">'
-      + (NOTICES.length ? 'Nothing matches these filters.'
-                        : 'No notices yet - run a sync.') + '</td></tr>';
-    return;
-  }
-  tb.innerHTML = rows.map(n => {
-    const due = n.due_date
-      ? `<span class="${new Date(n.due_date) < new Date() ? 'overdue' : ''}">${n.due_date}</span>`
-        + (n.due_date_source === 'claude'
-            ? `<span class="tag" title="${esc(n.due_date_basis || 'found by Claude')}">by Claude</span>`
-            : '')
-      : `<span class="empty">no due date</span>`
-        + (n.pdf_path ? `<button class="ask" onclick="askClaude('${n.ref_id}', this)">Ask Claude</button>` : '');
-    const doc = n.pdf_path
-      ? `<button onclick="preview('${n.ref_id}')">Preview</button>
-         <a href="/api/notices/${n.ref_id}/pdf"><button>Download</button></a>
-         <button onclick="generateDraft('${n.ref_id}', this)">Generate response</button>`
-      : '<span class="mut">-</span>';
-    return `<tr>
-      <td>${n.notice_us || '-'}<div class="mut">${n.description || ''}<br>DIN ${n.ref_id || ''}</div></td>
-      <td>${n.proceeding_name || '-'}<div class="mut">${n.pan || ''} · AY ${n.assessment_year || '-'}</div></td>
-      <td>${n.issued_on || '-'}</td>
-      <td>${due}</td><td>${doc}</td></tr>`;
-  }).join('');
-}
-
-async function loadNotices() {
-  const d = await (await fetch('/api/notices')).json();
-  if (d.state === 'credentials_required') showCreds(); else state(d.state);
-  NOTICES = d.notices || [];
-  renderStats(NOTICES);          // the cards count everything, not the filtered view
-  fillYears(NOTICES);
-  applyFilters();
-}
-
-for (const id of ['f-ay', 'f-name', 'f-nodue']) {
-  const el = document.getElementById(id);
-  el.addEventListener(el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change',
-                      applyFilters);
-}
-loadNotices();
-</script>
+<script src="/app.js"></script>
 </body>
 </html>

@@ -196,6 +196,7 @@ async def run_sync(session: PortalSession, events, limit: int | None = None) -> 
                   "The e-Proceedings list never rendered - nothing was scraped. "
                   f"Visible controls: {await _visible_button_names(page)}")
 
+          await events.progress("list")
           tabs_walked = 0
           for tab_key, tab_label in TABS.items():
               tab = await _find_tab(page, tab_label)
@@ -215,6 +216,8 @@ async def run_sync(session: PortalSession, events, limit: int | None = None) -> 
                   await _safe_click(page, sub, sub_label, events)
                   await page.wait_for_timeout(1500)
                   await events.log(f"{tab_label} / {sub_label}: {count} item(s)")
+                  await events.progress("walk", tab=tab_label, sub_tab=sub_label,
+                                        items=count)
                   if count == 0:
                       continue
 
@@ -265,6 +268,8 @@ async def _walk_pages(session, events, con, tab_key, sub_key, stats) -> None:
             await events.log(
                 f"  card {i + 1}/{total}: {p['proceeding_name'] or '(unnamed)'}"
                 f" AY {p['assessment_year'] or '-'}")
+            await events.progress("walk", card=i + 1, of=total,
+                                  name=p["proceeding_name"] or "")
             await _collect_notices(session, events, con, i, pid, stats)
 
         if not await _next_page(page):
@@ -304,6 +309,9 @@ async def _collect_notices(session, events, con, card_index, proceeding_id, stat
 
         pdf = notice.get_by_role("button", name="Notice/Letter Pdf", exact=False).first
         if await pdf.count():
+            await events.progress("download", notice=j + 1, of=total,
+                                  downloaded=stats["downloaded"],
+                                  limit=stats.get("limit"))
             n["pdf_path"] = await _download(session, events, n["ref_id"])
             if n["pdf_path"]:
                 stats["downloaded"] += 1

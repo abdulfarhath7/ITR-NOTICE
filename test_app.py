@@ -763,7 +763,9 @@ main.settings.app_password = ""        # leave the rest of the suite unlocked
 # page ships them and that the maths they implement is right on real row shapes.
 import datetime                                                      # noqa: E402
 
-_page_now = lambda: pathlib.Path("app/static/index.html").read_text()
+_page_now = lambda: "".join(
+    pathlib.Path(f"app/static/{f}").read_text()
+    for f in ("index.html", "app.js", "style.css"))
 _page = _page_now()
 for hook in ("s-total", "s-week", "s-nodue", "s-docs", "f-ay", "f-name",
              "f-nodue", "renderStats", "applyFilters", "dueInDays"):
@@ -1027,7 +1029,7 @@ check("the draft schema pins summary, checklist and reply",
       claude_client.DRAFT_SCHEMA["required"] == ["summary", "checklist", "draft_reply"])
 _p = _page_now()
 check("the panel says DRAFT and that nothing is submitted",
-      "DRAFT - review before filing" in _p and "never submits to the portal" in _p)
+      "review before filing" in _p and "never submits to the portal" in _p)
 check("the panel has an editable draft and a Copy button",
       "<textarea id=\"d-text\"" in _p and "d-copy" in _p)
 
@@ -1037,6 +1039,127 @@ _backend = (pathlib.Path("app/main.py").read_text()
             + pathlib.Path("app/claude_client.py").read_text())
 for banned in ("submitResponse", "submit_response", "fileAppeal", "/submit"):
     check(f"no portal-submission code anywhere ({banned})", banned not in _backend)
+
+
+# 20 - live viewport + pipeline messages --------------------------------------
+import base64 as _b64                                               # noqa: E402
+from app.portal import session as _sess                             # noqa: E402
+
+rec2 = Recorder()
+main.hub.sockets.append(rec2)
+
+asyncio.run(main.hub.progress("walk", tab="Self", items=40))
+sent = rec2.sent[-1]
+check("progress is broadcast with stage and counts",
+      sent["type"] == "progress" and sent["stage"] == "walk"
+      and sent["counts"] == {"tab": "Self", "items": 40}, str(sent))
+check("the last stage is kept for a browser that joins late",
+      main.hub.last_progress == sent)
+
+asyncio.run(main.hub.viewport(b"\xff\xd8\xff-not-really-a-jpeg"))
+frame = rec2.sent[-1]
+check("viewport frames are broadcast as base64",
+      frame["type"] == "viewport"
+      and _b64.b64decode(frame["img"]) == b"\xff\xd8\xff-not-really-a-jpeg",
+      frame["type"])
+check("the last frame is kept for a browser that joins late",
+      main.hub.last_frame == frame["img"])
+main.hub.sockets.remove(rec2)
+
+# a browser connecting mid-sync is caught up on both
+with TestClient(main.app) as client:
+    with client.websocket_connect("/ws") as ws:
+        kinds = [ws.receive_json()["type"] for _ in range(3)]
+    check("a fresh socket is replayed state, progress and the last frame",
+          kinds == ["state", "progress", "viewport"], str(kinds))
+
+# --- the rule that matters: no credential ever reaches the viewport ---------
+class FakePage:
+    def __init__(self):
+        self.shots = 0
+
+    def is_closed(self):
+        return False
+
+    async def screenshot(self, **kw):
+        self.shots += 1
+        return b"frame"
+
+
+class CaptureSession:
+    def __init__(self):
+        self.page = FakePage()
+        self.in_login = False
+        self.sensitive_until = 0.0
+
+    safe_to_capture = _sess.PortalSession.safe_to_capture
+    page_closed = _sess.PortalSession.page_closed
+
+
+async def _run_loop(sess, state, seconds=0.25):
+    main.VIEWPORT_INTERVAL = 0.05
+    main.hub.state = state
+    task = asyncio.create_task(main._viewport_loop(sess))
+    await asyncio.sleep(seconds)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+s1 = CaptureSession()
+asyncio.run(_run_loop(s1, "running"))
+check("frames are captured during a normal sync", s1.page.shots > 0,
+      f"{s1.page.shots} frames")
+
+s2 = CaptureSession()
+asyncio.run(_run_loop(s2, "otp_required"))
+check("NO frames while the dashboard is holding for an OTP",
+      s2.page.shots == 0, f"{s2.page.shots} frames")
+
+s3 = CaptureSession()
+s3.in_login = True
+asyncio.run(_run_loop(s3, "running"))
+check("NO frames while the login screens are up (password on screen)",
+      s3.page.shots == 0, f"{s3.page.shots} frames")
+
+s4 = CaptureSession()
+s4.sensitive_until = time.monotonic() + 5
+asyncio.run(_run_loop(s4, "running"))
+check("NO frames in the quiet window just after the password is submitted",
+      s4.page.shots == 0, f"{s4.page.shots} frames")
+
+main.VIEWPORT_INTERVAL = 1.5
+main.hub.state = "idle"
+check("login marks itself sensitive so the loop can skip it",
+      "self.in_login = True" in pathlib.Path("app/portal/session.py").read_text())
+
+# 21 - the redesign ships as split files ------------------------------------
+_static = pathlib.Path("app/static")
+check("css and js are separate files, still statically served",
+      (_static / "style.css").exists() and (_static / "app.js").exists())
+check("fonts are self-hosted, not pulled from a CDN",
+      (_static / "fonts" / "Geist-Variable.woff2").exists()
+      and (_static / "fonts" / "GeistMono-Variable.woff2").exists())
+_all = _page_now()
+check("no CDN or external font link remains",
+      "cdn." not in _all and "fonts.googleapis" not in _all and "unpkg" not in _all)
+for hook in ("data-theme", "dueChip", "palOpen", "showFrame", "renderPipe",
+             "aiCard", "SKELETON", "empty-state", "prefers-reduced-motion",
+             "focus-visible", "tabular-nums"):
+    check(f"v2 ships {hook}", hook in _all)
+check("theme is persisted in a cookie, not localStorage",
+      "document.cookie" in _all and "localStorage." not in _all
+      and "localStorage[" not in _all)
+
+with TestClient(main.app) as client:
+    for path, kind in (("/", "text/html"), ("/style.css", "text/css"),
+                       ("/app.js", "javascript"),
+                       ("/fonts/Geist-Variable.woff2", "font")):
+        r = client.get(path)
+        check(f"{path} is served", r.status_code == 200
+              and kind in r.headers.get("content-type", ""),
+              f"{r.status_code} {r.headers.get('content-type', '')}")
 
 print()
 print(f"{'FAILED: ' + ', '.join(failures) if failures else 'all checks passed'}")

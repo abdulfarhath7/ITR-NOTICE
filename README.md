@@ -32,6 +32,13 @@ Run the tests with:
     cp .env.example .env        # no portal credentials in here
     docker compose up -d        # dashboard on port 8000, log in through it
 
+## The dashboard
+
+Dark by default, light on the toggle. Ctrl/Cmd+K opens a command palette,
+`s` starts a sync, `/` jumps to the filter box. During a sync the "Live
+viewport" card shows what the browser is actually looking at, frame by frame -
+except on the login and OTP screens, which are never captured.
+
 ## What is built vs pending
 
 - [x] Step 1  FastAPI skeleton + SQLite schema
@@ -47,6 +54,8 @@ Run the tests with:
 - [x] Step 4d Preview a stored notice in the browser (Download unchanged)
 - [x] Step 5  Ask-Claude due date: "Ask Claude" on rows the portal left blank,
               answer cached forever, basis shown as a tooltip
+- [x] Step 7  UI v2: dark-first design system, table-as-hero with countdown
+              chips, AI cards, command palette, live viewport, pipeline bar
 - [x] Step 6  Claude drafts a reply: summary, document checklist and an
               editable draft in a side panel. Always a draft - this tool
               never submits anything to the portal.
