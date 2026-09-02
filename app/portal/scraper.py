@@ -354,9 +354,11 @@ async def _download(session, events, ref_id) -> bytes | None:
             await _safe_click(page, page.get_by_role(
                 "button", name="Download", exact=False).first, "Download", events)
         download = await dl.value
-        # Playwright has already written it to its own temp file; read it back
-        # and let Playwright clean up after itself.
+        # Playwright writes the file to a temp path of its own. Read it back
+        # into memory for the pdf_blob column, then delete it: a notice must
+        # exist in exactly one place, and that place is the database.
         data = Path(await download.path()).read_bytes()
+        await download.delete()
         await events.log(f"  downloaded {ref_id}.pdf ({len(data) // 1024} KB)")
         return data or None
     except PWTimeout:

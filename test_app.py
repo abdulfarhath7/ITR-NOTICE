@@ -1391,6 +1391,8 @@ check("NOTICES_DIR is gone from the settings",
 _scraper_now = pathlib.Path("app/portal/scraper.py").read_text()
 check("the scraper writes no PDF files any more",
       "notices_dir" not in _scraper_now and "save_as" not in _scraper_now)
+check("the browser's temp copy is deleted once the bytes are in memory",
+      "await download.delete()" in _scraper_now)
 check("the scraper stores the downloaded bytes",
       'n["pdf_blob"] = await _download' in _scraper_now)
 check("Claude is handed the bytes, not a path",

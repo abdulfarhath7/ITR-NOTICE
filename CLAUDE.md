@@ -27,8 +27,10 @@ Docker files exist and must keep working (deploy target: AWS Lightsail Mumbai).
   NULL`, `upsert_notice` COALESCEs the blob so re-seeing a notice never blanks
   it, and `list_notices()` selects explicit columns plus `has_pdf` - never the
   blob itself, which would push megabytes of base64 into every table refresh.
-  TESTED (test_app.py section 23): round trip, both dispositions, the move off
-  disk, and that it is idempotent.
+  The scraper reads the browser's temp download into memory and then calls
+  `download.delete()`, so a notice exists in exactly one place. TESTED
+  (test_app.py section 23): round trip, both dispositions, the move off disk,
+  and that it is idempotent.
 - `app/config.py` — .env knobs only: ANTHROPIC_API_KEY, HEADLESS,
   HOLD_ON_ERROR (default 15s, 0 disables), DEBUG_DIR. Portal credentials
   deliberately absent. Browser pace is NOT a knob here any more — see the
