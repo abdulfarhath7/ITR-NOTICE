@@ -22,7 +22,7 @@ pnpm tauri dev
 `pnpm tauri dev` will not start without that sidecar binary: `externalBin`
 resolution fails before the window opens. There is no lockfile yet — the first
 `pnpm install` writes `pnpm-lock.yaml`, and CI uses `--frozen-lockfile`, so
-commit the lockfile before the first tag. (`node_modules/` here was installed
+(`node_modules/` here was installed
 with plain `npm` only to run `tsc` and `vite build` over the new code —
 `package-lock.json` is gitignored so it cannot be mistaken for the real
 lockfile.)
@@ -239,3 +239,30 @@ Two things the dev host needed that a clean machine will too: the venv was
 created without `ensurepip`, so `pip` had to be bootstrapped from the system
 copy, and `packaging`/`setuptools` are not pulled in automatically when pip can
 see a system `packaging` — install them into the venv explicitly.
+
+## Building the Windows installer
+There is exactly one supported route: the `windows-latest` job in
+`.github/workflows/release.yml`, triggered by pushing a `vX.Y.Z` tag (or run by
+hand from the Actions tab).
+
+**Cross-compiling from Linux does not work, and cannot be made to work.**
+`--runner cargo-xwin --target x86_64-pc-windows-msvc` fails twice over: this
+machine has no `rustup`, so there is no MSVC standard library to build against,
+and — the part no Rust tooling can solve — the sidecar is a PyInstaller binary.
+`externalBin` needs `notice-desk-backend-x86_64-pc-windows-msvc.exe`, and a
+Windows executable can only be frozen on Windows.
+
+Before the first tag:
+1. The tag must equal `v` + `version` in `src-tauri/tauri.conf.json`; CI fails
+   the build if they disagree.
+2. Auto-update needs a key: `pnpm tauri signer generate -w ~/.tauri/notice-desk.key`.
+   Put the public key in `plugins.updater.pubkey`, replace `OWNER/REPO` in the
+   endpoint, and add `TAURI_SIGNING_PRIVATE_KEY` (+ `_PASSWORD`) as repo
+   secrets. Without them the job still builds a working installer — it just
+   drops the updater artifacts and warns.
+3. Code signing needs `WINDOWS_CERT` (base64 PFX) and `WINDOWS_CERT_PASSWORD`.
+   Without them signing is skipped and Windows SmartScreen will warn on install.
+
+The `.app` bundle-identifier warning is macOS-only advice and harmless for a
+Windows-only ship; changing it moves the app-data directory, so it is left as
+Q1 for you to decide.

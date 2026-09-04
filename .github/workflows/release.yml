@@ -85,6 +85,18 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      # An updater artifact cannot be produced without the signing key, and a
+      # missing key should not stop the first installer from being built. The
+      # release is then simply not auto-updatable - see NOTES.md.
+      - name: Drop updater artifacts when there is no signing key
+        if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY == '' }}
+        shell: pwsh
+        run: |
+          Write-Host "::warning::TAURI_SIGNING_PRIVATE_KEY is not set - building an installer that cannot auto-update"
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $config.bundle | Add-Member -Force -NotePropertyName createUpdaterArtifacts -NotePropertyValue $false
+          $config | ConvertTo-Json -Depth 32 | Set-Content src-tauri/tauri.conf.json
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: swatinem/rust-cache@v2
@@ -126,7 +138,7 @@ jobs:
           releaseBody: "See the assets below. The installer is NSIS; every update after it is silent."
           releaseDraft: true
           prerelease: false
-          args: --bundles nsis,updater
+          args: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && '--bundles nsis,updater' || '--bundles nsis' }}
 
       - name: Upload the installer as a build artifact
         uses: actions/upload-artifact@v4
