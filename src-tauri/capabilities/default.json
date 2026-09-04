@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the one window is allowed to do. Nothing here reaches the network or the filesystem except through a save dialog the user opened.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:event:default",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "fs:default",
+    "fs:allow-write-file",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$HOME/**" }
+      ],
+      "deny": [{ "path": "$HOME/.ssh/**" }, { "path": "$APPDATA/**" }]
+    },
+    "log:default",
+    "process:allow-exit",
+    "process:allow-restart",
+    "updater:default"
+  ]
+}

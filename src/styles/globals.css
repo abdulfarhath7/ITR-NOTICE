@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The desktop app keeps the web dashboard's palette exactly: #0a0b0d ground,
+   one action colour, and status colour only where it means something. The
+   values live here as RGB triples so Tailwind can apply opacity to them; no
+   component may write a hex. */
+@layer base {
+  :root {
+    --bg: 10 11 13;
+    --surface: 15 16 19;
+    --panel: 19 20 23;
+    --raised: 26 27 31;
+    --hairline: 38 39 43;
+    --divider: 52 53 59;
+
+    --text: 236 236 241;
+    --muted: 139 141 152;
+    --faint: 108 110 121;
+
+    --action: 91 99 240;
+    --action-deep: 74 81 216;
+    --action-soft: 26 28 51;
+
+    --violet: 139 92 246;
+    --emerald: 34 197 94;
+    --sky: 56 189 248;
+    --amber: 245 158 11;
+
+    --ok: 34 197 94;      --ok-soft: 16 41 26;    --ok-text: 110 231 160;
+    --warn: 245 158 11;   --warn-soft: 45 32 8;   --warn-text: 251 191 36;
+    --danger: 239 68 68;  --danger-soft: 46 19 21; --danger-text: 252 165 165;
+    --info: 56 189 248;   --info-soft: 10 37 49;  --info-text: 125 211 252;
+
+    /* Claude's own hue - never the action colour, so generated text can never
+       be mistaken for a button. */
+    --ai: 110 121 247;
+    --ai-soft: 28 30 60;
+
+    /* the firm's old tracker blue, kept for the attention header band */
+    --attn-head: 31 56 100;
+
+    --accent-from: 91 99 240;
+    --accent-to: 139 92 246;
+
+    --overlay: 6 7 9;
+    --ring: 91 99 240;
+
+    color-scheme: dark;
+  }
+
+  [data-theme="light"] {
+    --bg: 247 247 248;
+    --surface: 255 255 255;
+    --panel: 255 255 255;
+    --raised: 241 241 244;
+    --hairline: 228 228 232;
+    --divider: 211 211 217;
+
+    --text: 24 24 27;
+    --muted: 82 82 91;
+    --faint: 113 113 122;
+
+    --action: 79 70 229;
+    --action-deep: 67 56 202;
+    --action-soft: 236 238 254;
+
+    --violet: 124 58 237;
+    --emerald: 21 128 61;
+    --sky: 2 132 199;
+    --amber: 180 83 9;
+
+    --ok: 21 128 61;      --ok-soft: 231 247 236;  --ok-text: 20 108 49;
+    --warn: 180 83 9;     --warn-soft: 253 242 227; --warn-text: 146 64 14;
+    --danger: 220 38 38;  --danger-soft: 253 236 236; --danger-text: 164 28 28;
+    --info: 3 105 161;    --info-soft: 229 244 253; --info-text: 7 89 133;
+
+    --ai: 76 83 216;
+    --ai-soft: 236 238 254;
+
+    --accent-from: 77 85 232;
+    --accent-to: 124 58 237;
+
+    --overlay: 24 24 27;
+    --ring: 79 70 229;
+
+    color-scheme: light;
+  }
+
+  * {
+    @apply border-hairline;
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-text antialiased;
+    margin: 0;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+    /* No webfont is shipped with the desktop build: the system UI face is
+       always present and nothing here depends on a download. */
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden; /* the shell owns scrolling, pane by pane */
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-action ring-offset-0;
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-hairline;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-divider;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--hairline)) transparent;
+  }
+}
+
+@layer components {
+  /* The one gradient in the product, reserved for the two buttons that act:
+     Sync and Draft. Nothing else may use it. */
+  .bg-accent-gradient {
+    background-image: linear-gradient(
+      135deg,
+      rgb(var(--accent-from)) 0%,
+      rgb(var(--accent-to)) 100%
+    );
+  }
+}

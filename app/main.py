@@ -19,10 +19,12 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 from pathlib import Path
 
 from fastapi import Body, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -32,6 +34,60 @@ from .config import settings
 from .portal.session import PortalSession, WrongPasswordError
 
 app = FastAPI(title="ITR notice tool")
+
+
+# ------------------------------------------------------------ desktop shell
+# Added for the Tauri desktop port. The shell picks a free loopback port and
+# mints a random token per launch, then spawns this process with HOST, PORT and
+# APP_TOKEN in its environment (see run_backend.py and docs/02-architecture.md).
+#
+# A request carrying that token is authorised without the dashboard cookie: the
+# desktop UI is not a browser session and never sees the login page. When
+# APP_TOKEN is unset - the plain web deployment - nothing below changes.
+APP_TOKEN = os.getenv("APP_TOKEN", "")
+
+# Only the app's own window and loopback. Never a public origin.
+CORS_ORIGINS = [
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+]
+CORS_ORIGIN_REGEX = r"^(https?://)?(127\.0\.0\.1|localhost)(:\d+)?$"
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
+
+TOKEN_HEADER = "x-app-token"
+
+
+def _token_ok(header_value: str | None, query_value: str | None) -> bool:
+    """The shared token, from the header or - for the websocket, which cannot
+    carry one - the query string. Never logged.
+
+    Compared as bytes: compare_digest raises TypeError on a str holding
+    anything outside ASCII, and what arrives here is whatever was sent.
+    """
+    if not APP_TOKEN:
+        return False
+    expected = APP_TOKEN.encode()
+    for candidate in (header_value, query_value):
+        if candidate and hmac.compare_digest(candidate.encode("utf-8", "ignore"),
+                                             expected):
+            return True
+    return False
+
+
+@app.get("/health")
+async def health():
+    """Readiness probe. The shell polls this before showing the window."""
+    return {"ok": True}
 
 
 # ----------------------------------------------------------------- access lock
@@ -116,13 +172,32 @@ def _cookie_ok(value: str | None) -> bool:
 
 @app.middleware("http")
 async def require_password(request: Request, call_next):
-    if not _auth_on() or request.url.path in ("/login", "/logout"):
+    # Starlette builds the middleware stack in reverse registration order, so
+    # this decorator - registered after add_middleware(CORSMiddleware) above -
+    # is the OUTER one. A preflight carries neither cookie nor token by
+    # definition, so it has to be let through to the CORS middleware
+    # underneath; answering it here with a 401 that has no CORS headers would
+    # make the desktop window's very first call fail in the browser.
+    if request.method == "OPTIONS":
         return await call_next(request)
-    if _cookie_ok(request.cookies.get(COOKIE_NAME)):
+    if request.url.path in ("/login", "/logout", "/health"):
         return await call_next(request)
-    if request.url.path.startswith("/api/"):
-        return JSONResponse({"error": "not signed in"}, status_code=401)
-    return HTMLResponse(LOGIN_PAGE, status_code=401)
+    # HTTP always carries the token as a header; the ?token= fallback exists
+    # only for the websocket, and is not honoured here so it cannot end up in
+    # a request line someone logs.
+    if _token_ok(request.headers.get(TOKEN_HEADER), None):
+        return await call_next(request)
+    if _auth_on() and _cookie_ok(request.cookies.get(COOKIE_NAME)):
+        return await call_next(request)
+    # Either gate being configured is enough to refuse. In particular a launch
+    # token stands on its own: the desktop app has no dashboard password, and
+    # without this line an APP_TOKEN-only sidecar would be wide open to
+    # anything else on the machine.
+    if APP_TOKEN or _auth_on():
+        if request.url.path.startswith("/api/"):
+            return JSONResponse({"error": "not signed in"}, status_code=401)
+        return HTMLResponse(LOGIN_PAGE, status_code=401)
+    return await call_next(request)
 
 
 class LoginIn(BaseModel):
@@ -697,7 +772,10 @@ async def save_draft_text(ref_id: str, body: DraftTextIn):
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     # Middleware does not run for websockets, so the gate is repeated here.
-    if _auth_on() and not _cookie_ok(ws.cookies.get(COOKIE_NAME)):
+    if ((APP_TOKEN or _auth_on())
+            and not _token_ok(ws.headers.get(TOKEN_HEADER),
+                              ws.query_params.get("token"))
+            and not (_auth_on() and _cookie_ok(ws.cookies.get(COOKIE_NAME)))):
         await ws.close(code=1008)        # policy violation
         return
     await ws.accept()

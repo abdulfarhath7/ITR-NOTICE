@@ -2,3 +2,16 @@
 data/
 __pycache__/
 .venv/
+
+# desktop port
+node_modules/
+dist/
+build/
+src-tauri/target/
+src-tauri/gen/
+# the frozen sidecar is a build artifact, produced by packaging/build_sidecar.py
+src-tauri/binaries/
+*.local
+*.tsbuildinfo
+# pnpm is the pinned package manager (docs/05); no npm lockfile in the repo
+package-lock.json
