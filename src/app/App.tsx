@@ -83,6 +83,10 @@ export function App() {
   // app relaunches, which is not something to do under someone mid-sync.
   useEffect(() => {
     if (!inTauri()) return;
+    // The dev build points at the placeholder feed in tauri.conf.json, and the
+    // plugin logs its own ERROR for every failed check. Nothing to update from
+    // a dev tree anyway.
+    if (import.meta.env.DEV) return;
     void (async () => {
       try {
         const { check } = await import("@tauri-apps/plugin-updater");

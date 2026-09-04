@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 DEFAULT_HOST = "127.0.0.1"
@@ -122,6 +123,71 @@ def install_log_redaction() -> None:
         logging.getLogger(name).addFilter(_RedactToken())
 
 
+def watch_parent() -> None:
+    """Exit when the shell that spawned us does.
+
+    The Tauri side kills the sidecar on window close, but that only covers the
+    graceful path: a `tauri dev` rebuild, a crash or a taskkill leaves this
+    process holding the database and a loopback port. The shell passes its own
+    pid in NOTICE_DESK_SHELL_PID, and this watches it.
+
+    Watching the pid rather than stdin is deliberate: the shell does not give
+    the sidecar a private stdin pipe, so waiting for EOF there never fires - and
+    on a hand-run sidecar it would swallow the terminal's keystrokes.
+    """
+    raw = os.getenv("NOTICE_DESK_SHELL_PID", "").strip()
+    if not raw.isdigit():
+        return
+    parent = int(raw)
+
+    def gone() -> bool:
+        if os.name == "nt":
+            import ctypes
+
+            SYNCHRONIZE = 0x00100000
+            WAIT_TIMEOUT = 0x00000102
+            handle = ctypes.windll.kernel32.OpenProcess(SYNCHRONIZE, False, parent)
+            if not handle:
+                return True
+            try:
+                # 0ms wait: signalled means the process has exited.
+                return ctypes.windll.kernel32.WaitForSingleObject(handle, 0) != WAIT_TIMEOUT
+            finally:
+                ctypes.windll.kernel32.CloseHandle(handle)
+        try:
+            # Signal 0 only checks; on Windows this would *terminate* the
+            # process, which is why that branch never gets here.
+            os.kill(parent, 0)
+        except (ProcessLookupError, OSError):
+            return True
+        # A dead parent nobody has reaped is still a pid, and signal 0 still
+        # reaches it. Read the state so a zombie shell does not keep the
+        # sidecar alive.
+        try:
+            with open(f"/proc/{parent}/stat", "rb") as handle:
+                fields = handle.read().rpartition(b")")[2].split()
+            return fields[0] == b"Z"
+        except OSError:
+            pass
+        return False
+
+    def wait() -> None:
+        while not gone():
+            time.sleep(2)
+        # The shell being gone means stdout is a broken pipe, so this print
+        # raises as often as it works - and an exception here would leave the
+        # process running, which is the whole thing being fixed.
+        try:
+            print("[sidecar] shell is gone; exiting", flush=True)
+        except Exception:
+            pass
+        # os._exit, not sys.exit: this is a daemon thread, and uvicorn is not
+        # listening for anything we could raise here.
+        os._exit(0)
+
+    threading.Thread(target=wait, daemon=True).start()
+
+
 def playwright_cli() -> int:
     """The frozen binary re-entered as `playwright ...`."""
     from playwright.__main__ import main as playwright_main
@@ -134,6 +200,8 @@ def playwright_cli() -> int:
 def main() -> int:
     if os.getenv("NOTICE_DESK_PLAYWRIGHT_CLI") == "1":
         return playwright_cli()
+
+    watch_parent()
 
     data_dir = choose_data_dir()
     browsers_dir = Path(

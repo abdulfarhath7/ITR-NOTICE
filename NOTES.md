@@ -176,3 +176,66 @@ The ones that would have stopped the app dead:
    a `/health` timeout on every fresh install.
 5. Nothing in CI actually Authenticode-signed anything, and nothing in the app
    ever called the updater.
+
+## First real run on Linux (dev host)
+The sidecar was frozen and `pnpm tauri dev` was run end to end on the dev
+machine. Four things had to be fixed before the window came up; all four are
+recorded here because three of them would have bitten the Windows CI job too.
+
+1. **The repo's own `packaging/` directory shadowed the PyPI `packaging`
+   package.** `build_sidecar.py` put the repo root on `PYTHONPATH` so the spec
+   could import `app`, and PyInstaller then died on
+   `ModuleNotFoundError: No module named 'packaging.requirements'`. The
+   `PYTHONPATH` entry is gone; the build now passes `PYTHONSAFEPATH=1` and
+   relies on the spec's `pathex` to find `app`. This one is platform
+   independent — CI would have hit it identically.
+2. **`error[E0597]` in `sidecar.rs`.** On edition 2021 the `MutexGuard`
+   temporary from `if let Ok(mut guard) = state.child.lock()` lives to the end
+   of the enclosing block, i.e. past the `state` local it borrows. Fixed by
+   borrowing the handle inline instead of binding it.
+3. **Every log line appeared twice.** `tauri_plugin_log`'s `.target()` appends
+   to the plugin's default targets, which already include a stdout writer, so
+   the added `Stderr` target was a second copy. `.targets([...])` replaces
+   instead.
+4. **The updater logged an ERROR on every dev launch**, because
+   `tauri.conf.json` still carries the `OWNER/REPO` placeholder feed (Q2). The
+   check is now skipped when `import.meta.env.DEV`.
+
+Verified on this host after the fixes:
+- the frozen binary answers `/health` in about a second;
+- its bundled Playwright driver reports `Version 1.62.0` and really launches
+  Chromium (`screenshot https://example.com` produced a PNG), so the freeze
+  fear this file recorded is not borne out on Linux — Windows is still untested;
+- `pnpm tauri dev` starts the shell, spawns the sidecar on a loopback port,
+  downloads Chromium (184 MB) into
+  `~/.local/share/com.noticedesk.app/browsers/`, and the window's websocket
+  connects with the token redacted in the log.
+
+Two further defects the run exposed, both fixed:
+
+5. **Orphaned sidecars.** `SidecarState::shutdown()` only runs on the graceful
+   window-close path, so every `tauri dev` rebuild left the previous
+   `notice-desk-backend` alive, holding the database and a loopback port; five
+   had piled up. The sidecar now watches the shell's pid
+   (`NOTICE_DESK_SHELL_PID`, set at spawn) and exits when it disappears. Note
+   for anyone tempted to simplify it: watching stdin for EOF instead does *not*
+   work - the shell does not give the sidecar a private stdin pipe, and the
+   first attempt at this survived a `kill -9` of the shell untouched. Two more
+   traps on the way to a version that actually fires: a killed shell nobody has
+   reaped is a zombie, and signal 0 still reaches it (so the watcher reads
+   `/proc/<pid>/stat` and treats state `Z` as gone), and the watcher's own
+   "shell is gone" print raises `BrokenPipeError` - stdout *is* the dead
+   shell - which killed the thread before it reached `os._exit`. Verified by
+   `kill -9` on the running app: no `notice-desk-backend` survives.
+6. **A surviving app process blocks every later launch, silently.** The app
+   outlives `pnpm tauri dev` when that wrapper is killed, and it keeps the
+   `com.noticedesk.app.SingleInstance` DBus name, so the next `tauri dev` exits
+   0 with no output at all - it looks exactly like a crash. If a dev launch
+   ever ends instantly and prints nothing, look for a live `notice-desk`
+   process first. (5 makes the sidecar half of this self-cleaning; the shell
+   half is inherent to the single-instance plugin.)
+
+Two things the dev host needed that a clean machine will too: the venv was
+created without `ensurepip`, so `pip` had to be bootstrapped from the system
+copy, and `packaging`/`setuptools` are not pulled in automatically when pip can
+see a system `packaging` — install them into the venv explicitly.

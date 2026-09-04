@@ -158,6 +158,10 @@ pub async fn start(
         .env("PORT", port.to_string())
         .env("APP_TOKEN", &token)
         .env("NOTICE_DESK_DATA_DIR", data_dir.to_string_lossy().to_string())
+        // The sidecar watches this pid and exits when it goes away, which is
+        // what covers every way the shell can die without reaching
+        // `shutdown()`: a `tauri dev` rebuild, a crash, a taskkill.
+        .env("NOTICE_DESK_SHELL_PID", std::process::id().to_string())
         .env("PYTHONUNBUFFERED", "1");
 
     for (key, value) in secrets {
@@ -173,11 +177,12 @@ pub async fn start(
     let died = Arc::new(AtomicBool::new(false));
     let died_writer = died.clone();
 
-    {
-        let state = app.state::<SidecarState>();
-        if let Ok(mut guard) = state.child.lock() {
-            *guard = Some(child);
-        }
+    // Not `let state = app.state::<...>()`: on edition 2021 the lock guard's
+    // temporary lives to the end of this block, i.e. past a local binding, and
+    // borrowck rejects it. Borrowing the handle directly keeps the temporary
+    // tied to `app`, which outlives the block.
+    if let Ok(mut guard) = app.state::<SidecarState>().child.lock() {
+        *guard = Some(child);
     }
 
     // The sidecar's stdout is the only place its first-run Chromium install

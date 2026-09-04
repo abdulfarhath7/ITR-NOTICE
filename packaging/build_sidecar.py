@@ -42,7 +42,10 @@ def main() -> int:
         ],
         check=True,
         cwd=ROOT,
-        env={**os.environ, "PYTHONPATH": str(ROOT)},
+        # PYTHONSAFEPATH keeps the repo root off sys.path: this very directory
+        # is named `packaging/`, and PyInstaller imports the PyPI package of
+        # that name. Analysis still finds `app` through the spec's pathex.
+        env={**os.environ, "PYTHONSAFEPATH": "1"},
     )
 
     suffix = ".exe" if os.name == "nt" else ""

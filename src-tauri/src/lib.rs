@@ -66,13 +66,16 @@ pub fn run() {
             }
         }));
         builder = builder.plugin(
+            // `targets` replaces the plugin's defaults, which already include a
+            // stdout writer - appending with `target` instead left every line
+            // printed twice in the terminal.
             tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir { file_name: None },
-                ))
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Stderr,
-                ))
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: None,
+                    }),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stderr),
+                ])
                 .level(log::LevelFilter::Info)
                 .build(),
         );
