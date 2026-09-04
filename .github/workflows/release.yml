@@ -15,11 +15,6 @@ on:
 permissions:
   contents: write
 
-env:
-  # Read once so the signing step can be skipped cleanly when no cert is set up
-  # yet, rather than failing the whole release.
-  WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
-
 jobs:
   windows:
     runs-on: windows-latest
@@ -27,6 +22,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Signing and auto-update are both optional. Which of them this build can
+      # do is decided once, here, because `secrets` cannot be read from a step
+      # `if:` - only from a step's own `env`.
+      - name: Which optional secrets are set
+        id: flags
+        shell: pwsh
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          $sign = if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERT)) { 'no' } else { 'yes' }
+          $updater = if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { 'no' } else { 'yes' }
+          "sign=$sign" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "updater=$updater" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "code signing: $sign, updater artifacts: $updater"
 
       # The bundle version is what the updater compares; the tag is what the
       # release is named. They must not drift apart silently.
@@ -65,6 +76,8 @@ jobs:
       - name: Install the Playwright driver
         run: python -m playwright install-deps chromium || echo "no-op on windows"
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Build the sidecar
         run: python packaging/build_sidecar.py
 
@@ -89,15 +102,13 @@ jobs:
       # missing key should not stop the first installer from being built. The
       # release is then simply not auto-updatable - see NOTES.md.
       - name: Drop updater artifacts when there is no signing key
-        if: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY == '' }}
+        if: steps.flags.outputs.updater == 'no'
         shell: pwsh
         run: |
           Write-Host "::warning::TAURI_SIGNING_PRIVATE_KEY is not set - building an installer that cannot auto-update"
           $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
           $config.bundle | Add-Member -Force -NotePropertyName createUpdaterArtifacts -NotePropertyValue $false
           $config | ConvertTo-Json -Depth 32 | Set-Content src-tauri/tauri.conf.json
-
-      - uses: dtolnay/rust-toolchain@stable
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -107,7 +118,7 @@ jobs:
       # so the PFX is imported here and its thumbprint written into the config
       # the build is about to read. Nothing is echoed.
       - name: Import the code-signing certificate
-        if: ${{ env.WINDOWS_CERT != '' }}
+        if: steps.flags.outputs.sign == 'yes'
         shell: pwsh
         env:
           WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
@@ -138,7 +149,7 @@ jobs:
           releaseBody: "See the assets below. The installer is NSIS; every update after it is silent."
           releaseDraft: true
           prerelease: false
-          args: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && '--bundles nsis,updater' || '--bundles nsis' }}
+          args: ${{ steps.flags.outputs.updater == 'yes' && '--bundles nsis,updater' || '--bundles nsis' }}
 
       - name: Upload the installer as a build artifact
         uses: actions/upload-artifact@v4
