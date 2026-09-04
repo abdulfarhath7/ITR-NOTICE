@@ -52,15 +52,38 @@ export async function backend(): Promise<Backend> {
   return attempt;
 }
 
-/** Why the backend is not there, straight from the shell. Used once on start
- *  so a failed launch names its reason instead of showing an empty table. */
+/** Why the shell gave up on the backend, or null while it is still coming up.
+ *  Recorded in the shell as well as emitted, so a failure that happened before
+ *  this window had a listener is still readable. */
 export async function backendFailure(): Promise<string | null> {
   if (!inTauri()) return null;
-  try {
-    await backend();
-    return null;
-  } catch (cause) {
-    return typeof cause === "string" ? cause : cause instanceof Error ? cause.message : null;
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string | null>("backend_failure");
+}
+
+export type BootResult = { ok: true } | { ok: false; message: string };
+
+/** Wait for the sidecar.
+ *
+ *  The webview loads and starts calling while the shell is still polling
+ *  /health, so the first `backend_info` almost always fails - that is the
+ *  normal path, not an error. Only a failure the SHELL recorded, or running
+ *  out of patience entirely, is worth telling the user about.
+ */
+export async function waitForBackend(timeoutMs = 90_000): Promise<BootResult> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      await backend();
+      return { ok: true };
+    } catch {
+      const failure = await backendFailure().catch(() => null);
+      if (failure) return { ok: false, message: failure };
+      if (Date.now() > deadline) {
+        return { ok: false, message: `the backend did not answer within ${Math.round(timeoutMs / 1000)}s` };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
   }
 }
 

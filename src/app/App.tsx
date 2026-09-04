@@ -15,6 +15,7 @@ import {
   startHub,
 } from "@/app/hub-store";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Toaster, toast } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PasswordGate } from "@/features/auth/PasswordGate";
@@ -33,7 +34,7 @@ import { useNotices } from "@/hooks/useNotices";
 import { useSummary } from "@/hooks/useSummary";
 import { ApiError, api, type BucketKey } from "@/lib/api";
 import { saveBlob } from "@/lib/files";
-import { backendFailure, inTauri } from "@/lib/runtime";
+import { inTauri, waitForBackend } from "@/lib/runtime";
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => readTheme());
@@ -46,6 +47,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [unlockedAt, setUnlockedAt] = useState(0);
   const [startupError, setStartupError] = useState<string | null>(null);
+  const [booting, setBooting] = useState(() => inTauri());
   const [update, setUpdate] = useState<{ version: string; install: () => Promise<void> } | null>(
     null,
   );
@@ -62,21 +64,39 @@ export function App() {
     startHub();
   }, [notices.locked, unlockedAt]);
 
-  // The sidecar never answered /health. Say so plainly; nothing else will work.
-  // Both halves are needed: the event can fire before this listener exists, so
-  // the shell is also asked directly on the first render.
+  // The window is shown before the first paint, and the webview starts calling
+  // while the shell is still polling /health - so "not ready yet" is the normal
+  // first answer and must not be reported as a failure. Wait it out, and only
+  // speak up if the shell itself gave up.
   useEffect(() => {
     if (!inTauri()) return;
+    let alive = true;
     let unlisten: (() => void) | undefined;
     void (async () => {
       const { listen } = await import("@tauri-apps/api/event");
       unlisten = await listen<{ message: string }>("sidecar://failed", (event) => {
+        if (!alive) return;
+        setBooting(false);
         setStartupError(event.payload.message);
       });
-      const reason = await backendFailure();
-      if (reason) setStartupError((current) => current ?? reason);
     })();
-    return () => unlisten?.();
+    void (async () => {
+      const result = await waitForBackend();
+      if (!alive) return;
+      setBooting(false);
+      if (result.ok) {
+        // Anything that ran before the sidecar answered failed; ask again.
+        notices.reload();
+      } else {
+        setStartupError(result.message);
+      }
+    })();
+    return () => {
+      alive = false;
+      unlisten?.();
+    };
+    // once, on mount: this is the app's start-up, not a reaction to state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // An update is offered, never forced: the installer swaps in place and the
@@ -243,6 +263,13 @@ export function App() {
             <Button variant="ghost" size="sm" onClick={() => setUpdate(null)}>
               Later
             </Button>
+          </div>
+        ) : null}
+
+        {booting && !startupError ? (
+          <div className="flex items-center gap-2 border-b border-hairline bg-panel px-4 py-2 text-xs text-muted">
+            <Spinner className="size-3" />
+            <span>Starting the local backend…</span>
           </div>
         ) : null}
 

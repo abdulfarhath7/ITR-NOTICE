@@ -22,12 +22,20 @@ fn backend_info(state: tauri::State<'_, SidecarState>) -> Result<BackendInfo, St
     if let Some(info) = state.info() {
         return Ok(info);
     }
-    // The failure event can fire before the webview has a listener, so the
-    // reason is kept and handed back here too - the UI asks for this on its
-    // very first call and cannot miss it.
     Err(state
         .failure()
         .unwrap_or_else(|| "the backend is not running yet".to_string()))
+}
+
+/// Why the backend gave up, or `None` while it is still coming up.
+///
+/// The distinction matters: the webview loads and starts calling long before
+/// the health poll finishes, so "not ready yet" must never be mistaken for
+/// "failed". The failure event can also fire before the window has a listener,
+/// which is why it is recorded here rather than only emitted.
+#[tauri::command]
+fn backend_failure(state: tauri::State<'_, SidecarState>) -> Option<String> {
+    state.failure()
 }
 
 #[tauri::command]
@@ -96,6 +104,7 @@ pub fn run() {
         .manage(SidecarState::default())
         .invoke_handler(tauri::generate_handler![
             backend_info,
+            backend_failure,
             secret_status,
             secret_set,
             secret_get,
