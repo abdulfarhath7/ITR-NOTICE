@@ -12,15 +12,15 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "noEmit": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
   },
   "include": ["src"],
-  // Left over from the Tailwind/shadcn UI: these still import the "@/" alias
-  // and plugins this app no longer has, so `tsc` fails on them even though
-  // nothing bundles them. Delete the trees and this block goes away - see the
-  // dead-files table in NOTES.md.
-  "exclude": ["src/app", "src/features", "src/hooks", "src/components/ui",
-              "src/lib/ws.ts", "src/lib/files.ts", "src/lib/secrets.ts",
-              "src/lib/runtime.ts", "src/lib/utils.ts", "src/lib/format.ts",
-              "src/styles/globals.css"]
+  // Kept on disk (they are part of the lib layer), kept out of the typecheck:
+  // all three belong to the deleted loopback-HTTP design and cannot compile
+  // against this tree - ws.ts talks to a websocket that no longer exists,
+  // utils.ts wants Tailwind's clsx/tailwind-merge, files.ts wants the
+  // dialog/fs plugins the capability file does not grant. See NOTES.md.
+  "exclude": ["src/lib/ws.ts", "src/lib/utils.ts", "src/lib/files.ts"]
 }

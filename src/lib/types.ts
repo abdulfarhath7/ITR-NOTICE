@@ -47,6 +47,9 @@ export type ScraperEvent =
   | { ev: "otp_required" }
   | { ev: "login_ok" }
   | { ev: "notice"; ref_id: string }
+  /** base64 JPEG of what the browser is looking at. Withheld for the whole of
+   *  login and the OTP wait - see `_viewport_loop` in the sidecar. */
+  | { ev: "viewport"; img: string }
   | { ev: "sync_done"; stats: Record<string, unknown> }
   | { ev: "error"; kind?: string; msg: string }
   | { ev: "exited" };
