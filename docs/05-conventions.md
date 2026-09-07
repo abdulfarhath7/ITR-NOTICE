@@ -12,10 +12,15 @@
 ```
 src/
   App.tsx          the whole shell: state, event wiring, layout
-  components/      Rail, NoticeList, Drawer, Modals
+  styles.css       byte-for-byte app/static/style.css - do not hand-edit
+  ui/              one file per section of the old dashboard:
+                   Header, Gates, Overview, Watch, Report, Notices,
+                   Viewer, DraftDrawer, Palette, Settings, Toast
   lib/api.ts       the only place that calls invoke() or listen()
   lib/types.ts     mirrors the Rust Serialize structs
   lib/buckets.ts   due-date classification, ported from app/report.py
+  lib/summary.ts   the report's counts, ported from app/report.py
+public/fonts/      Geist + Geist Mono, at the path styles.css asks for
 src-tauri/src/     lib.rs + db.rs + keychain.rs + scraper.rs + claude.rs
 sidecar/           the Python child process
 proxy/             the hosted service
@@ -25,8 +30,12 @@ proxy/             the hosted service
 - TypeScript strict, no `any`. Every command wrapped once in `lib/api.ts`.
 - A Rust struct that crosses to TS gets a matching interface in `lib/types.ts` —
   change them together.
-- No `localStorage`/`sessionStorage` for anything, secret or not; the archive and
-  the keychain are the only stores.
+- No `localStorage`/`sessionStorage` for **anything the app is answerable for**:
+  notices, PDFs, drafts and every secret live in the archive and the keychain,
+  which are the only stores of record. Two display conveniences are the whole
+  exception, and both are disposable: `notice-desk.theme` and
+  `notice-desk.last-run` (the "Last sync …" line — see QUESTIONS Q15). Losing
+  either costs a preference and a sentence, nothing more.
 - Nothing reaches the network except `claude.rs`. The UI never makes an HTTP call.
 - Never log a password, a token or a key. Not to stdout, not to a file.
 - Small, scoped commits: `feat(ui): due-date buckets`, `fix(sidecar): otp relay`.

@@ -181,3 +181,122 @@ Not verified: nothing has been *run* on Windows yet. First things that can
 break on the CA's machine, in order: WebView2 bootstrapper download (needs
 internet at install), the sidecar failing to start under `CREATE_NO_WINDOW`,
 SmartScreen blocking the unsigned installer (click "More info → Run anyway").
+
+## The UI rewrite (2026-09-07) — back to the static dashboard
+
+The Tailwind/shadcn rail-and-drawer UI has been replaced by a React port of the
+web tool's own dashboard, `app/static/{index.html,style.css,app.js}`. The look
+is the old one; the wiring is the Tauri command layer. Deleted: `src/App.tsx`
+(the old one), `src/app/`, `src/components/`, `src/features/`, `src/hooks/`,
+`src/styles/`, `tailwind.config.js`, `components.json`. Everything in `src/lib/`
+was kept.
+
+**How faithful.** `src/styles.css` is a byte-for-byte copy of
+`app/static/style.css` — `diff` says nothing. Its `@font-face` rules point at
+`/fonts/Geist-Variable.woff2`, so both faces went into `public/fonts/` rather
+than into `src/`, and Vite serves them at that exact path (they land in
+`dist/fonts/`). `index.html` carries `data-theme="dark"` and the two font
+preloads. No CSS was written for these screens; every class is the old one.
+
+**What is genuinely different, and why**
+
+| Old | Now | Why |
+|---|---|---|
+| `fetch('/api/…')` + `/ws` | `invoke()` + the `scraper` Tauri event | There is no server |
+| `GET /api/summary` counted the report server-side | `lib/summary.ts` counts it in the window | Same rules as `app/report.py` — same labels, same order, same GROUPS total, same attention sort |
+| `GET /api/export.xlsx` | `lib/exportXlsx.ts` (kept) | Already client-side |
+| `POST /logout` + `location.reload()` | `portal_stop` + a state reset | Reloading would only throw away the archive rows it just loaded |
+| theme in a cookie | theme in `localStorage` | The cookie existed so the server could read it |
+| draft PDF from `app/response_pdf.py` | the drawer's View/Save hand over the draft **text** | Nothing in the Rust core renders a PDF |
+| server-held `runs` table drove "Last sync …" | remembered from `sync_done` stats in `localStorage` | `db.rs` creates the `runs` table but nothing ever inserts into it |
+| server chose the pace from a `slow/fast/extreme` mode | the same three modes, mapped to the seconds `portal_speed` takes (1.0 / 0.25 / 0.0 — `app/main.py`'s own `MODES`) | The command's argument is seconds |
+| no settings screen (key was in the server's `.env`) | a small Settings modal, reachable only from ⌘K | The proxy URL and firm token have to come from somewhere, and the header had to stay the old header (QUESTIONS Q13) |
+| no "remember" control | a checkbox in the login card | `portal_login`'s `remember` argument needs a source, or the keychain is never written (Q13) |
+
+**Two date helpers, on purpose.** The due chip and the five metric cards use
+`lib/format.ts`'s `dueInDays`, which is `app.js`'s function verbatim
+(`Date.parse`). The buckets, the attention table and the export use
+`lib/buckets.ts`'s `daysLeft`, whose `parseDate` handles the portal's
+`17-Aug-2026` explicitly and is what `report.py` does. They agree on every shape
+the portal emits; they could disagree on a hand-edited row, and if that ever
+shows up the answer is to move the chip onto `buckets.ts`.
+
+**The live viewport, later the same day.** It shipped without frames and the
+card just said "No frames yet." for a whole run, so the pump went back in.
+
+`_viewport_loop` in `sidecar/notice_scraper.py` is the web tool's
+`app/main.py` loop, moved to where the session now lives — same 1.5s interval,
+same JPEG quality 45, same guard. Nothing in `app/portal/*` was touched (prime
+directive 1): `safe_to_capture()` and `page_closed()` were already there, and
+the two copies still `diff` clean. `scraper.rs` needed no change either — it
+special-cases `notice` and re-emits everything else verbatim, so
+`{"ev":"viewport","img":…}` reaches the window as it is.
+
+The credential rule is the reason the loop is written this way and must not be
+relaxed: `safe_to_capture()` is false for the whole of `login()` — which is also
+the whole of the OTP wait, since `in_login` stays set until the dashboard is
+reached — and for two seconds after. So the login screen, the password field and
+the OTP box are never photographed. The card draws the lock/phase animation over
+that window instead, which is what it was always for. A failed login therefore
+emits **zero** frames, by design; that is not the pump being broken.
+
+Lifecycle: the pump starts right after `session.start()` and every path that
+ends a session now goes through `Runner._drop_session()`, which cancels the task
+*before* stopping the session — otherwise it screenshots a browser being torn
+down and the run's last event is a stray traceback.
+
+REC is its own state in the UI, not "is there a frame": the last frame of a
+finished run stays on screen under a dark light, exactly as the old CSS
+intended (`.monitor.live .rec`). It goes dark on `sync_done`, on
+`otp_required`, on a login error and on `exited`.
+
+**Re-freeze the sidecar or none of this happens.** `scraper.rs` runs the frozen
+binary (`src-tauri/resources/scraper/`, or `sidecar/dist/` in dev), not the
+`.py`. Editing the Python and restarting the app changes nothing until
+`sidecar/build.sh` (or `build.ps1`) has run. Done here on 2026-09-07; the
+Windows build happens on the CI runner anyway.
+
+Cost: one base64 JPEG per 1.5s over the Tauri IPC channel — order 100–200 KB a
+frame on a real portal page. The web tool pushed the same over a websocket. If
+it ever competes with a PDF, `VIEWPORT_INTERVAL` and `VIEWPORT_QUALITY` are two
+constants at the top of the sidecar.
+
+**The duplicated log lines.** Every line arrived twice. `listen()` resolves a
+tick or two after the effect returns, so under StrictMode the cleanup ran while
+`unlisten` was still `undefined` and the first listener was never removed — two
+listeners, every event handled twice. Fixed with a `dropped` flag the promise
+checks. Worth remembering: any `useEffect` that awaits its own unsubscriber has
+this bug. The UI also stopped writing its own "Logged in." on `login_ok`, since
+`session.py` already logs "Logged in" and the two read as a stutter.
+
+**Saving files.** No dialog/fs plugin is installed and `capabilities/default.json`
+grants only `core:default`, so `ui/download.ts` saves through an `<a download>`
+on a blob URL — the same trick `XLSX.writeFile` already used for the export. If
+Save turns out to be silent in WebView2, the fix is the plugin pair plus a
+widened capability, not a change to that file.
+
+**Three lib files are quarantined, not deleted.** `src/lib/ws.ts`,
+`src/lib/utils.ts` and `src/lib/files.ts` are kept on disk but listed in
+`tsconfig.json`'s `exclude`, because they cannot compile against this tree:
+`ws.ts` imports `SpeedMode`/`SyncState` from an `api.ts` that no longer exports
+them and talks to a websocket that no longer exists, `utils.ts` wants Tailwind's
+`clsx` + `tailwind-merge`, and `files.ts` imports the two Tauri plugins above.
+`runtime.ts` and `secrets.ts` do compile (the `@/*` alias is back in
+`tsconfig.json`) but nothing imports them either — they address `backend_info`
+and `secret_status`, commands `lib.rs` does not have. All five are dead; they
+are listed here so deleting them is a one-line decision later.
+
+**Checked, not tested.** `npm run build` is clean (`tsc` + Vite). The screens
+were driven in a headless Chromium against a stubbed `__TAURI_INTERNALS__` to
+confirm the wiring: login → OTP → `login_ok` fires `portal_speed` then
+`portal_sync` with the header's limit; the pipeline, login stage, run log and
+last-sync line follow the event stream; the AY / name / missing-due filters and
+the bucket chips cut the table to the right counts; the PDF modal opens a blob
+URL; Export writes a three-sheet workbook. None of that is the real sidecar, the
+real archive or Windows — the human still verifies all three.
+
+Two bugs found and fixed that way, both worth remembering: `startSync` read
+`loggedInRef` in the same tick `login_ok` set it, so the auto-sync after a login
+bounced straight back to the login card (the ref is now written by hand in that
+branch); and the login card stayed on screen behind the OTP card, because it was
+only hidden on `login_ok` rather than when the login was sent.

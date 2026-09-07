@@ -30,17 +30,47 @@ FastAPI-sidecar design, which no longer exists — see "What changed" in
 - [x] `claude.rs` — proxy client, bearer auth, 300 s timeout
 - [x] `lib.rs` — settings file, 15 commands, `scraper` event channel
 
-## Phase 3 · UI
+## Phase 3 · UI  (rebuilt 2026-09-07 as the old static dashboard)
+
+The Tailwind/shadcn rail-and-drawer UI is gone. `src/` now holds a faithful
+React port of `app/static/{index.html,style.css,app.js}` wired to the Tauri
+command layer instead of the FastAPI routes. `src/styles.css` is byte-for-byte
+`app/static/style.css`; the two Geist woff2 faces are served from `public/fonts`
+so its `url('/fonts/…')` rules did not have to change.
+
 - [x] `lib/api.ts` typed `invoke` wrapper + `onScraper` event subscription
-- [x] Rail: bucket counts, connect / fetch / export / settings
-- [x] Notices list with due-date buckets (`lib/buckets.ts`, ported from `report.py`)
-- [x] Drawer: notice detail, PDF preview (blob URL), draft preview + edit
-- [x] Connect modal: user id / password / remember, OTP freeze, live log
-- [x] Settings modal: proxy URL + firm token
+- [x] `styles.css` copied verbatim; Geist + Geist Mono self-hosted; dark-first
+      with the `data-theme` toggle
+- [x] Header — brand, status dot + label, download limit, Slow/Fast/Extreme,
+      theme, ⌘K, Log out, Export, Sync
+- [x] Gates — portal login card (`portal_login`) and OTP card (`portal_otp`),
+      shown by phase
+- [x] Overview — five metric cards + the last-sync line
+- [x] Live viewport — REC light, lock/phase animation, phase steps; run log
+      card beside it, both fed by the `scraper` channel
+- [x] Report "Position at a glance" — run line, bucket chips that filter the
+      table, Attention table (`lib/summary.ts`, counting exactly as `report.py`)
+- [x] Filters + notices table — AY, proceeding-contains, missing-due toggle,
+      count; Notice / Proceeding / Issued / Due chip / Status ticks / Actions
+- [x] Row actions — View, Save, "✦ Date" (`ask_due_date`), Draft
+      (`draft_response`); all four only when a PDF is held
+- [x] PDF viewer modal (blob URL from `get_notice_pdf`)
+- [x] Draft drawer — summary, checklist, editable text, Save edits
+      (`save_draft_text`), View, Save, Copy, Regenerate
+- [x] ⌘K command palette + the `s` / `/` / Escape shortcuts
+- [x] Toast
+- [x] Speed control — the segment calls `portal_speed`, and re-sends the chosen
+      pace on `login_ok` so a sidecar spawned later still gets it
 - [x] Excel export (`lib/exportXlsx.ts`, three sheets)
-- [ ] Speed control — `portal_speed` command exists, no UI calls it
-- [ ] Live browser viewport — dropped with the websocket; not rebuilt
-- [ ] Command palette / keyboard shortcuts — dropped in the rewrite
+- [x] Live viewport **frames** — `_viewport_loop` in the sidecar screenshots the
+      page every 1.5s at JPEG q45 and emits `{"ev":"viewport","img":…}`;
+      `scraper.rs` already passed unknown events through untouched. Withheld for
+      the whole of login and the OTP wait (`safe_to_capture()`), so a credential
+      is never photographed. REC lights only while frames arrive
+- [ ] Draft PDF — the web tool rendered one server-side (`app/response_pdf.py`);
+      the drawer's View/Save hand over the draft text instead
+- [ ] `runs` table — nothing writes it, so the last-sync line is remembered from
+      the sidecar's own `sync_done` stats in `localStorage`
 
 ## Phase 4 · Encryption
 - [x] SQLCipher via `rusqlite` `bundled-sqlcipher-vendored-openssl`
@@ -69,7 +99,9 @@ FastAPI-sidecar design, which no longer exists — see "What changed" in
 - [x] README rewritten for the current architecture
 - [x] `docs/` rewritten for the current architecture
 - [x] CLAUDE.md / TASKS.md / QUESTIONS.md / NOTES.md rewritten
-- [x] `postcss.config.js` deleted + dead TS trees excluded in `tsconfig.json`
-      (they broke `npm run build`, i.e. the release job)
+- [x] `postcss.config.js` deleted; `tailwind.config.js` and `components.json`
+      deleted with the shadcn UI
+- [x] `tsconfig.json` rewritten — the `@/*` alias is back, and only the three
+      lib files that cannot compile are excluded (see NOTES.md)
 - [ ] Delete the rest of the dead files from the old design (listed in NOTES.md)
 - [ ] Commit the working tree (nothing since `01d21f8` has been committed)

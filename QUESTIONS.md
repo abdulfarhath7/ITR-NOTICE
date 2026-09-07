@@ -167,3 +167,80 @@ carry over restated for the current design.
                   `sidecar/app/portal` from there  C) delete it once the desktop
                   app has run a real sync
 - Your answer:
+
+---
+
+## Q13 — Two controls the old dashboard did not have    [OPEN]
+- Phase:          3
+- Question:       The static UI was rebuilt faithfully, but two things it never
+                  needed have no home in it. Are these the right places?
+                  (a) **Settings** — the proxy URL and the firm bearer token.
+                  The web tool kept its Anthropic key in the server's `.env`, so
+                  no screen existed. Without these two values `ask_due_date` and
+                  `draft_response` fail with "add your firm token in Settings
+                  first", so the desktop app has to ask for them somewhere.
+                  (b) **Remember the portal password** — `portal_login` takes a
+                  `remember` flag and writes the Windows Credential Manager only
+                  when it is set. The old login card had no such control.
+- Why it matters: Both are additions to a UI whose whole point is that it is the
+                  one the office already knows. Anything put in the header
+                  changes the first thing they look at.
+- Default used:   (a) a small modal reached **only** from the ⌘K palette
+                  ("Settings: proxy URL and firm token"), so the header is still
+                  the old header, exactly.
+                  (b) a "Remember on this PC" checkbox inside the login card,
+                  beside the password, using the `.filters label` styling the
+                  card already has. Unticked by default; the card's wording was
+                  updated from "kept in this server's memory only" (no longer
+                  true) to say what the keychain does.
+- Options:        A) leave both as they are
+                  B) put Settings back in the header as a gear, next to Log out
+                  C) drop the checkbox and always remember (the app is on the
+                     CA's own machine and the archive is encrypted anyway)
+                  D) drop the checkbox and never remember (type it every launch)
+- Your answer:
+
+---
+
+## Q14 — What the live viewport should show with no frames  [RESOLVED]
+- Phase:          3
+- Question:       The sidecar emits no `viewport` event, so the REC light never
+                  lights. Should frames come back, or should the card go?
+- Why it matters: "Live viewport" is the panel that makes a headless browser
+                  legible to someone who does not trust it yet — the whole
+                  reason it existed. Right now it shows the login stage while
+                  signing in and then "No frames yet." for the rest of the run,
+                  which is honest but is not what it is for. Frames cost a JPEG
+                  per action over a pipe that already carries PDFs.
+- Default used:   Kept, with the plumbing intact (`Watch`'s `frame` prop) and a
+                  TODO. Nothing sent frames.
+- Options:        A) emit frames from `sidecar/notice_scraper.py` and pass them
+                     through `scraper.rs` — the web tool's behaviour
+                  B) leave it as a phase/status card and rename it
+                  C) delete the panel and give the run log the full width
+- Your answer:    A — asked for directly ("it never shows frames, fix the
+                  issue"). Built 2026-09-07: `_viewport_loop` in the sidecar,
+                  same 1.5s / q45 as the web tool, same credential guard.
+                  `scraper.rs` needed no change. **The sidecar must be re-frozen
+                  for it to take effect** (`sidecar/build.sh` on this box,
+                  `build.ps1` on Windows) — the frozen binary is what runs, not
+                  the .py.
+
+---
+
+## Q15 — Where "last sync" comes from                    [OPEN]
+- Phase:          2 / 3
+- Question:       Should the Rust core write the `runs` table?
+- Why it matters: `db.rs` creates `runs` (started, finished, status, message,
+                  notices_new, pdfs_saved, skipped_cached) and nothing ever
+                  inserts a row. The old dashboard's "Last sync …" line and the
+                  report's run line both read it. They now read what the sidecar
+                  said in its `sync_done` stats, remembered in `localStorage` —
+                  which means it is per-window, not part of the record, and a
+                  reinstall loses it.
+- Default used:   `localStorage`, key `notice-desk.last-run`.
+- Options:        A) insert a row in `scraper.rs` on `sync_done` (and on a sync
+                     error) and add a `last_run` command
+                  B) leave it in `localStorage`
+                  C) drop the `runs` table from the schema, since nothing uses it
+- Your answer:
