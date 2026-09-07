@@ -1,6 +1,6 @@
 [package]
 name = "notice-desk"
-version = "0.1.1"
+version = "0.1.2"
 description = "Notice Desk - income tax notice tracking for CA firms"
 edition = "2021"
 
