@@ -61,7 +61,7 @@ FastAPI-sidecar design, which no longer exists — see "What changed" in
 - [x] `tauri-action` → NSIS installer, draft release
 - [x] Optional Authenticode signing from `WINDOWS_CERT`
 - [x] `cargo check` passes on Linux (5 MutexGuard/`?` errors fixed; see NOTES)
-- [ ] A green Windows CI run (never executed)
+- [x] A green Windows CI run — v0.1.1, run 34102102136, 24 min, 246 MB NSIS installer
 - [ ] `requirements.lock.txt` for the sidecar (Q8)
 - [ ] Code-signing certificate (Q9)
 

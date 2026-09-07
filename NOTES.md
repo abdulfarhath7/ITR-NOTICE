@@ -160,3 +160,24 @@ call sites: `list_notices`, `get_notice_pdf`, `get_draft`, `save_draft_text`,
 Nothing else was reported — no warnings. Note this was `cargo check` for the
 **Linux host target** with `bundled-sqlcipher-vendored-openssl`; the MSVC build
 in CI is the one that matters and has never run.
+
+## First green Windows CI run (2026-09-07)
+Tag `v0.1.1`, run 34102102136, 24 minutes end to end. The MSVC build of
+SQLCipher + OpenSSL compiles clean, the sidecar freezes with Chromium inside,
+and NSIS produces `Notice Desk_0.1.1_x64-setup.exe` (246 MB). The draft
+release and the `notice-desk-windows` artifact both carry it.
+
+One fix was needed first: a stale `pnpm-lock.yaml` from the old design was
+still tracked, and `tauri-action` picks its package manager from the first
+lockfile it sees. It ran `pnpm tauri build` and the runner has no pnpm. The
+lockfile is deleted; `package-lock.json` is the only one now.
+
+`v0.1.0` was already used by the old loopback-sidecar design, so the version
+was bumped to 0.1.1 in `tauri.conf.json`, `Cargo.toml` and `package.json`
+rather than moving that tag. That draft release is still on GitHub and can be
+deleted.
+
+Not verified: nothing has been *run* on Windows yet. First things that can
+break on the CA's machine, in order: WebView2 bootstrapper download (needs
+internet at install), the sidecar failing to start under `CREATE_NO_WINDOW`,
+SmartScreen blocking the unsigned installer (click "More info → Run anyway").
