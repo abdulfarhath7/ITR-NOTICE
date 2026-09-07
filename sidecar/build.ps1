@@ -25,4 +25,6 @@ pyinstaller --noconfirm --clean notice_scraper.spec
 $dest = Join-Path $PSScriptRoot "..\src-tauri\resources\scraper"
 if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 Copy-Item -Recurse "dist\notice_scraper" $dest
+# the folder is tracked but empty in git; keep the placeholder alive
+New-Item -ItemType File -Force (Join-Path $dest ".gitkeep") | Out-Null
 Write-Host "Sidecar ready at $dest"

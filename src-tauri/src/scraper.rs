@@ -23,20 +23,37 @@ fn exe_name() -> &'static str {
     if cfg!(windows) { "notice_scraper.exe" } else { "notice_scraper" }
 }
 
-/// Where the bundled sidecar folder ended up. Checked in order so the same
-/// binary works from `tauri dev` (repo layout) and from the installed app.
+/// Where the bundled sidecar folder ended up. Every plausible root is tried so
+/// the same binary works from `tauri dev` (cwd = `src-tauri/`), from a release
+/// binary run out of `target/release/` with any cwd, and from the installed app.
 fn locate(app: &AppHandle) -> Result<PathBuf, String> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
+    let name = exe_name();
+    let mut roots: Vec<PathBuf> = Vec::new();
     if let Ok(res) = app.path().resource_dir() {
-        candidates.push(res.join("resources").join("scraper").join(exe_name()));
-        candidates.push(res.join("scraper").join(exe_name()));
+        roots.push(res);
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            roots.push(dir.to_path_buf());
+            roots.push(dir.join("..").join("..")); // target/release -> src-tauri
+            roots.push(dir.join("..").join("..").join("..")); // -> repo root
+        }
     }
     if let Ok(cwd) = std::env::current_dir() {
-        candidates.push(cwd.join("resources").join("scraper").join(exe_name()));
-        candidates.push(cwd.join("..").join("sidecar").join("dist").join("notice_scraper").join(exe_name()));
+        roots.push(cwd.join(".."));
+        roots.push(cwd);
+    }
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    for root in roots {
+        candidates.push(root.join("resources").join("scraper").join(name));
+        candidates.push(root.join("scraper").join(name));
+        candidates.push(root.join("src-tauri").join("resources").join("scraper").join(name));
+        candidates.push(root.join("sidecar").join("dist").join("notice_scraper").join(name));
     }
     candidates.into_iter().find(|p| p.exists()).ok_or_else(|| {
-        "sidecar not found - build it first: sidecar/build.ps1 (see README)".to_string()
+        let script = if cfg!(windows) { "sidecar/build.ps1" } else { "sidecar/build.sh" };
+        format!("sidecar not found - build it first: {script} (see README)")
     })
 }
 

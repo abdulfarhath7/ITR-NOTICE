@@ -8,4 +8,6 @@ python -m playwright install chromium
 pyinstaller --noconfirm --clean notice_scraper.spec
 rm -rf ../src-tauri/resources/scraper
 cp -r dist/notice_scraper ../src-tauri/resources/scraper
+# the folder is tracked but empty in git; keep the placeholder alive
+touch ../src-tauri/resources/scraper/.gitkeep
 echo "Sidecar ready at src-tauri/resources/scraper"
