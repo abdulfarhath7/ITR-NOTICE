@@ -17,6 +17,7 @@ The Rust core spawns this and talks to it over JSON lines:
     {"ev": "otp_required"}                    # freeze until an "otp" command
     {"ev": "login_ok"}
     {"ev": "notice", ...row fields..., "pdf_b64": "..."}
+    {"ev": "viewport", "img": "<base64 jpeg>"}  # what the browser is looking at
     {"ev": "sync_done", "stats": {...}}
     {"ev": "error", "msg": "..."}
 
@@ -51,6 +52,12 @@ from app.portal.scraper import run_sync            # noqa: E402
 from app.portal.session import PortalSession, WrongPasswordError  # noqa: E402
 
 PDF_MARKER = b"\x01"      # see module docstring
+
+# The live viewport. Same numbers the web tool pushed over its websocket
+# (app/main.py): often enough to read as motion, small enough that a frame
+# never competes with a PDF for the pipe.
+VIEWPORT_INTERVAL = 1.5          # seconds between frames
+VIEWPORT_QUALITY = 45            # jpeg quality
 
 
 def emit(**payload) -> None:
@@ -119,30 +126,65 @@ class Events:
         self._pace = max(0.0, float(seconds))
 
 
+async def _viewport_loop(session) -> None:
+    """Stream what the browser is looking at, so a sync is watchable.
+
+    Lifted from the web tool's `app/main.py`, unchanged in substance. It skips
+    every frame that could carry a credential: `safe_to_capture()` is false for
+    the whole of login - which is also the whole of the OTP wait, since
+    `in_login` stays set until the dashboard is reached - and for two seconds
+    after it. A frame is never the reason a run fails: every error here is
+    swallowed and the next tick tries again.
+    """
+    while True:
+        await asyncio.sleep(VIEWPORT_INTERVAL)
+        if not session.safe_to_capture() or session.page_closed():
+            continue
+        try:
+            frame = await session.page.screenshot(type="jpeg",
+                                                  quality=VIEWPORT_QUALITY)
+        except Exception:
+            continue          # a navigation mid-shot is normal, just skip it
+        emit(ev="viewport", img=base64.standard_b64encode(frame).decode("ascii"))
+
+
 class Runner:
     def __init__(self) -> None:
         self.events = Events()
         self.session: PortalSession | None = None
         self.busy: asyncio.Task | None = None
+        self.watcher: asyncio.Task | None = None
 
-    async def login(self, user_id: str, password: str) -> None:
+    async def _drop_session(self) -> None:
+        """The only way a session ends. The frame pump holds a reference to the
+        page, so it has to go first - otherwise it screenshots a browser that
+        is being torn down and the run's last event is a stray traceback."""
+        if self.watcher:
+            self.watcher.cancel()
+            self.watcher = None
         if self.session:
             await self.session.stop()
+            self.session = None
+
+    async def login(self, user_id: str, password: str) -> None:
+        await self._drop_session()
         self.session = PortalSession(self.events, user_id, password)
         try:
             await self.session.start()
+            # From here on there is a page to photograph. The pump withholds
+            # every frame until login is done and safe - it is started now, not
+            # after, so the first dashboard screen is already on its way when
+            # "login_ok" lands.
+            self.watcher = asyncio.create_task(_viewport_loop(self.session))
             await self.session.login()
             emit(ev="login_ok")
         except WrongPasswordError as e:
             emit(ev="error", kind="wrong_password", msg=str(e))
-            await self.session.stop()
-            self.session = None
+            await self._drop_session()
         except Exception as e:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)
             emit(ev="error", kind="login", msg=repr(e))
-            if self.session:
-                await self.session.stop()
-            self.session = None
+            await self._drop_session()
 
     async def sync(self, limit: int | None) -> None:
         if not self.session:
@@ -156,9 +198,7 @@ class Runner:
             emit(ev="error", kind="sync", msg=repr(e))
 
     async def stop(self) -> None:
-        if self.session:
-            await self.session.stop()
-            self.session = None
+        await self._drop_session()
 
     def spawn(self, coro) -> None:
         """Long jobs run as tasks so stdin stays responsive (OTP arrives
