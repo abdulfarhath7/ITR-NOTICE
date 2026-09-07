@@ -1,60 +1,75 @@
-# TASKS — desktop port (tick [x] when the artifact exists; the human verifies)
+# TASKS — what exists today (the human verifies; nothing here was tested)
 
-## Phase 0 · Scaffold
-- [x] Tauri 2 + Vite + React + TS scaffold
-- [x] Tailwind + shadcn set up
-  - [x] primitives hand-written into `src/components/ui` (no network CLI run)
-- [x] Tauri updater plugin wired (key generated)
-  - [ ] real signing key + feed URL — placeholders in `tauri.conf.json` (see Q2)
-- [x] Placeholder window opens via `tauri dev`
+Rewritten 2026-09-04 against the code in the tree. The old board tracked the
+FastAPI-sidecar design, which no longer exists — see "What changed" in
+`CLAUDE.md`.
 
-## Phase 1 · Sidecar
-- [x] `run_backend.py` (uvicorn on env HOST/PORT)
-- [x] `app/` whitelist edits: `/health`, CORS, env host/port/token
-- [x] PyInstaller spec builds `notice-desk-backend`
-- [x] Tauri `externalBin` sidecar registered
-- [x] Rust spawn / monitor / kill + token injection
-- [x] `/health` polled before window shows
-- [x] first-run `playwright install chromium` into app-data
+## Phase 0 · Shell
+- [x] Tauri 2 + Vite + React 18 + TS scaffold (`npm`, no Tailwind — plain CSS)
+- [x] Window config, CSP that allows `blob:` frames for the PDF viewer
+- [x] Capabilities locked to `core:default` — no plugin surface in the webview
+- [x] App icons (`app-icon.png` → `src-tauri/icons/*`)
+- [ ] Auto-update — deliberately not built (Q2)
 
-## Phase 2 · UI (screen-for-screen)
-- [x] typed API client (`lib/api.ts`) + WS client (`lib/ws.ts`)
-- [x] password gate
-- [x] credential entry
-- [x] sync pipeline + live viewport (WS frames)
-- [x] Slow / Fast / Extreme controls
-- [x] OTP freeze modal
-- [x] notices table + due-date buckets + attention list
-- [x] summary / report + `export.xlsx`
-- [x] notice detail: AI draft preview/edit + PDF preview
-  - [x] command palette (Ctrl K) + keyboard shortcuts, as on the web
+## Phase 1 · Sidecar (portal automation as a child process)
+- [x] `sidecar/app/portal/*` copied byte-for-byte from the web tool
+- [x] `sidecar/notice_scraper.py` — JSON-lines protocol over stdin/stdout
+- [x] Staging-cache handoff: push the row + PDF to Rust, scrub the blob to a
+      1-byte marker so the "already fetched" rule still works
+- [x] `notice_scraper.spec` — PyInstaller `COLLECT` with `collect_all("playwright")`
+- [x] `sidecar/build.sh` / `build.ps1` — `PLAYWRIGHT_BROWSERS_PATH=0` then freeze
+      into `src-tauri/resources/scraper/`
+- [x] `scraper.rs` — spawn, locate (bundle dir, then `sidecar/dist` for dev),
+      stdout protocol, stderr to the log pane, `kill_on_drop`, `stop`
 
-## Phase 3 · Secrets
-- [x] keychain storage for creds / APP_PASSWORD / LLM key
-  - [x] Stored-secrets dialog in the app (`src/features/settings`)
-- [x] inject secrets into sidecar at spawn
-- [x] memory-only "ask each time" default path
+## Phase 2 · Rust core
+- [x] `db.rs` — SQLCipher archive, schema mirroring the web tool's `app/db.py`
+- [x] `absorb_notice` upsert: portal dates never overwrite a Claude date
+- [x] `keychain.rs` — archive key (32 random bytes, generated once), portal
+      password per user id, firm token
+- [x] `claude.rs` — proxy client, bearer auth, 300 s timeout
+- [x] `lib.rs` — settings file, 15 commands, `scraper` event channel
+
+## Phase 3 · UI
+- [x] `lib/api.ts` typed `invoke` wrapper + `onScraper` event subscription
+- [x] Rail: bucket counts, connect / fetch / export / settings
+- [x] Notices list with due-date buckets (`lib/buckets.ts`, ported from `report.py`)
+- [x] Drawer: notice detail, PDF preview (blob URL), draft preview + edit
+- [x] Connect modal: user id / password / remember, OTP freeze, live log
+- [x] Settings modal: proxy URL + firm token
+- [x] Excel export (`lib/exportXlsx.ts`, three sheets)
+- [ ] Speed control — `portal_speed` command exists, no UI calls it
+- [ ] Live browser viewport — dropped with the websocket; not rebuilt
+- [ ] Command palette / keyboard shortcuts — dropped in the rewrite
 
 ## Phase 4 · Encryption
-- [x] SQLCipher open with keychain key (or `TODO(sqlcipher)`)
-  - [x] shipped plain SQLite + `TODO(sqlcipher)` in `run_backend.py` (see Q5)
+- [x] SQLCipher via `rusqlite` `bundled-sqlcipher-vendored-openssl`
+- [x] Raw-key `PRAGMA key = "x'<hex>'"`, key from the keychain
+- [x] Schema touched on open so a wrong key fails loudly at open time
 
-## Phase 5 · Auto-update
-- [x] Tauri updater manifest + signing config
+## Phase 5 · Proxy
+- [x] `proxy/main.py` — `/v1/due-date`, `/v1/draft`, `/healthz`
+- [x] Per-firm bearer tokens (`FIRM_TOKENS`), constant-time compare
+- [x] Stateless, nothing logged, nothing stored
+- [ ] Deployed anywhere (Q11)
+- [ ] Model id confirmed against the current Anthropic model list (NOTES.md)
 
-## Phase 6 · CI (GitHub Actions, Windows)
-- [x] `windows-latest` workflow
-- [x] build sidecar on Windows (PyInstaller)
-- [x] `tauri-action` → `.exe` + NSIS
-- [x] code signing wired (secrets)
-- [x] updater manifest published
-  - [x] `createUpdaterArtifacts` + `tauri-action` publishes `latest.json`
+## Phase 6 · CI / release
+- [x] `.github/workflows/release.yml` — `windows-latest`, tag-triggered
+- [x] Tag/version agreement check
+- [x] Sidecar frozen on the runner via `sidecar/build.ps1`
+- [x] `tauri-action` → NSIS installer, draft release
+- [x] Optional Authenticode signing from `WINDOWS_CERT`
+- [x] `cargo check` passes on Linux (5 MutexGuard/`?` errors fixed; see NOTES)
+- [ ] A green Windows CI run (never executed)
+- [ ] `requirements.lock.txt` for the sidecar (Q8)
+- [ ] Code-signing certificate (Q9)
 
 ## Housekeeping
-- [x] NOTES.md kept current
-- [x] QUESTIONS.md kept current
-- [x] final commit
-
-## Not in the plan, built anyway (say so plainly)
-- [x] placeholder app icons + `packaging/make_icons.py` (Tauri will not bundle without them)
-- [x] `packaging/build_sidecar.py` — freezes the sidecar and names it for the Rust target triple
+- [x] README rewritten for the current architecture
+- [x] `docs/` rewritten for the current architecture
+- [x] CLAUDE.md / TASKS.md / QUESTIONS.md / NOTES.md rewritten
+- [x] `postcss.config.js` deleted + dead TS trees excluded in `tsconfig.json`
+      (they broke `npm run build`, i.e. the release job)
+- [ ] Delete the rest of the dead files from the old design (listed in NOTES.md)
+- [ ] Commit the working tree (nothing since `01d21f8` has been committed)

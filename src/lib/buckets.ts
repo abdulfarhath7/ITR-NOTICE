@@ -1,45 +1,81 @@
-/** The urgency rules, mirrored from app/report.py so a chip can filter rows
- *  already in memory without a round trip. The server still counts the
- *  numbers - these two must never disagree, so the rules are copied exactly.
- */
-import type { BucketKey, Notice } from "@/lib/api";
-import { dueInDays } from "@/lib/format";
+import type { NoticeRow } from "./types";
 
-export type LeafBucket = Exclude<BucketKey, "to_respond">;
-
-/** "To respond" is a total of the five outstanding buckets (GROUPS in
- *  app/report.py), so filtering by it means "any of these". */
-export const BUCKET_GROUPS: Partial<Record<BucketKey, LeafBucket[]>> = {
-  to_respond: ["overdue", "due_3", "due_10", "on_track", "no_due_date"],
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
 };
 
-/** Chip tone per bucket. Colour only where it means something. */
-export const BUCKET_TONE: Record<BucketKey, "late" | "soon" | "watch" | "ok" | "none" | "done"> = {
-  to_respond: "watch",
-  overdue: "late",
-  due_3: "soon",
-  due_10: "watch",
-  on_track: "ok",
-  no_due_date: "none",
-  responded: "ok",
-  closed: "done",
-};
+/** Portal dates look like 17-Aug-2026; tolerate the few other shapes the
+ * web tool accepted. Returns a local-midnight Date or null. */
+export function parseDate(text: string | null | undefined): Date | null {
+  if (!text) return null;
+  const raw = text.trim();
+  let m = raw.match(/^(\d{1,2})[-/](\w{3,9})[-/](\d{4})$/);
+  if (m) {
+    const mon = MONTHS[m[2].slice(0, 3).toLowerCase()];
+    if (mon !== undefined) return new Date(+m[3], mon, +m[1]);
+  }
+  m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  return null;
+}
 
-/** A filed reply outranks every deadline; a closed proceeding outranks both. */
-export function bucketOf(notice: Notice): LeafBucket {
-  if ((notice.status ?? "").trim().toLowerCase() === "closed") return "closed";
-  if (notice.responded) return "responded";
-  const days = dueInDays(notice.due_date);
-  if (days === null) return "no_due_date";
-  if (days < 0) return "overdue";
-  if (days <= 3) return "due_3";
-  if (days <= 10) return "due_10";
+export type BucketKey =
+  | "overdue" | "due_3" | "due_10" | "on_track" | "no_due_date" | "responded" | "closed";
+
+export const BUCKETS: { key: BucketKey; label: string }[] = [
+  { key: "overdue", label: "Overdue" },
+  { key: "due_3", label: "Due within 3 days" },
+  { key: "due_10", label: "Due within 10 days" },
+  { key: "on_track", label: "On track" },
+  { key: "no_due_date", label: "No due date yet" },
+  { key: "responded", label: "Responded" },
+  { key: "closed", label: "Closed" },
+];
+
+export const TO_RESPOND: BucketKey[] = ["overdue", "due_3", "due_10", "on_track", "no_due_date"];
+
+export function daysLeft(row: NoticeRow, today = new Date()): number | null {
+  const due = parseDate(row.due_date);
+  if (!due) return null;
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((due.getTime() - t0.getTime()) / 86_400_000);
+}
+
+export function isOpen(row: NoticeRow): boolean {
+  return (row.status ?? "").trim().toLowerCase() !== "closed";
+}
+
+/** A filed reply outranks every deadline; a closed proceeding outranks that. */
+export function bucketOf(row: NoticeRow, today = new Date()): BucketKey {
+  if (!isOpen(row)) return "closed";
+  if (row.responded) return "responded";
+  const d = daysLeft(row, today);
+  if (d === null) return "no_due_date";
+  if (d < 0) return "overdue";
+  if (d <= 3) return "due_3";
+  if (d <= 10) return "due_10";
   return "on_track";
 }
 
-export function inBucket(notice: Notice, key: BucketKey | ""): boolean {
-  if (!key) return true;
-  const group = BUCKET_GROUPS[key];
-  const bucket = bucketOf(notice);
-  return group ? group.includes(bucket) : bucket === key;
+export interface Item extends NoticeRow {
+  bucket: BucketKey;
+  days: number | null;
+}
+
+export function classify(rows: NoticeRow[], today = new Date()): Item[] {
+  return rows.map((r) => ({ ...r, bucket: bucketOf(r, today), days: daysLeft(r, today) }));
+}
+
+export function counts(items: Item[]): Record<BucketKey | "to_respond", number> {
+  const c = Object.fromEntries(BUCKETS.map((b) => [b.key, 0])) as Record<BucketKey | "to_respond", number>;
+  for (const i of items) c[i.bucket]++;
+  c.to_respond = TO_RESPOND.reduce((n, k) => n + c[k], 0);
+  return c;
+}
+
+export function describe(i: NoticeRow): string {
+  return i.description || i.proceeding_name || i.ref_id;
 }

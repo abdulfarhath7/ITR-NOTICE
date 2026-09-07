@@ -1,32 +1,40 @@
 # 05 · Conventions
 
 ## Stack (pin these)
-- Tauri **2.x**; Rust stable.
-- Node **LTS**; package manager **pnpm**.
-- React **18+**, TypeScript **strict**, Vite, Tailwind, shadcn/ui.
-- Python **3.11**; PyInstaller for the sidecar.
+- Tauri **2.x**; Rust stable, edition 2021.
+- Node **20+**, package manager **npm** (`package-lock.json` is committed and CI
+  runs `npm ci`). pnpm was dropped with the old UI.
+- React **18**, TypeScript **strict**, Vite. **No Tailwind, no shadcn** — one
+  hand-written stylesheet, `src/styles.css`.
+- Python **3.12** for the sidecar; PyInstaller `COLLECT` (never `--onefile`).
 
-## Frontend layout
+## Layout
 ```
 src/
-  app/           # routing, providers, shell
-  features/      # notices, sync, drafts, summary — one folder per screen
-  components/ui/ # shadcn primitives
-  lib/api.ts     # single typed client for the API in docs/03 (token + base URL)
-  lib/ws.ts      # single WebSocket client
+  App.tsx          the whole shell: state, event wiring, layout
+  components/      Rail, NoticeList, Drawer, Modals
+  lib/api.ts       the only place that calls invoke() or listen()
+  lib/types.ts     mirrors the Rust Serialize structs
+  lib/buckets.ts   due-date classification, ported from app/report.py
+src-tauri/src/     lib.rs + db.rs + keychain.rs + scraper.rs + claude.rs
+sidecar/           the Python child process
+proxy/             the hosted service
 ```
 
 ## Rules
-- TypeScript strict; no `any`. All API responses typed in `lib/api.ts`.
-- One API client and one WS client — no scattered `fetch()` calls.
-- Tailwind tokens only; no hardcoded hex. Calm, two-pane feel; restraint over density.
-- No browser storage (localStorage/sessionStorage) for secrets — use the keychain.
-- Small, phase-scoped commits: `feat(ui): notices table`, `chore(sidecar): health probe`.
+- TypeScript strict, no `any`. Every command wrapped once in `lib/api.ts`.
+- A Rust struct that crosses to TS gets a matching interface in `lib/types.ts` —
+  change them together.
+- No `localStorage`/`sessionStorage` for anything, secret or not; the archive and
+  the keychain are the only stores.
+- Nothing reaches the network except `claude.rs`. The UI never makes an HTTP call.
+- Never log a password, a token or a key. Not to stdout, not to a file.
+- Small, scoped commits: `feat(ui): due-date buckets`, `fix(sidecar): otp relay`.
 
 ## Do / Don't
 | Do | Don't |
 |---|---|
-| Reuse the backend API verbatim | Rewrite or reformat `app/` |
-| Add types for every endpoint | Sprinkle untyped fetches |
-| Keep the sidecar on loopback | Expose any port publicly |
-| Ask before adding a dependency | Pull in heavy UI kits beyond shadcn |
+| Keep `sidecar/app/portal/*` identical to `app/portal/*` | Regenerate portal selectors |
+| Put prompts and keys in `proxy/` | Ship an API key in the installer |
+| Add a Rust command for OS work | Reach for another Tauri plugin |
+| Freeze the sidecar on the OS it runs on | Cross-compile from Linux |

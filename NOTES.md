@@ -1,268 +1,162 @@
-# NOTES — desktop port, pass 1
+# NOTES — technical log
 
-Technical log for the human who tests this. Defaults chosen, gaps left, and the
-places most likely to break first.
+Rewritten 2026-09-04, against the code in the tree. The previous NOTES described
+the FastAPI-sidecar port (loopback HTTP, launch tokens, `run_backend.py`,
+`packaging/build_sidecar.py`). That design is gone; nothing in this file refers
+to it except the "Dead files" section.
 
-Nothing in this pass was run or tested (per `CLAUDE.md` → Operating mode). The
-code was written to compile; the human verifies.
+**Almost nothing here has been run.** `tsc` and `vite build` pass over the live
+frontend (the dead trees are excluded — see below). `cargo check` was attempted
+on this Linux box; whatever it reports is in this file's last section. No
+sidecar freeze, no app launch, no sync, no test. The human does all real
+verification, on Windows.
 
-## Before it will start at all
-```bash
-# Linux dev box only - Tauri's own windowing crate needs these, and cargo
-# cannot be checked here without them (this machine has neither):
-sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libdbus-1-dev \
-                 libayatana-appindicator3-dev librsvg2-dev pkg-config
+## How it fits together
 
-npm install -g pnpm          # pnpm is pinned by docs/05 and is not installed here
-pnpm install
-pip install -r requirements.txt pyinstaller
-python packaging/build_sidecar.py     # writes src-tauri/binaries/notice-desk-backend-<triple>
-pnpm tauri dev
 ```
-`pnpm tauri dev` will not start without that sidecar binary: `externalBin`
-resolution fails before the window opens. There is no lockfile yet — the first
-`pnpm install` writes `pnpm-lock.yaml`, and CI uses `--frozen-lockfile`, so
-(`node_modules/` here was installed
-with plain `npm` only to run `tsc` and `vite build` over the new code —
-`package-lock.json` is gitignored so it cannot be mistaken for the real
-lockfile.)
+React (WebView2)  --invoke()-->  Rust core  --stdin/stdout JSON-->  notice_scraper.exe
+       ^                            |
+       |  Tauri event "scraper"     +--> archive.db (SQLCipher, %APPDATA%)
+       +----------------------------+--> Credential Manager
+                                    +--> https --> proxy/main.py --> Claude
+```
 
-## What was actually compiled
-- `tsc -p tsconfig.json` — clean, TypeScript strict, no `any`.
-- `vite build` — bundles (`dist/`, ~306 kB JS / 24 kB CSS before gzip).
-- `cargo check` in `src-tauri/` — **could not run**: no `glib-2.0`/`dbus-1`
-  development headers on this machine, and no `rustup` (so no Windows target
-  either). The Rust was instead read against the vendored crate sources under
-  `~/.cargo/registry/` — every API, trait import and closure signature checked
-  by hand. It has never been compiled. Expect the first `cargo build` to be
-  where real errors appear.
-Nothing was *run*: no app launched, no sync attempted, no test written.
+- 15 `#[tauri::command]`s in `lib.rs`; one event channel named `scraper`.
+- The webview has `core:default` and nothing else — no fs, dialog or shell
+  plugin. Anything the UI needs from the OS goes through a Rust command.
+- The sidecar is a *folder* (PyInstaller `COLLECT`), shipped via
+  `bundle.resources`, not `externalBin`. `externalBin` copies a single file and
+  would separate `notice_scraper.exe` from its `_internal/`.
 
-## Backend edits (the whole whitelist, nothing else)
-`app/main.py` only:
-- `GET /health` → `{"ok": true}`, exempt from both gates.
-- `CORSMiddleware` for `tauri://localhost`, `http(s)://tauri.localhost` and a
-  regex for loopback. Never a public origin.
-- `APP_TOKEN` from the environment. A request carrying it (header
-  `X-App-Token`, or `?token=` for the websocket, which cannot carry a header)
-  is authorised without the dashboard cookie. With `APP_TOKEN` unset the web
-  deployment behaves exactly as before.
+## The archive
+- SQLCipher through `rusqlite` (`bundled-sqlcipher-vendored-openssl`) — nothing
+  to install on Windows, but the first `cargo build` compiles SQLCipher *and*
+  OpenSSL from source. Expect it to be slow, and expect it to need Perl (and
+  NASM) on the build machine; GitHub's `windows-latest` image ships both.
+- Key: 32 random bytes, hex, generated on first launch, stored in Credential
+  Manager as `in.noticedesk.app / archive-key`. **Lose the Windows profile and
+  the archive is unreadable.** Any backup story has to export the key too.
+- `PRAGMA key = "x'<hex>'"` is issued as the first statement, raw-key form so no
+  KDF runs. The schema is then touched on the same connection, so a wrong key
+  fails at open with "file is not a database" instead of somewhere later.
+- The upsert in `absorb_notice` keeps the web tool's rule: a Claude-sourced due
+  date is never overwritten by a portal one, and a replayed row without a blob
+  never clears an existing PDF.
 
-Two things in that gate are worth knowing, because both were wrong in the first
-draft and are the kind of thing that only shows up in use:
-- **The token stands on its own.** It is checked *before* the old
-  `if not settings.app_password: everything is open` shortcut. Without that, a
-  desktop install — which sets no `APP_PASSWORD` by default — would have run a
-  completely unauthenticated server on loopback, which is the opposite of what
-  the token is for.
-- **`OPTIONS` is let through.** Starlette builds its middleware stack in
-  reverse registration order, so the password middleware ends up *outside*
-  `CORSMiddleware`. A CORS preflight carries neither cookie nor token by
-  definition, so without the bypass every cross-origin call from the window
-  would be answered `401` with no CORS headers and the browser would block the
-  real request.
-- HTTP does **not** honour `?token=` (only the websocket does), and
-  `run_backend.py` installs a logging filter that rewrites `token=…` out of
-  uvicorn's log lines. The Rust side scrubs the same pattern out of anything
-  the sidecar prints.
+## The sidecar
+- `sidecar/app/portal/*` is byte-for-byte identical to the web tool's
+  `app/portal/*` (verified with `diff -r`). Keep it that way; a selector fix
+  belongs in both.
+- Staging handoff: the scraper still writes its own SQLite (`staging.db` in
+  app-data). `notice_scraper.py` reads the committed row, emits it with the PDF
+  as base64, then overwrites the staging blob with a 1-byte marker `\x01`. The
+  scraper's "already fetched" test is `pdf_blob IS NOT NULL`, so the cache still
+  works and no plaintext PDF sits on disk.
+- Chromium **is** bundled, unlike the old design. `PLAYWRIGHT_BROWSERS_PATH=0`
+  before `playwright install chromium` puts the browser inside the playwright
+  package so `collect_all("playwright")` sweeps it in. Miss that line and the
+  installed app fails at first login with "Executable doesn't exist". It also
+  makes the installer large — expect a few hundred MB.
+- `scraper.rs` looks for the exe in the bundle resource dir, then
+  `../sidecar/dist/notice_scraper/` so `tauri dev` works from the repo.
+- `kill_on_drop(true)` plus an explicit `stop` (send `{"cmd":"stop"}`, wait 5 s,
+  then kill). There is no shell-pid watchdog any more; if a hard-killed shell
+  ever leaves a `notice_scraper` alive on Windows, that is where to look.
 
-`app/db.py`, `app/portal/*`, `app/claude_client.py`, `app/report.py` are
-untouched.
-
-## Sidecar
-- `run_backend.py` is the entry point, frozen by PyInstaller into
-  `notice-desk-backend`. It repoints `db.DB_PATH` at the OS app-data directory
-  **from outside** `app/` — a one-file bundle unpacks into a temp dir that
-  disappears on exit, so the shipped database would otherwise be lost every
-  run. In plain `python run_backend.py` development it keeps using `./data`.
-- Chromium is not bundled. On first run the sidecar sets
-  `PLAYWRIGHT_BROWSERS_PATH` under app-data and runs `playwright install
-  chromium`. **Most fragile part of the build.** The frozen binary re-runs
-  *itself* with `NOTICE_DESK_PLAYWRIGHT_CLI=1` to reach playwright's CLI,
-  because there is no interpreter to re-enter.
-  - The download runs on a **background thread**, after uvicorn binds. It is a
-    ~150 MB fetch and would otherwise sit in front of the port, and the shell
-    gives up on `/health` after 45s. So the window opens straight away and a
-    sync started during that first minute fails with a plain playwright error.
-  - "Already installed" is decided by playwright's own `INSTALLATION_COMPLETE`
-    marker, not by the folder's existence, so an interrupted first install is
-    retried instead of trusted.
-  - If Chromium never appears, every screen still works except a sync; watch
-    the log for `[sidecar] Chromium install failed`.
-- The bundle carries `app/static`. `app/main.py` mounts it at import time, so
-  without it in `datas` the frozen sidecar dies before it binds anything.
-- `DEBUG_DIR` is repointed at app-data too, or the screenshot a failed run
-  leaves behind would be written into the temp dir that disappears with the
-  process.
-- The shell picks a free loopback port (`bind :0`), mints a 48-char token per
-  launch, and polls `/health` for 45s before showing the window. It requires
-  the documented `{"ok":true}` body, not merely a 2xx, so a stranger that
-  grabbed the port between `bind :0` and the child's own bind is never handed
-  the token. If the child dies first, the wait fails at once instead of
-  counting out the timeout.
-- Whatever way the app exits — window destroyed, exit requested — the child is
-  killed. A second launch focuses the existing window
-  (`tauri-plugin-single-instance`) rather than starting a second sidecar
-  against the same database.
-- Why a start-up failed reaches the UI two ways: an event, and the
-  `backend_info` command's error. The event alone raced the webview's listener
-  and could be missed entirely.
-- `tauri-plugin-log` writes to the OS log dir. Without it every `log::` call in
-  the shell — including the whole sidecar transcript — went nowhere, which is
-  exactly the diagnostic needed for the Chromium path above.
-
-## Secrets
-- OS keychain via the `keyring` crate (Windows Credential Manager on the
-  shipping target). Slots: `app_password`, `llm_key`, `portal_user_id`,
-  `portal_password`.
-- **Default is to store nothing.** Only `APP_PASSWORD` and `ANTHROPIC_API_KEY`
-  are ever injected into the sidecar's environment, and only if the user filled
-  them in the Stored-secrets dialog. The portal login stays typed-in and
-  memory-only, which is what the backend was built around.
-- A secret change takes effect at the next app start (injection happens at
-  spawn). The dialog says so.
+## The proxy
+- `proxy/main.py` holds the Anthropic key and both prompts. The desktop app
+  knows only a base URL and a bearer token. Keep it that way — the moment a key
+  ships inside the installer, every firm has your key.
+- Verified against the current Anthropic API reference: `claude-sonnet-4-6` is a
+  current model id, `output_config: {"format": {"type": "json_schema", ...}}` is
+  the current structured-output shape, and `thinking={"type": "adaptive"}` is
+  correct for it. No change needed. Worth knowing when you tune cost: Sonnet 5
+  (`claude-sonnet-5`) is cheaper per token than Sonnet 4.6 ($2/$10 vs $3/$15 per
+  1M) and Opus 5 (`claude-opus-5`) is the stronger default for reasoning work.
+- No metering, no rate limit, no cap (Q11). `FIRM_TOKENS` is an env var, so
+  adding or revoking a firm is a redeploy (Q10).
+- `client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])`
+  runs at import, so the process refuses to start without the key. Deliberate.
 
 ## Known gaps / TODO
-- `TODO(sqlcipher)` in `run_backend.py`: the archive is still plain SQLite.
-  Encrypting it means swapping the driver under `app/db.py` and issuing
-  `PRAGMA key` on every connection — a change inside `app/`, which this port is
-  not allowed to make, and `pysqlcipher3` has no Windows wheel. Deferred per
-  `docs/04` Phase 4.
-- `src-tauri/tauri.conf.json` ships placeholders that must be replaced before a
-  release: `plugins.updater.pubkey` (`REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY`)
-  and the endpoint URL (`OWNER/REPO`). Generate with
-  `pnpm tauri signer generate -w ~/.tauri/notice-desk.key`; the private key and
-  its password become the `TAURI_SIGNING_PRIVATE_KEY` secrets.
-- The `fs` capability is scoped to `$HOME/**` (plus `$DOWNLOAD`, `$DOCUMENT`,
-  `$DESKTOP`), denying `$HOME/.ssh` and `$APPDATA`. Writes only ever happen to
-  a path the user picked in the native save dialog, so this is still broader
-  than the use; a save outside the home tree will be refused.
-- Dependency versions are **not pinned**. CI installs `requirements.lock.txt`
-  when it exists and warns loudly when it does not. Generate it with
-  `pip freeze > requirements.lock.txt` on a machine where the backend is known
-  good — deliberately not invented here, because guessing versions for a
-  battle-tested backend is worse than leaving it unpinned (see Q8).
-- App icons are placeholder artwork generated by `packaging/make_icons.py`.
-- `app/static/` is left in place: the sidecar still mounts it at `/`, so the old
-  web dashboard remains reachable on the loopback port. Harmless, and useful
-  for comparing behaviour side by side.
-- No `.icns`/macOS or Linux bundle targets. Windows/NSIS only, per `docs/00`.
-- The `/` shortcut finds the notices name filter by its `data-filter="name"`
-  attribute rather than a ref, because the table owns its own filter row. If
-  that attribute is ever renamed the key silently stops working.
+- **Nothing is committed.** Everything described here is an uncommitted working
+  tree on `main`; the last commit (`01d21f8`) is still the old design.
+- **`portal_speed` has no UI.** The command and the sidecar's `speed` handler
+  both exist; nothing calls them. Pacing is stuck at the sidecar default 0.4 s.
+- **The live viewport is gone.** It rode on the websocket. The connect dialog
+  shows a text log instead. `HEADLESS` can be forced to `false` with the
+  `NOTICE_HEADLESS` env var, which is currently the only way to watch a run.
+- **Excel export uses `XLSX.writeFile`**, i.e. a browser download inside
+  WebView2, with no save dialog and no fs plugin. Verify where the file actually
+  lands on Windows; if it silently does nothing, this needs a Rust command that
+  writes bytes to a path the user picked.
+- **No updater** (Q2). `tauri.conf.json` has no `plugins.updater` block and
+  `Cargo.toml` no updater plugin, so an installer is the only route to a new
+  version.
+- **Dependencies are unpinned** — `sidecar/requirements.txt` is `playwright`,
+  `python-dotenv`, `pyinstaller` with no versions (Q8).
+- **`.env` at the repo root is the old web tool's.** The desktop app reads no
+  `.env`; the sidecar's `app/config.py` still calls `load_dotenv()` for
+  `HEADLESS` / `HOLD_ON_ERROR`, and the Rust side passes those in as env vars.
+- **`app-icon.png` and the generated icons are placeholder artwork.**
+- **`db::get_notice` lists every notice and filters in Rust.** Fine at a few
+  hundred rows, wrong shape at ten thousand.
 
-## Verification checklist for the human
-1. `python packaging/build_sidecar.py` then run the binary directly:
-   `APP_TOKEN=x PORT=8123 ./src-tauri/binaries/notice-desk-backend-*` and
-   `curl 127.0.0.1:8123/health`.
-2. `pnpm tauri dev` — the window should appear only after `/health` answers.
-3. Sync with the browser visible (`HEADLESS=false` in `.env`) and confirm the
-   viewport frames, the OTP freeze and the Slow/Fast/Extreme buttons mid-run.
-4. Kill the app from the taskbar and confirm no `notice-desk-backend` process
-   survives.
+## Dead files from the old design
+None of these are imported by anything that builds today. Left in place rather
+than deleted, because deleting is the human's call:
 
-## What the audit changed
-After the first draft was written, 5 reviewers went over the shell, the
-packaging, the backend edits, the frontend core and CI; every claimed defect
-was then put to two independent skeptics. 31 claims, 27 survived, all applied.
-The ones that would have stopped the app dead:
-1. The launch token was not enforced unless `APP_PASSWORD` was also set — a
-   default install ran an open server on loopback.
-2. CORS preflights were answered `401` by the outer password middleware, so
-   every API call from the window would have been blocked by the browser.
-3. `app/static` was missing from the PyInstaller bundle, so the frozen sidecar
-   would have crashed at import, before binding.
-4. The first-run Chromium download sat in front of the port bind, guaranteeing
-   a `/health` timeout on every fresh install.
-5. Nothing in CI actually Authenticode-signed anything, and nothing in the app
-   ever called the updater.
+| Path | Why it is dead |
+|---|---|
+| `src/app/`, `src/features/`, `src/components/ui/`, `src/styles/globals.css` | the Tailwind/shadcn UI; `main.tsx` now renders `src/App.tsx` |
+| `src/lib/ws.ts`, `runtime.ts`, `secrets.ts`, `files.ts`, `format.ts`, `utils.ts` | websocket + loopback + plugin helpers; nothing imports them |
+| `src-tauri/src/secrets.rs`, `src-tauri/src/sidecar.rs` | not declared as modules in `lib.rs` |
+| `run_backend.py`, `packaging/` | froze the FastAPI sidecar; CI no longer calls them |
+| `requirements.txt` (root), `Dockerfile`, `docker-compose.yml`, `run.sh` | the web tool's deployment |
+| `pnpm-lock.yaml`, `tailwind.config.js`, `components.json`, `tsconfig.node.json` | pnpm + Tailwind + shadcn, all dropped |
+| `Screenshot From 2026-09-03 23-31-14.png` | a screenshot that got committed to the working tree |
 
-## First real run on Linux (dev host)
-The sidecar was frozen and `pnpm tauri dev` was run end to end on the dev
-machine. Four things had to be fixed before the window came up; all four are
-recorded here because three of them would have bitten the Windows CI job too.
+`app/` itself (the whole web tool) is a deliberate keep — see Q12.
 
-1. **The repo's own `packaging/` directory shadowed the PyPI `packaging`
-   package.** `build_sidecar.py` put the repo root on `PYTHONPATH` so the spec
-   could import `app`, and PyInstaller then died on
-   `ModuleNotFoundError: No module named 'packaging.requirements'`. The
-   `PYTHONPATH` entry is gone; the build now passes `PYTHONSAFEPATH=1` and
-   relies on the spec's `pathex` to find `app`. This one is platform
-   independent — CI would have hit it identically.
-2. **`error[E0597]` in `sidecar.rs`.** On edition 2021 the `MutexGuard`
-   temporary from `if let Ok(mut guard) = state.child.lock()` lives to the end
-   of the enclosing block, i.e. past the `state` local it borrows. Fixed by
-   borrowing the handle inline instead of binding it.
-3. **Every log line appeared twice.** `tauri_plugin_log`'s `.target()` appends
-   to the plugin's default targets, which already include a stdout writer, so
-   the added `Stderr` target was a second copy. `.targets([...])` replaces
-   instead.
-4. **The updater logged an ERROR on every dev launch**, because
-   `tauri.conf.json` still carries the `OWNER/REPO` placeholder feed (Q2). The
-   check is now skipped when `import.meta.env.DEV`.
+Two of them were not merely untidy — they broke `npm run build`, which is what
+`tauri build` runs, so the release job would have failed:
+- `postcss.config.js` loaded `tailwindcss` and `autoprefixer`, neither of which
+  is installed any more. **Deleted** (it is in git history if you want it back).
+- the dead TS trees still import the `@/` path alias and plugins this app no
+  longer has, so `tsc` failed on them. They are now listed in `tsconfig.json`'s
+  `exclude`. Deleting the trees is the real fix; then drop the exclude block.
 
-Verified on this host after the fixes:
-- the frozen binary answers `/health` in about a second;
-- its bundled Playwright driver reports `Version 1.62.0` and really launches
-  Chromium (`screenshot https://example.com` produced a PNG), so the freeze
-  fear this file recorded is not borne out on Linux — Windows is still untested;
-- `pnpm tauri dev` starts the shell, spawns the sidecar on a loopback port,
-  downloads Chromium (184 MB) into
-  `~/.local/share/com.noticedesk.app/browsers/`, and the window's websocket
-  connects with the token redacted in the log.
+`package-lock.json` is now committed (it used to be gitignored in favour of
+pnpm) because CI runs `npm ci`.
 
-Two further defects the run exposed, both fixed:
+## Verification checklist for the human (Windows)
+1. `.\sidecar\build.ps1` — then run `src-tauri\resources\scraper\notice_scraper.exe`
+   directly and type `{"cmd":"login","user_id":"...","password":"..."}` at it.
+   It should answer `{"ev":"ready"}` first and drive a real browser after that.
+2. `npm ci && npm run tauri dev`. First build is long (SQLCipher + OpenSSL).
+3. Connect → OTP → Fetch. Confirm rows appear as they are committed, not only at
+   the end, and that the PDF opens in the drawer.
+4. Settings → proxy URL + firm token → a notice with no due date → "Ask Claude".
+5. Close the app from the taskbar; confirm no `notice_scraper.exe` survives.
+6. `%APPDATA%\in.noticedesk.app\archive.db` — open it with plain `sqlite3`. It
+   must refuse. That is the encryption working.
 
-5. **Orphaned sidecars.** `SidecarState::shutdown()` only runs on the graceful
-   window-close path, so every `tauri dev` rebuild left the previous
-   `notice-desk-backend` alive, holding the database and a loopback port; five
-   had piled up. The sidecar now watches the shell's pid
-   (`NOTICE_DESK_SHELL_PID`, set at spawn) and exits when it disappears. Note
-   for anyone tempted to simplify it: watching stdin for EOF instead does *not*
-   work - the shell does not give the sidecar a private stdin pipe, and the
-   first attempt at this survived a `kill -9` of the shell untouched. Two more
-   traps on the way to a version that actually fires: a killed shell nobody has
-   reaped is a zombie, and signal 0 still reaches it (so the watcher reads
-   `/proc/<pid>/stat` and treats state `Z` as gone), and the watcher's own
-   "shell is gone" print raises `BrokenPipeError` - stdout *is* the dead
-   shell - which killed the thread before it reached `os._exit`. Verified by
-   `kill -9` on the running app: no `notice-desk-backend` survives.
-6. **A surviving app process blocks every later launch, silently.** The app
-   outlives `pnpm tauri dev` when that wrapper is killed, and it keeps the
-   `com.noticedesk.app.SingleInstance` DBus name, so the next `tauri dev` exits
-   0 with no output at all - it looks exactly like a crash. If a dev launch
-   ever ends instantly and prints nothing, look for a live `notice-desk`
-   process first. (5 makes the sidecar half of this self-cleaning; the shell
-   half is inherent to the single-instance plugin.)
+## First `cargo check` (Linux dev host, 2026-09-04)
+It compiles. Five errors had to be fixed first, all the same one in `lib.rs`:
 
-Two things the dev host needed that a clean machine will too: the venv was
-created without `ensurepip`, so `pip` had to be bootstrapped from the system
-copy, and `packaging`/`setuptools` are not pulled in automatically when pip can
-see a system `packaging` — install them into the venv explicitly.
+```
+error[E0308]: `?` operator has incompatible types:
+              expected `Connection`, found `MutexGuard<'_, Connection>`
+```
 
-## Building the Windows installer
-There is exactly one supported route: the `windows-latest` job in
-`.github/workflows/release.yml`, triggered by pushing a `vX.Y.Z` tag (or run by
-hand from the Actions tab).
+`db::list_notices(&lock_db(&state)?)` looks like it should deref-coerce
+`&MutexGuard<Connection>` to `&Connection`, and it would — but the expected type
+propagates inward through the `&` to the `?` expression, and the coercion never
+gets a chance. Binding the guard first (`let con = lock_db(&state)?;` then
+`&con`) compiles, because the coercion then happens on a place expression. Five
+call sites: `list_notices`, `get_notice_pdf`, `get_draft`, `save_draft_text`,
+`ask_due_date`.
 
-**Cross-compiling from Linux does not work, and cannot be made to work.**
-`--runner cargo-xwin --target x86_64-pc-windows-msvc` fails twice over: this
-machine has no `rustup`, so there is no MSVC standard library to build against,
-and — the part no Rust tooling can solve — the sidecar is a PyInstaller binary.
-`externalBin` needs `notice-desk-backend-x86_64-pc-windows-msvc.exe`, and a
-Windows executable can only be frozen on Windows.
-
-Before the first tag:
-1. The tag must equal `v` + `version` in `src-tauri/tauri.conf.json`; CI fails
-   the build if they disagree.
-2. Auto-update needs a key: `pnpm tauri signer generate -w ~/.tauri/notice-desk.key`.
-   Put the public key in `plugins.updater.pubkey`, replace `OWNER/REPO` in the
-   endpoint, and add `TAURI_SIGNING_PRIVATE_KEY` (+ `_PASSWORD`) as repo
-   secrets. Without them the job still builds a working installer — it just
-   drops the updater artifacts and warns.
-3. Code signing needs `WINDOWS_CERT` (base64 PFX) and `WINDOWS_CERT_PASSWORD`.
-   Without them signing is skipped and Windows SmartScreen will warn on install.
-
-The `.app` bundle-identifier warning is macOS-only advice and harmless for a
-Windows-only ship; changing it moves the app-data directory, so it is left as
-Q1 for you to decide.
+Nothing else was reported — no warnings. Note this was `cargo check` for the
+**Linux host target** with `bundled-sqlcipher-vendored-openssl`; the MSVC build
+in CI is the one that matters and has never run.

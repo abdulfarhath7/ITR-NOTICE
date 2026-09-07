@@ -209,8 +209,15 @@ main { max-width: 1180px; margin: 18px auto 60px; padding: 0 22px; display: grid
    doing. They stack on a narrow screen. */
 .watch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
          gap: 14px; align-items: stretch; }
-.watch > .card { min-width: 0; display: flex; flex-direction: column; }
-.watch .runlog #log { flex: 1; max-height: none; }
+.watch > .card { min-width: 0; min-height: 0; overflow: hidden;
+                 display: flex; flex-direction: column; }
+/* The run panel takes its height from the viewport beside it instead of
+   growing with the log: height 0 keeps it out of the row's sizing, so the
+   row is whatever the viewport card is, and min-height 100% then fills it.
+   The log scrolls inside. Only while the viewport is open - collapsed, it
+   keeps the plain 180px cap below. */
+.watch:has(#monitor[open]) > .runlog { height: 0; min-height: 100%; }
+.watch:has(#monitor[open]) .runlog #log { flex: 1; min-height: 0; max-height: none; }
 /* one column of steps reads better than a wrapped row in a narrow panel */
 .watch .pipe { flex-direction: column; align-items: flex-start; gap: 7px; }
 .watch .pipe .sep { display: none; }
@@ -460,8 +467,12 @@ th.right, td.right { text-align: right; }
 .bchip.zero { color: var(--faint); background: var(--raised); }
 .bchip.zero .n { color: var(--muted); }
 
-/* The attention table keeps the tracker's dark header band, in both themes. */
-.attnwrap { max-height: none; border: 1px solid var(--hairline); }
+/* The attention table keeps the tracker's dark header band, in both themes.
+   It scrolls inside its own box rather than growing the page: a busy account
+   has dozens of urgent notices and the list used to push the whole table off
+   screen. The dark header band is sticky, so it survives the scroll. */
+.attnwrap { max-height: 38vh; overflow: auto; border: 1px solid var(--hairline);
+            overscroll-behavior: contain; }
 table.attn thead th { background: var(--attn-head); color: #fff; }
 table.attn tbody td { font-size: 12.5px; }
 .days { font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }

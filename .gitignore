@@ -3,15 +3,27 @@ data/
 __pycache__/
 .venv/
 
-# desktop port
+# desktop app
 node_modules/
 dist/
 build/
 src-tauri/target/
 src-tauri/gen/
-# the frozen sidecar is a build artifact, produced by packaging/build_sidecar.py
-src-tauri/binaries/
 *.local
 *.tsbuildinfo
-# pnpm is the pinned package manager (docs/05); no npm lockfile in the repo
-package-lock.json
+
+# the frozen sidecar is a build artifact (sidecar/build.ps1 produces it)
+sidecar/dist/
+sidecar/build/
+src-tauri/resources/scraper/*
+!src-tauri/resources/scraper/.gitkeep
+
+# local scratch from the autonomous build loop, never shipped
+keep-building.sh
+keep-building.out
+docs/keep-building.out
+build-progress.log
+build-fix-prompt.md
+Screenshot*.png
+# leftover from the old loopback-sidecar design (Linux binary, 89 MB)
+src-tauri/binaries/

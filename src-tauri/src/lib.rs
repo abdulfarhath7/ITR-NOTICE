@@ -1,161 +1,254 @@
-//! The desktop shell. It owns three things and no more: the sidecar's
-//! lifetime, the OS keychain, and the window.
+mod claude;
+mod db;
+mod keychain;
+mod scraper;
 
-mod secrets;
-mod sidecar;
+use claude::{DraftAnswer, DueDateAnswer, Proxy};
+use db::{Draft, NoticeRow};
+use rusqlite::Connection;
+use scraper::Scraper;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Manager, State};
+use tokio::sync::Mutex as AsyncMutex;
 
-use serde::Serialize;
-use tauri::{Emitter, Manager, RunEvent, WindowEvent};
-
-use secrets::{SecretStatus, Slot};
-use sidecar::{BackendInfo, SidecarState};
-
-/// Pushed to the UI when the sidecar never came up, so the window can say what
-/// happened instead of sitting on a blank screen.
-#[derive(Clone, Serialize)]
-struct StartupFailure {
-    message: String,
+pub struct AppState {
+    db: Arc<Mutex<Connection>>,
+    scraper: AsyncMutex<Option<Scraper>>,
+    settings_path: std::path::PathBuf,
 }
 
-#[tauri::command]
-fn backend_info(state: tauri::State<'_, SidecarState>) -> Result<BackendInfo, String> {
-    if let Some(info) = state.info() {
-        return Ok(info);
+type R<T> = Result<T, String>;
+
+fn lock_db(state: &AppState) -> R<std::sync::MutexGuard<'_, Connection>> {
+    state.db.lock().map_err(|e| e.to_string())
+}
+
+// ------------------------------------------------------------ settings
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct Settings {
+    pub proxy_url: String,
+    /// Not persisted here - lives in the keychain. Present in the struct so
+    /// the settings form is one object in and out.
+    #[serde(default)]
+    pub firm_token: String,
+    pub remember_password: bool,
+    pub last_user_id: String,
+}
+
+fn read_settings(state: &AppState) -> Settings {
+    let mut s: Settings = std::fs::read_to_string(&state.settings_path)
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default();
+    if s.proxy_url.is_empty() {
+        s.proxy_url = "http://localhost:8787".into();
     }
-    Err(state
-        .failure()
-        .unwrap_or_else(|| "the backend is not running yet".to_string()))
+    s.firm_token = keychain::load_secret(keychain::FIRM_TOKEN).ok().flatten().unwrap_or_default();
+    s
 }
 
-/// Why the backend gave up, or `None` while it is still coming up.
-///
-/// The distinction matters: the webview loads and starts calling long before
-/// the health poll finishes, so "not ready yet" must never be mistaken for
-/// "failed". The failure event can also fire before the window has a listener,
-/// which is why it is recorded here rather than only emitted.
-#[tauri::command]
-fn backend_failure(state: tauri::State<'_, SidecarState>) -> Option<String> {
-    state.failure()
+fn write_settings(state: &AppState, settings: Settings) -> R<()> {
+    keychain::save_secret(keychain::FIRM_TOKEN, &settings.firm_token)?;
+    let on_disk = Settings { firm_token: String::new(), ..settings };
+    std::fs::write(&state.settings_path, serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn secret_status() -> SecretStatus {
-    secrets::status()
+fn get_settings(state: State<AppState>) -> R<Settings> {
+    Ok(read_settings(&state))
 }
 
 #[tauri::command]
-fn secret_set(slot: Slot, value: String) -> Result<(), String> {
-    secrets::set(slot, &value)
+fn save_settings(state: State<AppState>, settings: Settings) -> R<()> {
+    write_settings(&state, settings)
+}
+
+fn proxy(state: &AppState) -> R<Proxy> {
+    let s = read_settings(state);
+    if s.firm_token.is_empty() {
+        return Err("add your firm token in Settings first".into());
+    }
+    Ok(Proxy { base_url: s.proxy_url, firm_token: s.firm_token })
+}
+
+// ------------------------------------------------------------ archive
+
+#[tauri::command]
+fn list_notices(state: State<AppState>) -> R<Vec<NoticeRow>> {
+    let con = lock_db(&state)?;
+    db::list_notices(&con)
+}
+
+/// Base64 so the webview can build a blob: URL and show it in an <iframe>.
+#[tauri::command]
+fn get_notice_pdf(state: State<AppState>, ref_id: String) -> R<String> {
+    use base64::Engine;
+    let con = lock_db(&state)?;
+    let pdf = db::get_pdf(&con, &ref_id)?.ok_or("no PDF stored for this notice")?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(pdf))
 }
 
 #[tauri::command]
-fn secret_get(slot: Slot) -> Result<Option<String>, String> {
-    secrets::get(slot)
+fn get_draft(state: State<AppState>, ref_id: String) -> R<Option<Draft>> {
+    let con = lock_db(&state)?;
+    db::get_draft(&con, &ref_id)
 }
 
 #[tauri::command]
-fn secret_delete(slot: Slot) -> Result<(), String> {
-    secrets::delete(slot)
+fn save_draft_text(state: State<AppState>, ref_id: String, draft_text: String) -> R<()> {
+    let con = lock_db(&state)?;
+    db::update_draft_text(&con, &ref_id, &draft_text)
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+// ------------------------------------------------------------ credentials
+
+#[tauri::command]
+fn has_saved_password(user_id: String) -> R<bool> {
+    Ok(keychain::load_portal_password(&user_id)?.is_some())
+}
+
+#[tauri::command]
+fn forget_password(user_id: String) -> R<()> {
+    keychain::forget_portal_password(&user_id)
+}
+
+// ------------------------------------------------------------ portal
+
+async fn ensure_scraper(app: &AppHandle, state: &AppState) -> R<()> {
+    let mut guard = state.scraper.lock().await;
+    if guard.is_none() {
+        *guard = Some(Scraper::spawn(app.clone(), state.db.clone()).await?);
+    }
+    Ok(())
+}
+
+/// password = None means "use the one in the keychain".
+#[tauri::command]
+async fn portal_login(app: AppHandle, state: State<'_, AppState>, user_id: String,
+                      password: Option<String>, remember: bool) -> R<()> {
+    let pw = match password {
+        Some(p) if !p.is_empty() => {
+            if remember { keychain::save_portal_password(&user_id, &p)?; }
+            p
+        }
+        _ => keychain::load_portal_password(&user_id)?
+            .ok_or("no saved password for this user id - type it in")?,
+    };
+    // remember the user id (not secret) for next launch
+    let mut s = read_settings(&state);
+    s.last_user_id = user_id.clone();
+    s.remember_password = remember;
+    let _ = write_settings(&state, s);
+
+    ensure_scraper(&app, &state).await?;
+    let mut guard = state.scraper.lock().await;
+    guard.as_mut().unwrap()
+        .send(json!({"cmd": "login", "user_id": user_id, "password": pw})).await
+}
+
+#[tauri::command]
+async fn portal_otp(state: State<'_, AppState>, code: String) -> R<()> {
+    let mut guard = state.scraper.lock().await;
+    guard.as_mut().ok_or("not logged in")?.send(json!({"cmd": "otp", "code": code})).await
+}
+
+#[tauri::command]
+async fn portal_sync(state: State<'_, AppState>, limit: Option<u32>) -> R<()> {
+    let mut guard = state.scraper.lock().await;
+    guard.as_mut().ok_or("log in first")?.send(json!({"cmd": "sync", "limit": limit})).await
+}
+
+#[tauri::command]
+async fn portal_speed(state: State<'_, AppState>, seconds: f64) -> R<()> {
+    let mut guard = state.scraper.lock().await;
+    if let Some(s) = guard.as_mut() {
+        s.send(json!({"cmd": "speed", "seconds": seconds})).await?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn portal_stop(state: State<'_, AppState>) -> R<()> {
+    if let Some(s) = state.scraper.lock().await.take() {
+        s.stop().await;
+    }
+    Ok(())
+}
+
+// ------------------------------------------------------------ Claude
+
+#[tauri::command]
+async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> R<DueDateAnswer> {
+    let (row, pdf) = {
+        let con = lock_db(&state)?;
+        let row = db::get_notice(&con, &ref_id)?.ok_or("no such notice")?;
+        let pdf = db::get_pdf(&con, &ref_id)?;
+        (row, pdf)
+    };
+    // Cache rule from the web tool: a stored date is the truth. A portal
+    // date is never overwritten; a Claude date is never asked for twice.
+    if let Some(d) = row.due_date.clone() {
+        return Ok(DueDateAnswer { due_date: Some(d), basis: row.due_date_basis });
+    }
+    let pdf = pdf.ok_or("no PDF stored yet - run a sync first")?;
+    let ans = proxy(&state)?
+        .due_date(&ref_id, &pdf, row.issued_on.as_deref(), row.served_on.as_deref()).await?;
+    if let Some(d) = ans.due_date.as_deref() {
+        let con = lock_db(&state)?;
+        db::set_claude_due_date(&con, &ref_id, d, ans.basis.as_deref())?;
+    }
+    Ok(ans)
+}
+
+#[tauri::command]
+async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: bool) -> R<Draft> {
+    let (row, pdf, existing) = {
+        let con = lock_db(&state)?;
+        (db::get_notice(&con, &ref_id)?.ok_or("no such notice")?,
+         db::get_pdf(&con, &ref_id)?,
+         db::get_draft(&con, &ref_id)?)
+    };
+    if let (Some(d), false) = (existing, regenerate) {
+        return Ok(d);
+    }
+    let pdf = pdf.ok_or("no PDF stored yet - run a sync first")?;
+    let a: DraftAnswer = proxy(&state)?
+        .draft(&ref_id, &pdf, row.notice_us.as_deref(), row.assessee_name.as_deref(),
+               row.assessment_year.as_deref()).await?;
+    let d = Draft { ref_id: ref_id.clone(), generated_at: None,
+                    summary: a.summary, checklist: a.checklist, draft_text: a.draft_reply };
+    let con = lock_db(&state)?;
+    db::save_draft(&con, &d)?;
+    db::get_draft(&con, &ref_id)?.ok_or("draft vanished".into())
+}
+
+// ------------------------------------------------------------ setup
+
 pub fn run() {
-    let mut builder = tauri::Builder::default();
-
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {
-        // Registered first, so a second launch focuses this window instead of
-        // starting a second sidecar against the same database.
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }));
-        builder = builder.plugin(
-            // `targets` replaces the plugin's defaults, which already include a
-            // stdout writer - appending with `target` instead left every line
-            // printed twice in the terminal.
-            tauri_plugin_log::Builder::new()
-                .targets([
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                        file_name: None,
-                    }),
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stderr),
-                ])
-                .level(log::LevelFilter::Info)
-                .build(),
-        );
-    }
-
-    builder = builder
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_process::init());
-
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-    }
-
-    builder
-        .manage(SidecarState::default())
-        .invoke_handler(tauri::generate_handler![
-            backend_info,
-            backend_failure,
-            secret_status,
-            secret_set,
-            secret_get,
-            secret_delete,
-        ])
+    tauri::Builder::default()
         .setup(|app| {
-            let handle = app.handle().clone();
-            // The window is created hidden (tauri.conf.json). It is shown only
-            // once /health answers, so the first thing the user sees is a
-            // working app rather than a white rectangle.
-            tauri::async_runtime::spawn(async move {
-                let environment = secrets::environment();
-                match sidecar::start(&handle, environment).await {
-                    Ok(_) => {
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    Err(error) => {
-                        log::error!("sidecar failed to start: {error}");
-                        handle
-                            .state::<SidecarState>()
-                            .set_failure(error.to_string());
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                        let _ = handle.emit(
-                            "sidecar://failed",
-                            StartupFailure {
-                                message: error.to_string(),
-                            },
-                        );
-                    }
-                }
+            let data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&data_dir)?;
+            let key = keychain::db_key()?;
+            let con = db::open(&data_dir.join("archive.db"), &key)?;
+            app.manage(AppState {
+                db: Arc::new(Mutex::new(con)),
+                scraper: AsyncMutex::new(None),
+                settings_path: data_dir.join("settings.json"),
             });
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let WindowEvent::Destroyed = event {
-                window.app_handle().state::<SidecarState>().shutdown();
-            }
-        })
-        .build(tauri::generate_context!())
-        .expect("error while building the app")
-        .run(|handle, event| {
-            // Belt and braces: whichever way the app ends, the Python process
-            // ends with it. An orphaned sidecar holds the port and the browser.
-            if let RunEvent::ExitRequested { .. } | RunEvent::Exit = event {
-                handle.state::<SidecarState>().shutdown();
-            }
-        });
+        .invoke_handler(tauri::generate_handler![
+            get_settings, save_settings,
+            list_notices, get_notice_pdf, get_draft, save_draft_text,
+            has_saved_password, forget_password,
+            portal_login, portal_otp, portal_sync, portal_speed, portal_stop,
+            ask_due_date, draft_response,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running Notice Desk");
 }

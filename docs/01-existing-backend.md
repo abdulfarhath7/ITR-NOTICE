@@ -1,38 +1,33 @@
-# 01 · Existing backend — REUSE VERBATIM
+# 01 · The reused code
 
-The `app/` package is a working FastAPI service. **You ship it unchanged as a
-sidecar.** Do not rewrite it. This file is the map so you never need to re-read
-it wholesale.
+Two Python trees exist in this repo. Know which is which.
 
-## File map (Python, keep as-is)
-- `app/main.py` — FastAPI app. `APP_PASSWORD` signed-cookie auth middleware.
-  `EventHub` bridges the scraper → WebSocket. Owns all routes + `/ws`.
-  Portal credentials are held **in memory only** (typed in at runtime).
-- `app/config.py` — `Settings` from `.env`: `anthropic_api_key`, `app_password`,
-  `headless`, `hold_on_error`. Credentials are intentionally NOT here.
-- `app/db.py` — SQLite. Tables: `proceedings`, `notices` (PDF in `pdf_blob`),
-  `drafts` (`response_pdf` blob), `runs`. `init_db()` is idempotent with ALTER
-  migrations. **PDFs live in the DB, not on disk.**
-- `app/claude_client.py` — `anthropic.AsyncAnthropic`; `MODEL="claude-sonnet-4-6"`.
-  `due_date_from_pdf()` and `draft_from_pdf()` send the notice PDF as a document
-  block and return JSON. **The prompt text here is the product IP — do not edit.**
-- `app/portal/session.py` — `PortalSession` (login, `dismiss_security_popup`,
-  `pace_for` = Slow/Fast/Extreme pacing, `announce_phase`, `WrongPasswordError`).
-- `app/portal/scraper.py` — `run_sync()`: walks e-Proceedings
+## `sidecar/` — shipped
+The desktop app's child process.
+
+- `sidecar/app/portal/session.py` — `PortalSession`: login,
+  `dismiss_security_popup`, `pace_for` (the Slow/Fast/Extreme pacing),
+  `announce_phase`, `WrongPasswordError`.
+- `sidecar/app/portal/scraper.py` — `run_sync()`: walks e-Proceedings
   (self / other_pan / auth_rep × action / information), paginates, parses
-  proceedings + notices, downloads PDFs. **Fragile portal selectors — never
-  regenerate.**
-- `app/report.py` — builds the summary (filed / to-file / overdue) + Excel data.
-- `app/response_pdf.py` — renders draft text → PDF via `fpdf2`.
-- `app/static/` — the OLD vanilla-JS UI. Treat as a **spec** to re-implement in
-  React (see `03-api-contract.md`); do not keep it.
+  proceedings and notices, downloads PDFs. **Fragile portal selectors — never
+  regenerate them.**
+- `sidecar/app/db.py` — the scraper's own SQLite. In the desktop app this is a
+  **staging cache only**; the real record is the Rust-side encrypted archive.
+- `sidecar/app/config.py` — `HEADLESS`, `HOLD_ON_ERROR`, `DEBUG_DIR` from env.
+- `sidecar/notice_scraper.py` — the wrapper this port added: a JSON-lines
+  protocol on stdin/stdout, an `Events` object shaped like the web tool's hub,
+  and the handoff that pushes each committed notice (PDF included) to Rust and
+  scrubs the staging blob.
 
-## Runtime deps (already in requirements.txt)
-`fastapi`, `uvicorn[standard]`, `playwright`, `python-dotenv`, `anthropic`,
-`openpyxl`, `fpdf2`.
+`sidecar/app/portal/*` is byte-for-byte the web tool's `app/portal/*`. Keep the
+two copies identical; fix selectors in both.
 
-## The ONLY edits allowed to `app/`
-1. Add a tiny `GET /health` returning `{"ok":true}` for sidecar readiness.
-2. Add CORS allowing the Tauri app origin + `127.0.0.1` only.
-3. Read bind host/port and a shared auth token from env (injected by the shell).
-Everything else in `app/` is off-limits.
+## `app/` — reference only, not shipped
+The original FastAPI web tool: `main.py`, `db.py`, `claude_client.py`,
+`report.py`, `response_pdf.py`, `static/`. Nothing in the desktop build imports
+it. It stays as the origin of the automation and as a behavioural reference —
+`report.py` is what `src/lib/buckets.ts` was ported from, and
+`claude_client.py` is where the prompts in `proxy/main.py` came from.
+
+Do not "modernise" either tree. Touch `app/` only to keep `portal/` in step.

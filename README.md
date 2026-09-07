@@ -1,133 +1,114 @@
-# ITR notice tool
+# Notice Desk — desktop
 
-Logs into the income tax portal by itself, walks e-Proceedings, downloads
-every notice PDF, and shows them in one dashboard. Missing due dates get an
-"Ask Claude" button (build step 5).
+Income-tax notice tracking for CA firms. Tauri 2 shell, Rust core, React UI, the
+tested Playwright automation running as a bundled sidecar. Everything runs on
+the user's PC except one thing: the Claude drafting proxy.
 
-## Run on your machine (recommended for now)
+```
+┌─ Notice Desk.exe ────────────────────────────────────────────────┐
+│  React UI (WebView2)                                              │
+│      │ invoke / events                                            │
+│  Rust core ── SQLCipher archive.db ── Windows Credential Manager  │
+│      │ stdin/stdout JSON lines                                    │
+│  notice_scraper.exe (Python + Playwright + Chromium, bundled)     │
+└──────┬───────────────────────────────────────────────────────────┘
+       │ https, bearer token             ┌─────────────────────────┐
+       └────────────────────────────────►│ proxy/  (holds API key) │──► Claude
+                                         └─────────────────────────┘
+```
 
-    ./run.sh
+## What lives where
 
-That is the whole thing, first run and every run after. It builds the venv,
-installs the dependencies, downloads Chromium, creates .env, opens
-http://localhost:8000 in your browser and starts the server. Anything already
-done is skipped, so later runs start in about a second. Ctrl+C stops it.
+| Piece | Folder | Runs on |
+|---|---|---|
+| UI | `src/` | user's PC |
+| Rust core: encrypted archive, keychain, sidecar bridge, proxy client | `src-tauri/` | user's PC |
+| Portal automation (unchanged from the web tool) | `sidecar/app/portal/` | user's PC |
+| Sidecar wrapper (JSON-lines protocol) | `sidecar/notice_scraper.py` | user's PC |
+| Claude proxy (API key + prompts) | `proxy/` | **your server** |
 
-    RUN_DEV=1 ./run.sh          # same, plus uvicorn --reload
+## Build on Windows
 
-Hit "Sync". The Slow / Fast / Extreme buttons in the header set how long the
-browser waits before each action (1s / 0.25s / none). It applies immediately,
-even to a sync already running - press Slow to watch what it is doing, Extreme
-only for testing. The "Download at most" box next to it caps how many new PDFs
-that run fetches - handy for a quick test. Leave it blank for every notice.
-A capped run stops cleanly and the next Sync picks up where it left off. The dashboard asks for your portal user ID and password the
-first time; they are held in the server's memory for as long as it runs and
-are never written to disk. Restarting the
-server asks again, and the "Change login" link in the header forgets them.
-Keep HEADLESS=false in .env for the first runs so you can watch the browser.
+Prerequisites, once:
 
-Run the tests with:
+1. **Rust** — https://rustup.rs (MSVC toolchain)
+2. **Visual Studio Build Tools** with "Desktop development with C++"
+3. **Node.js 20+** and **Python 3.12**
+4. **WebView2** — already on Windows 10/11; the installer bootstraps it otherwise
 
-    python test_app.py
+Then, in order:
 
-## Run with Docker (laptop or AWS Lightsail, identical)
+```powershell
+# 1. Sidecar: Python + Playwright + Chromium -> src-tauri/resources/scraper/
+.\sidecar\build.ps1
 
-    cp .env.example .env        # no portal credentials in here
-    docker compose up -d        # dashboard on port 8000, log in through it
+# 2. UI deps
+npm ci
 
-## The dashboard
+# 3. Dev loop (hot reload, opens the app)
+npm run tauri dev
 
-Dark by default, light on the toggle. Ctrl/Cmd+K opens a command palette,
-`s` starts a sync, `/` jumps to the filter box. During a sync the "Live
-viewport" card shows what the browser is actually looking at, frame by frame -
-except on the login and OTP screens, which are never captured.
+# 4. Installer
+npm run tauri build
+#    -> src-tauri\target\release\bundle\nsis\Notice Desk_0.1.0_x64-setup.exe
+```
 
-## Summary and Excel
+No Windows PC? Push a tag (`git tag v0.1.0 && git push --tags`) and
+`.github/workflows/release.yml` builds the installer on GitHub's runner.
 
-"Position at a glance" sits above the table: the last run, then a row of
-chips - Overdue, Due <=3 days, Due <=10 days, On track, No due date yet, and
-Closed / responded counted apart. Click a chip and the table below shows only
-those notices; click it again to clear. Under it, "Attention - overdue & due
-within 3 days" is the short list someone has to act on today, and it says
-"Nothing overdue or critical." when there is none.
+## Run the proxy
 
-Only open proceedings get an urgency bucket. A closed one is counted on its
-own line, so a notice that has already been answered can never read as overdue.
+```bash
+cd proxy
+cp .env.example .env      # add ANTHROPIC_API_KEY and one FIRM_TOKENS entry per firm
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8787
+```
 
-"Export" in the header downloads the same report as a real workbook,
-`itr-summary-YYYY-MM-DD.xlsx`, with three sheets: Summary (the counts),
-Attention (the same short list) and All notices (the whole register, including
-whether each due date came from the portal or from Claude). It is behind the
-same password as everything else.
+In the app: Settings → drafting service address + firm token.
 
-## What is built vs pending
+## Gotchas that will actually bite
 
-- [x] Step 1  FastAPI skeleton + SQLite schema
-- [x] Step 2  Login: auto, secure-access checkbox, force-login (generic),
-              OTP relay via dashboard, 15-min proactive re-login,
-              wrong-password = hard stop (never retried)
-- [x] Step 3  Scraper structure: tabs x sub-tabs, notice fields, PDF download,
-              cache (never re-downloads a stored notice)
-- [x] Step 4  Minimal dashboard: sync, live log, OTP box, notices table
-- [x] Step 4b Access lock: APP_PASSWORD gates the dashboard, the API and the
-              WebSocket (leave it empty only on localhost)
-- [x] Step 4c Dashboard summary cards + year/name/missing-due-date filters
-- [x] Step 4d Preview a stored notice in the browser (Download unchanged)
-- [x] Step 5  Ask-Claude due date: "Ask Claude" on rows the portal left blank,
-              answer cached forever, basis shown as a tooltip
-- [x] Step 7  UI v2: dark-first design system, table-as-hero with countdown
-              chips, AI cards, command palette, live viewport, pipeline bar
-- [x] Step 6  Claude drafts a reply: summary, document checklist and an
-              editable draft in a side panel. Always a draft - this tool
-              never submits anything to the portal.
-- [x] Step 7  Live speed control: Slow / Fast / Extreme, applied to the next
-              browser action even mid-sync.
-- [x] Step 8  Notice PDFs are stored in the database itself, not in a folder
-              of files - back up data/itr.db and you have everything. The
-              browser's temp copy is deleted as soon as the bytes are in.
-- [x] Step 9  Row buttons: View (reads the PDF in the page), Save,
-              ✦ Date (asks Claude for a missing one) and Draft.
-- [x] Step 11 Dark-first theme: one accent gradient on Sync and Draft,
-              self-hosted Geist, countdown chips, light theme on a toggle.
-- [x] Step 12 Live viewport: watch the browser work, frame by frame, with
-              nothing captured while a password or OTP is on screen.
-- [x] Step 13 Pipeline bar over the log, and a Ctrl/Cmd+K command palette
-              (sync, theme, speed, filters, open any notice).
-- [x] Step 14 Reads whether a reply is already filed on the portal (from
-              which button the card shows - it never clicks either) and
-              shows it as a fourth dot on the row.
-- [x] Step 17 Notices are saved one at a time, so the table fills up while
-              the sync runs and a crash keeps everything already fetched -
-              the next Sync carries on from there.
-- [x] Step 16 The position report counts replies: a notice answered on the
-              portal is "Responded", never overdue, and the attention list
-              adds the notices with no due date at all.
-- [x] Step 15 The generated response is a document: View it in the page or
-              Save the PDF, and "Save edits" rewrites both the text and the
-              PDF so they never disagree. Every page is footed
-              "DRAFT - prepared for review. Not filed." 
-- [x] Step 14 Summary report: "Position at a glance" buckets that filter the
-              table, an attention list of what is overdue or due within three
-              days, and an Excel export (Summary / Attention / All notices).
-- [x] Step 10 Overview at the top: five stat cards (total, due this week,
-              missing date, docs saved, drafts ready), a one-line "Last sync"
-              (new notices, PDFs saved, already held; a failed run shows only
-              its status, reason in the tooltip) and a per-notice
-              PDF / date / draft dot checklist in the table.
+- **`PLAYWRIGHT_BROWSERS_PATH=0` must be set before `playwright install`.**
+  `build.ps1` does this. It puts Chromium *inside* the playwright package so
+  PyInstaller's `collect_all` sweeps it into the bundle. Skip it and the
+  installed app will say "Executable doesn't exist" on first login.
+- **The sidecar is a folder, not a single exe.** That is why it ships via
+  `bundle.resources`, not `externalBin` (which copies one file and would
+  separate `notice_scraper.exe` from its `_internal/`). `scraper.rs` looks in
+  the resource dir first, then `sidecar/dist/` for `tauri dev`.
+- **Program Files is read-only.** The archive, staging db and settings live in
+  `%APPDATA%\in.noticedesk.app\`. Never write next to the exe.
+- **Losing the Windows user profile loses the archive.** The SQLCipher key is
+  in Credential Manager; a backup story means exporting the key too. Say so
+  in onboarding.
+- **Blank window after `tauri dev`?** Set `app.security.csp` to `null` in
+  `tauri.conf.json` to confirm it is the CSP, then re-tighten. The shipped
+  policy allows `blob:` frames (the PDF viewer) and Tauri's IPC origin.
+- **First `cargo build` takes a while** (SQLCipher + OpenSSL compile from
+  source once). Later builds are incremental.
+- **Sign the installer** or every CA sees a SmartScreen warning. Any OV/EV
+  code-signing cert; set `bundle.windows.certificateThumbprint` in
+  `tauri.conf.json` or sign the `.exe` afterwards with `signtool`.
 
-## First-run note
+## How a sync flows
 
-The two card parsers in app/portal/scraper.py were written from screenshots,
-not the live DOM. Run once with HEADLESS=false, watch where it stumbles,
-paste the log + a screenshot back into the chat, and they get tightened.
+1. UI → `portal_login` → Rust spawns `notice_scraper.exe` and writes
+   `{"cmd":"login",...}` to its stdin.
+2. Sidecar drives the portal. When it needs an OTP it prints
+   `{"ev":"otp_required"}`; the UI shows the OTP box; `portal_otp` relays it.
+3. `portal_sync` → the sidecar walks e-Proceedings. Each notice it commits
+   triggers `events.notice_added()`, which emits `{"ev":"notice", ...,
+   "pdf_b64": ...}`.
+4. Rust writes the row and PDF into the encrypted archive and tells the UI.
+   The sidecar then overwrites its own staging copy of the PDF with a 1-byte
+   marker, so the scraper's "already fetched, skip" cache still works while
+   no real PDF sits unencrypted on disk.
 
-## Guardrails baked in
+## Where to change things
 
-- Never clicks Submit/Respond/Appeal - read-only by construction.
-- Never retries a rejected password (the portal locks accounts): the login is
-  dropped and the dashboard asks again.
-- The whole app sits behind APP_PASSWORD when that is set; unset, it warns
-  loudly at startup and stays open (fine on localhost, not on a public URL).
-- Portal credentials live in server memory only - not in .env, not in SQLite,
-  never logged, never returned by any endpoint. .env holds only the Anthropic
-  key and HEADLESS.
+- Bucket rules (overdue / due ≤3 / ≤10 …): `src/lib/buckets.ts` — a straight
+  port of `report.py`.
+- Prompts: `proxy/main.py` only. The desktop app never sees them.
+- Portal selectors: `sidecar/app/portal/session.py`, `scraper.py` — same files
+  as the web tool; fixes flow both ways.

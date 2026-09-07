@@ -1,155 +1,169 @@
-# QUESTIONS — decisions for the human (answered AFTER the build)
+# QUESTIONS — decisions for the human
 
 The agent never blocks on these: it builds with the "Default used" and logs the
-question here. Fill in `Your answer:` when you return; Pass 2 applies them.
+question here. Fill in `Your answer:` when you return; the next pass applies it.
+
+Rewritten 2026-09-04. Four questions from the previous list were settled by the
+rewrite itself and are marked `[RESOLVED]` with what the code now does; the rest
+carry over restated for the current design.
 
 ---
 
-## Q1 — Bundle identifier and publisher                      [OPEN]
-- Phase:          0
-- Question:       What identifier and publisher name should the Windows build ship under?
-- Why it matters: The identifier keys the install path, the app-data directory
-                  (where the database lives) and the update channel. Changing it
-                  after the first release orphans an installed user's data.
-- Default used:   `com.noticedesk.app`, publisher "Notice Desk", product name
-                  "Notice Desk" (`src-tauri/tauri.conf.json`).
-- Options:        A) keep it  B) your firm's reverse-domain id, e.g. `in.<firm>.noticedesk`
+## Q1 — Bundle identifier and publisher                      [RESOLVED]
+- Settled in code: `identifier` is `in.noticedesk.app`, product name
+  "Notice Desk" (`src-tauri/tauri.conf.json`). The keychain service name and
+  `%APPDATA%\in.noticedesk.app\` both follow it, so changing it after a release
+  orphans an installed user's archive *and* its encryption key.
+- Say so if you want a firm-specific id instead — it must change before the
+  first installer goes out, not after.
 - Your answer:
 
 ---
 
-## Q2 — Update feed location                                 [OPEN]
-- Phase:          5
-- Question:       Where does the updater manifest live?
-- Why it matters: The endpoint is compiled into the installer. It cannot be
-                  changed for machines already in the field except by an update
-                  that itself came from the old endpoint.
-- Default used:   GitHub Releases —
-                  `https://github.com/OWNER/REPO/releases/latest/download/latest.json`
-                  with `OWNER/REPO` left as a placeholder that must be filled
-                  before the first tag.
-- Options:        A) public GitHub Releases  B) a private static host you control
-                  C) no auto-update, manual installers only
+## Q2 — Shipping updates                                     [OPEN]
+- Question:       How does a firm get version 0.2.0?
+- Why it matters: The Tauri updater was removed in the rewrite. Today there is
+                  no update path at all: the NSIS installer is the only route,
+                  and every machine has to run it by hand.
+- Default used:   No updater. Tag a release, CI builds a draft release with the
+                  installer attached, you send the link.
+- Options:        A) keep it manual  B) re-add the Tauri updater (needs a
+                  signing key, a public feed URL, and both compiled into the
+                  installer *before* the first release)  C) an MSI/Intune push
+                  if the firms are managed
 - Your answer:
 
 ---
 
 ## Q3 — NSIS install mode                                    [OPEN]
-- Phase:          6
 - Question:       Per-user install, or machine-wide?
-- Why it matters: Per-user needs no admin prompt and keeps data under
-                  `%LOCALAPPDATA%`; machine-wide needs elevation but suits a
-                  shared office PC with several Windows logins.
+- Why it matters: Per-user needs no admin prompt and keeps the archive under the
+                  Windows profile; machine-wide needs elevation but suits a
+                  shared office PC with several logins. Note the archive key is
+                  per Windows user either way — a second login gets a second,
+                  empty archive.
 - Default used:   `currentUser` (no admin prompt).
 - Options:        A) currentUser  B) perMachine  C) both, user chooses
 - Your answer:
 
 ---
 
-## Q4 — Remembering the portal login                         [OPEN]
-- Phase:          3
-- Question:       Should the portal password ever be stored in the keychain?
-- Why it matters: The backend was written so the portal login exists in memory
-                  for one run and nowhere else. A keychain slot is safer than a
-                  file but still turns "typed each time" into "held on the
-                  machine".
-- Default used:   Slot exists in the Rust layer but the UI never offers the
-                  password — only the user ID — and nothing is stored unless the
-                  user fills it in. Default is "ask each time".
-- Options:        A) keep it off  B) offer it with a clear warning
-                  C) offer it and pre-fill the login form on start
+## Q4 — Remembering the portal password                      [OPEN]
+- Question:       Should "remember my password" stay in the connect dialog?
+- Why it matters: Ticking it writes the portal password into Windows Credential
+                  Manager under `portal:<PAN>`. Anything running as that Windows
+                  user can read it back. Unticked, it exists only for the run.
+- Default used:   Offered, off by default, and the app can log in without it.
+- Options:        A) keep it, off by default  B) remove the option entirely
+                  C) keep it and pre-fill the login form on launch
 - Your answer:
 
 ---
 
-## Q5 — Encrypting the archive                               [OPEN]
-- Phase:          4
-- Question:       Is SQLCipher worth an edit inside `app/db.py`?
-- Why it matters: The database holds every notice PDF and every draft. Today it
-                  is a plain file under app-data — readable by anything running
-                  as that user. Encrypting it requires changing the connection
-                  path in `app/db.py`, which the prime directives put off-limits,
-                  and there is no `pysqlcipher3` wheel for Windows.
-- Default used:   Plain SQLite, `TODO(sqlcipher)` in `run_backend.py` and a
-                  NOTES.md entry, per `docs/04` Phase 4's own escape hatch.
-- Options:        A) leave it plain  B) allow the `app/db.py` edit and ship
-                  SQLCipher  C) encrypt the whole app-data folder with
-                  Windows EFS / BitLocker instead
+## Q5 — Encrypting the archive                               [RESOLVED]
+- Settled in code: SQLCipher, via `rusqlite` with
+  `bundled-sqlcipher-vendored-openssl` (nothing to install on Windows). The key
+  is 32 random bytes generated on first launch and kept in Credential Manager.
+- The consequence to put in onboarding: **lose the Windows profile and the
+  archive is unrecoverable.** A backup story has to export the key too.
 - Your answer:
 
 ---
 
-## Q6 — The old web dashboard                                [OPEN]
-- Phase:          1
-- Question:       Should the sidecar keep serving `app/static/` at `/`?
-- Why it matters: It still works on the loopback port, so the old UI is one URL
-                  away — handy while comparing behaviour, but a second front
-                  door onto the same data, gated only by the app password.
-- Default used:   Left mounted (removing it would be an edit to `app/main.py`
-                  outside the whitelist).
-- Options:        A) leave it  B) drop the mount in a later pass
+## Q6 — The old web dashboard                                [RESOLVED]
+- Settled by the rewrite: the desktop app runs no HTTP server, so there is no
+  second front door. The legacy web tool still exists in `app/` for reference
+  and is not built or shipped.
 - Your answer:
 
 ---
 
 ## Q7 — What the window shows first                          [OPEN]
-- Phase:          2
-- Question:       Should the app start a sync by itself when it opens?
-- Why it matters: A CA arriving in the morning wants today's position. But a
-                  sync drives a real browser and can demand an OTP, so starting
+- Question:       Should the app connect or fetch by itself on launch?
+- Why it matters: A CA arriving in the morning wants today's position, but a
+                  fetch drives a real browser and can demand an OTP, so starting
                   one unasked is a surprise.
-- Default used:   Never sync automatically. The window opens on the stored
-                  register; Sync is always a deliberate click.
-- Options:        A) never  B) prompt "run a sync?" on open
-                  C) auto-sync if the last run is older than N hours
+- Default used:   Never. The window opens on the stored register; Connect and
+                  Fetch are always deliberate clicks.
+- Options:        A) never  B) prompt "fetch now?" on open  C) auto-fetch if the
+                  last run is older than N hours
 - Your answer:
 
 ---
 
-## Q8 — Pinning the backend's Python dependencies         [OPEN]
-- Phase:          6
-- Question:       Which versions should a release build freeze?
-- Why it matters: `requirements.txt` pins nothing, so every tag would bake
-                  whatever PyPI served that morning into a code-signed
-                  installer — including a Playwright whose portal selectors
-                  behave differently.
-- Default used:   Nothing invented. CI installs `requirements.lock.txt` when it
-                  exists and prints a loud warning when it does not.
-                  Generate it with `pip freeze > requirements.lock.txt` on the
-                  machine where the scraper is known to work.
+## Q8 — Pinning the sidecar's Python dependencies            [OPEN]
+- Question:       Which versions should a release freeze?
+- Why it matters: `sidecar/requirements.txt` is three unpinned lines. Playwright
+                  in particular decides which Chromium ships and how the portal
+                  selectors behave, so every tag currently bakes whatever PyPI
+                  served that morning into a signed installer.
+- Default used:   Nothing invented. CI installs `sidecar/requirements.lock.txt`
+                  when it exists and warns loudly when it does not. Generate it
+                  with `pip freeze > sidecar/requirements.lock.txt` on a machine
+                  where a sync is known to work.
 - Options:        A) commit a lock file from a known-good machine
-                  B) pin `==` versions in requirements.txt itself
-                  C) leave it floating and accept the risk
+                  B) pin `==` versions in `requirements.txt` itself
+                  C) leave it floating
 - Your answer:
 
 ---
 
-## Q9 — The Windows code-signing certificate               [OPEN]
-- Phase:          6
+## Q9 — The Windows code-signing certificate                 [OPEN]
 - Question:       Do you have an Authenticode certificate, and where does it live?
-- Why it matters: Without one, Windows SmartScreen warns every user on every
-                  install, and the app is indistinguishable from something
-                  downloaded off a forum. The CI job imports a base64 PFX from
-                  `WINDOWS_CERT` and writes its thumbprint into the bundle
-                  config; with no secret set, the step is skipped and the
-                  release is unsigned but still builds.
-- Default used:   Skip signing when `WINDOWS_CERT` is empty.
+- Why it matters: Without one, SmartScreen warns every CA on every install. CI
+                  imports a base64 PFX from `WINDOWS_CERT`, writes its thumbprint
+                  into the bundle config, and skips the whole step when the
+                  secret is empty.
+- Default used:   Skip signing when `WINDOWS_CERT` is empty; the installer still
+                  builds, unsigned.
 - Options:        A) buy an OV/EV certificate and add the two secrets
-                  B) ship unsigned and accept the SmartScreen warning
-                  C) sign through a service (Azure Trusted Signing / SignPath)
+                  B) ship unsigned  C) sign through a service (Azure Trusted
+                  Signing / SignPath)
 - Your answer:
 
 ---
 
-## Q10 — When to offer an update                           [OPEN]
+## Q10 — Where the proxy runs, and how firms get a token     [OPEN]
 - Phase:          5
-- Question:       Should the app check for updates on every launch?
-- Why it matters: It checks once at start-up and shows a banner; installing
-                  relaunches the app, which would be rude mid-sync. There is
-                  currently nothing stopping the user pressing it during a run.
-- Default used:   Check on launch, offer a banner, never install unprompted.
-- Options:        A) keep it  B) also refuse to install while a sync is running
-                  C) check on a timer as well  D) manual "check for updates" only
+- Question:       Which host serves `proxy/main.py`, and how does a firm's token
+                  reach the firm?
+- Why it matters: This is the only always-on piece and the only thing holding
+                  your Anthropic key. Its URL is typed into every install's
+                  Settings, so moving it later means touching every machine.
+                  `FIRM_TOKENS` is a comma-separated env var, which means adding
+                  a firm is a redeploy and revoking one is the same.
+- Default used:   `http://localhost:8787` in Settings, tokens by hand in `.env`.
+                  Nothing is deployed.
+- Options:        A) one small VM with TLS and a stable hostname
+                  B) a container platform (Fly/Render/Cloud Run)
+                  C) tokens issued from a real store instead of an env var, once
+                  there is more than a handful of firms
 - Your answer:
 
 ---
+
+## Q11 — Metering and abuse                                  [OPEN]
+- Phase:          5
+- Question:       Should the proxy count or cap what a firm spends?
+- Why it matters: One token, no rate limit, 16k-token drafts with adaptive
+                  thinking, PDFs up to 25 MB — a leaked token bills you until
+                  you notice. The code has the seam (`firm()` returns the token)
+                  and no counter.
+- Default used:   No metering, no cap.
+- Options:        A) log per-firm token counts  B) a hard monthly cap per firm
+                  C) leave it, revoke by redeploy if it ever happens
+- Your answer:
+
+---
+
+## Q12 — The legacy web tool in `app/`                       [OPEN]
+- Question:       Keep `app/`, `run.sh`, `test_app.py`, `Dockerfile` in this repo?
+- Why it matters: `app/portal/*` is the origin of the sidecar's copy and the two
+                  must not drift. Keeping it makes the diff obvious; splitting
+                  the repos makes the desktop build smaller and stops anyone
+                  running the old dashboard against real data by accident.
+- Default used:   Kept, untouched, not built by anything.
+- Options:        A) keep it  B) move it to its own repo and vendor
+                  `sidecar/app/portal` from there  C) delete it once the desktop
+                  app has run a real sync
+- Your answer:

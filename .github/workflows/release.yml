@@ -1,6 +1,6 @@
-# Windows is the only shipping target (docs/00, docs/07). Never cross-compile
-# it from Linux: the sidecar is a PyInstaller binary and has to be frozen on
-# the same OS it will run on.
+# Windows is the only shipping target (docs/00, docs/07). Never cross-compile it
+# from Linux: the sidecar is a PyInstaller binary and has to be frozen on the
+# same OS it will run on.
 name: release
 
 on:
@@ -18,29 +18,26 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
 
-      # Signing and auto-update are both optional. Which of them this build can
-      # do is decided once, here, because `secrets` cannot be read from a step
-      # `if:` - only from a step's own `env`.
-      - name: Which optional secrets are set
+      # Code signing is optional. Whether this build can do it is decided once,
+      # here, because `secrets` cannot be read from a step `if:` - only from a
+      # step's own `env`.
+      - name: Is a signing certificate available
         id: flags
         shell: pwsh
         env:
           WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
           $sign = if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERT)) { 'no' } else { 'yes' }
-          $updater = if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { 'no' } else { 'yes' }
           "sign=$sign" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "updater=$updater" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "code signing: $sign, updater artifacts: $updater"
+          Write-Host "code signing: $sign"
 
-      # The bundle version is what the updater compares; the tag is what the
-      # release is named. They must not drift apart silently.
+      # The tag names the release; tauri.conf.json names the app version. They
+      # must not drift apart silently.
       - name: Tag matches the bundle version
         shell: pwsh
         run: |
@@ -51,65 +48,44 @@ jobs:
           }
 
       # ---------------------------------------------------------- sidecar
+      # build.ps1 does the whole thing: venv, PLAYWRIGHT_BROWSERS_PATH=0 so
+      # Chromium lands inside the playwright package, `playwright install`,
+      # PyInstaller, then a copy into src-tauri/resources/scraper. It prefers
+      # sidecar/requirements.lock.txt and warns when there is none (Q8).
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
-      # A signed installer should not be built from whatever PyPI served that
-      # morning. requirements.lock.txt (pip freeze from a machine the app is
-      # known to work on) wins when it exists; see NOTES.md.
-      - name: Install backend dependencies
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          if (Test-Path requirements.lock.txt) {
-            pip install -r requirements.lock.txt
-          } else {
-            Write-Host "::warning::no requirements.lock.txt - building against unpinned dependencies"
-            pip install -r requirements.txt
-          }
-          pip install pyinstaller==6.11.1
-
-      # Playwright's package data (its node driver) is what PyInstaller
-      # collects; the browser itself is downloaded on first run, not bundled.
-      - name: Install the Playwright driver
-        run: python -m playwright install-deps chromium || echo "no-op on windows"
-
-      - uses: dtolnay/rust-toolchain@stable
-
       - name: Build the sidecar
-        run: python packaging/build_sidecar.py
+        shell: pwsh
+        run: .\sidecar\build.ps1
 
+      # A missing sidecar does not fail the Tauri build - it fails the app at
+      # first login, on the user's machine. Catch it here instead.
       - name: Check the sidecar landed
         shell: pwsh
-        run: Get-ChildItem src-tauri/binaries
+        run: |
+          $exe = "src-tauri/resources/scraper/notice_scraper.exe"
+          if (-not (Test-Path $exe)) { throw "$exe is missing - the freeze failed" }
+          $size = [math]::Round((Get-ChildItem src-tauri/resources/scraper -Recurse |
+                                 Measure-Object Length -Sum).Sum / 1MB)
+          Write-Host "sidecar is $size MB"
+          if ($size -lt 100) { throw "sidecar is only $size MB - Chromium is probably not in it" }
 
       # ------------------------------------------------------------- app
-      # No `version:` here on purpose - package.json's `packageManager` field is
-      # the single source of truth, and naming it twice is an error.
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+          cache: npm
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      # An updater artifact cannot be produced without the signing key, and a
-      # missing key should not stop the first installer from being built. The
-      # release is then simply not auto-updatable - see NOTES.md.
-      - name: Drop updater artifacts when there is no signing key
-        if: steps.flags.outputs.updater == 'no'
-        shell: pwsh
-        run: |
-          Write-Host "::warning::TAURI_SIGNING_PRIVATE_KEY is not set - building an installer that cannot auto-update"
-          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
-          $config.bundle | Add-Member -Force -NotePropertyName createUpdaterArtifacts -NotePropertyValue $false
-          $config | ConvertTo-Json -Depth 32 | Set-Content src-tauri/tauri.conf.json
+      - uses: dtolnay/rust-toolchain@stable
 
+      # The first build compiles SQLCipher and OpenSSL from source. Cache it or
+      # every release pays for that again.
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -135,27 +111,23 @@ jobs:
           $config | ConvertTo-Json -Depth 32 | Set-Content src-tauri/tauri.conf.json
           Write-Host "certificate imported"
 
-      # ------------------------------------------------- build + sign + ship
-      # tauri-action builds the NSIS installer, signs the updater artifacts
-      # with TAURI_SIGNING_PRIVATE_KEY, and creates the draft release.
+      # ------------------------------------------------------ build + ship
+      # NSIS only. There is no updater in this app (QUESTIONS.md Q2), so no
+      # signing key, no updater artifacts and no latest.json.
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: "Notice Desk ${{ github.event.inputs.tag || github.ref_name }}"
-          releaseBody: "See the assets below. The installer is NSIS; every update after it is silent."
+          releaseBody: "Windows installer below. Run it on the CA's machine; the archive it creates is encrypted to that Windows profile."
           releaseDraft: true
           prerelease: false
-          args: ${{ steps.flags.outputs.updater == 'yes' && '--bundles nsis,updater' || '--bundles nsis' }}
+          args: --bundles nsis
 
       - name: Upload the installer as a build artifact
         uses: actions/upload-artifact@v4
         with:
           name: notice-desk-windows
-          path: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.sig
+          path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
