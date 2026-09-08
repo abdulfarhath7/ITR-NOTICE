@@ -34,7 +34,7 @@ React (WebView2)  --invoke()-->  Rust core  --stdin/stdout JSON-->  notice_scrap
   OpenSSL from source. Expect it to be slow, and expect it to need Perl (and
   NASM) on the build machine; GitHub's `windows-latest` image ships both.
 - Key: 32 random bytes, hex, generated on first launch, stored in Credential
-  Manager as `in.noticedesk.app / archive-key`. **Lose the Windows profile and
+  Manager as `in.llc.app / archive-key`. **Lose the Windows profile and
   the archive is unreadable.** Any backup story has to export the key too.
 - `PRAGMA key = "x'<hex>'"` is issued as the first statement, raw-key form so no
   KDF runs. The schema is then touched on the same connection, so a wrong key
@@ -138,7 +138,7 @@ pnpm) because CI runs `npm ci`.
    the end, and that the PDF opens in the drawer.
 4. Settings → proxy URL + firm token → a notice with no due date → "Ask Claude".
 5. Close the app from the taskbar; confirm no `notice_scraper.exe` survives.
-6. `%APPDATA%\in.noticedesk.app\archive.db` — open it with plain `sqlite3`. It
+6. `%APPDATA%\in.llc.app\archive.db` — open it with plain `sqlite3`. It
    must refuse. That is the encryption working.
 
 ## First `cargo check` (Linux dev host, 2026-09-04)
@@ -164,8 +164,8 @@ in CI is the one that matters and has never run.
 ## First green Windows CI run (2026-09-07)
 Tag `v0.1.1`, run 34102102136, 24 minutes end to end. The MSVC build of
 SQLCipher + OpenSSL compiles clean, the sidecar freezes with Chromium inside,
-and NSIS produces `Notice Desk_0.1.1_x64-setup.exe` (246 MB). The draft
-release and the `notice-desk-windows` artifact both carry it.
+and NSIS produces `Litigation Command Center_0.1.1_x64-setup.exe` (246 MB). The draft
+release and the `llc-windows` artifact both carry it.
 
 One fix was needed first: a stale `pnpm-lock.yaml` from the old design was
 still tracked, and `tauri-action` picks its package manager from the first
@@ -300,3 +300,61 @@ Two bugs found and fixed that way, both worth remembering: `startSync` read
 bounced straight back to the login card (the ref is now written by hand in that
 branch); and the login card stayed on screen behind the OTP card, because it was
 only hidden on `login_ok` rather than when the login was sent.
+
+## The rename to LLC, and the UI it now wears (2026-09-08)
+
+The product is **Litigation Command Center**, brand short form **LLC**. Every
+occurrence of "Notice Desk" / "ITR notice tool" / `notice-desk` / `notice_desk`
+/ `noticedesk` in the shipping app, the docs and CI was renamed in one pass.
+What actually changed identity, rather than just wording:
+
+| Thing | Was | Is |
+|---|---|---|
+| Tauri `productName` / window title | Notice Desk | Litigation Command Center |
+| Tauri `identifier` | `in.noticedesk.app` | `in.llc.app` |
+| npm package | `notice-desk` | `llc` |
+| Cargo package / lib | `notice-desk` / `notice_desk_lib` | `llc` / `llc_lib` |
+| keychain service (`keychain.rs`) | `in.noticedesk.app` | `in.llc.app` |
+| localStorage keys | `notice-desk.theme`, `notice-desk.last-run` | `llc.theme`, `llc.last-run` |
+| Excel export | `notice-desk-<date>.xlsx` | `llc-<date>.xlsx` |
+| CI artefact | `notice-desk-windows` | `llc-windows` |
+
+**The identifier change orphans any existing install.** `%APPDATA%\in.llc.app\`
+is a new, empty folder, and the archive key lives under a new Credential
+Manager service, so a machine that ran the old build keeps its `archive.db`
+where the new build will never look. No migration was written — see Q16. Only
+the v0.1.1 CI artefact exists, and nobody has data in it.
+
+`app/` (the legacy web tool) was deliberately **not** renamed. It is the frozen
+reference implementation, and `app/portal/*` must stay byte-for-byte identical
+to `sidecar/app/portal/*` (prime directive 1). Renaming comments in it would
+break that comparison for no gain.
+
+### The UI
+
+`src/styles.css` was rewritten end to end as a command-centre design system —
+ink ground with a fixed three-stop plasma bloom and a masked grid behind
+everything, smoked-glass panels, one plasma ramp (`#5765f0 → #8b5cf6 →
+#22d3ee`) for everything the app does, and colour otherwise reserved for a
+deadline talking. Both themes are real: light is paper with the same hues
+darkened, not an inversion. Every animation sits behind
+`prefers-reduced-motion: no-preference`.
+
+Component changes were kept to markup, never behaviour:
+
+- `Header.tsx` — hexagon LLC mark + wordmark, the state light became a pill
+  ("locked", "syncing", "clear"), and Sync carries an icon.
+- `Overview.tsx` — the five counters became lit cards with a line icon and a
+  tone bar; the last-sync line moved up into a "Situation" rail head.
+- `Watch.tsx` — corner brackets and scanlines on the viewport, and the run log
+  now renders one `<div class="logline">` per line so failures are red and
+  milestones green (`lineTone()`); it used to be one joined string.
+- `Report.tsx` / `Notices.tsx` / `Gates.tsx` — micro-cap eyebrows over each
+  section, and the notice count moved into the register's header.
+- `packaging/make_icons.py` — new mark: the plasma hexagon inside the viewport's
+  corner brackets, on ink. Still placeholder-grade; commission real artwork
+  before shipping.
+
+Verified with `tsc && vite build` (clean) and by driving the dev server under
+Playwright — dark and light, empty and populated, plus the command palette and
+the draft drawer. The Rust side was not rebuilt on this box.

@@ -95,6 +95,18 @@ so its `url('/fonts/…')` rules did not have to change.
 - [ ] `requirements.lock.txt` for the sidecar (Q8)
 - [ ] Code-signing certificate (Q9)
 
+## Phase 7 · Brand + UI (2026-09-08)
+- [x] Renamed to Litigation Command Center / LLC across app, docs and CI
+- [x] `identifier`, keychain service, npm/Cargo package names, storage keys
+- [x] `src/styles.css` rewritten as the command-centre design system
+- [x] Header, Overview, Watch, Report, Notices, Gates re-marked up for it
+- [x] Colour-graded run log (`lineTone`)
+- [x] New app icon — plasma hexagon in viewport brackets (`make_icons.py`)
+- [x] `tsc && vite build` clean; dark + light verified under Playwright
+- [ ] Real artwork for the icon, not the generated placeholder
+- [ ] Decide "LLC" vs a name that does not collide with "limited liability
+      company" (Q16), and whether the old `%APPDATA%` needs a migration
+
 ## Housekeeping
 - [x] README rewritten for the current architecture
 - [x] `docs/` rewritten for the current architecture
