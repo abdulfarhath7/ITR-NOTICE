@@ -44,6 +44,7 @@ export default function Report(p: ReportProps) {
   return (
     <section className="card report">
       <div className="pad">
+        <p className="eyebrow">Docket status</p>
         <h2 className="rtitle">Position at a glance</h2>
         <p className="mut runline">
           {run?.finished

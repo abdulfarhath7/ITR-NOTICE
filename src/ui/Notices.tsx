@@ -88,6 +88,14 @@ export default function Notices(p: NoticesProps) {
 
   return (
     <div className="card">
+      <div className="pad" style={{ paddingBottom: 0 }}>
+        <p className="eyebrow">Register</p>
+        <div className="sectionhead">
+          <h2 className="title">Every notice held</h2>
+          <span className="grow" />
+          <span className="mut mono">{count}</span>
+        </div>
+      </div>
       <div className="filters">
         <label>Assessment year
           <select value={p.ay} onChange={(e) => p.onAy(e.target.value)}>
@@ -103,7 +111,6 @@ export default function Notices(p: NoticesProps) {
           <input type="checkbox" checked={p.noDue} onChange={(e) => p.onNoDue(e.target.checked)} />
           {" "}Missing due date only
         </label>
-        <span className="mut" style={{ marginLeft: "auto" }}>{count}</span>
       </div>
 
       <div className="tablewrap">

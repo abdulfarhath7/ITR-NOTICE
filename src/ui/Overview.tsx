@@ -1,17 +1,35 @@
-/** The five metric cards and the one-line last-sync note.
+/** The situation rail: five counters and the one-line last-sync note.
  *
  * Counted over everything the account holds - never over the filtered view,
  * which would make the filters look like they changed the facts. */
+import type { ReactNode } from "react";
 import { dueInDays, relTime } from "../lib/format";
 import type { LastRun } from "../lib/summary";
 import type { NoticeRow } from "../lib/types";
 
-function Stat({ tone, value, label }: { tone?: string; value: number | null; label: string }) {
+/** 16px line icons, one per counter. They are decoration for the number, so
+ *  they carry no label of their own. */
+const I = {
+  stack: <><path d="M3 7l9-4 9 4-9 4-9-4Z" /><path d="M3 12l9 4 9-4" /><path d="M3 17l9 4 9-4" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" /></>,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.2 9.3a2.9 2.9 0 1 1 3.6 3.4v1.4" /><path d="M12.8 17.4h-.01" /></>,
+  file: <><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" /></>,
+  pen: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" /></>,
+};
+
+function Stat({ tone, value, label, icon }: {
+  tone?: string; value: number | null; label: string; icon: ReactNode;
+}) {
   const zero = value === 0 ? " zero" : "";
   return (
     <div className={"stat" + (tone ? ` ${tone}` : "") + zero}>
+      <span className="ico" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
+      </span>
       <div className="n">{value === null ? "—" : value}</div>
       <div className="k">{label}</div>
+      <span className="bar" aria-hidden="true" />
     </div>
   );
 }
@@ -47,14 +65,20 @@ export default function Overview({ rows, loading, run }: {
 
   return (
     <section className="overview">
-      <div className="stats">
-        <Stat value={n(rows.length)} label="Total notices" />
-        <Stat value={n(week)} label="Due this week" />
-        <Stat tone="warn" value={n(rows.filter((r) => !r.due_date).length)} label="Missing date" />
-        <Stat value={n(rows.filter((r) => r.has_pdf).length)} label="Docs saved" />
-        <Stat tone="ok" value={n(rows.filter((r) => r.has_draft).length)} label="Drafts ready" />
+      <div className="railhead">
+        <span className="eyebrow">Situation</span>
+        <span className="rule" aria-hidden="true" />
+        <LastSync run={run} />
       </div>
-      <LastSync run={run} />
+      <div className="stats">
+        <Stat value={n(rows.length)} label="Total notices" icon={I.stack} />
+        <Stat value={n(week)} label="Due this week" icon={I.clock} />
+        <Stat tone="warn" value={n(rows.filter((r) => !r.due_date).length)}
+              label="Missing date" icon={I.help} />
+        <Stat value={n(rows.filter((r) => r.has_pdf).length)} label="Docs saved" icon={I.file} />
+        <Stat tone="ok" value={n(rows.filter((r) => r.has_draft).length)}
+              label="Drafts ready" icon={I.pen} />
+      </div>
     </section>
   );
 }

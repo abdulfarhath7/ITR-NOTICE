@@ -119,6 +119,17 @@ export interface WatchProps {
   log: string[];
 }
 
+/** The log is one stream of plain sentences; a colour per line is what makes
+ *  a failure findable in it. Three tones only - trouble, a milestone, and the
+ *  app itself acting - so the panel never turns into a rainbow. */
+function lineTone(line: string): string {
+  const t = line.trim();
+  if (t.startsWith("!") || /^error/i.test(t) || /failed|error/i.test(t)) return "err";
+  if (/logged in|done|saved|finished|\u2713/i.test(t)) return "ok";
+  if (/^(sync|login|downloading|opening|walking)/i.test(t)) return "act";
+  return "";
+}
+
 export default function Watch(p: WatchProps) {
   const logRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -132,10 +143,11 @@ export default function Watch(p: WatchProps) {
                open={p.open} onToggle={(e) => p.onOpen((e.currentTarget as HTMLDetailsElement).open)}>
         <summary>
           <span className="rec"><i />REC</span>
-          <strong style={{ fontSize: 13 }}>Live viewport</strong>
+          <span className="label">Live viewport</span>
           <span className="mut">{p.hint}</span>
         </summary>
         <div className="screen">
+          <span className="brackets" aria-hidden="true" />
           {p.loginPhase
             ? <LoginStage phase={p.loginPhase} waiting={p.phaseWaiting} />
             : p.frame
@@ -150,7 +162,11 @@ export default function Watch(p: WatchProps) {
 
       <div className="card runlog">
         <Pipeline stage={p.stage} counts={p.counts} />
-        <div id="log" ref={logRef}>{p.log.join("\n")}</div>
+        <div id="log" ref={logRef}>
+          {p.log.map((line, i) => (
+            <div key={i} className={"logline " + lineTone(line)}>{line}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -21,8 +21,11 @@ export function CredsGate(p: CredsGateProps) {
 
   return (
     <div className={"card gate pad" + (p.show ? " show" : "")}>
-      <p className="mut" style={{ color: "var(--danger)" }}>{p.error}</p>
-      <strong>Portal login</strong>
+      <p className="err">{p.error}</p>
+      <div className="gatehead">
+        <span className="eyebrow">Access</span>
+        <strong>Portal login</strong>
+      </div>
       <p className="mut" style={{ margin: "6px 0 12px" }}>
         Held in the OS keychain only when you ask for it &mdash; never written beside
         the archive. Without &ldquo;remember&rdquo;, closing the app asks again.
@@ -71,7 +74,10 @@ export function OtpGate(p: OtpGateProps) {
 
   return (
     <div className={"card gate pad" + (p.show ? " show" : "")}>
-      <strong>Portal is asking for an OTP</strong>
+      <div className="gatehead">
+        <span className="eyebrow">Verify</span>
+        <strong>Portal is asking for an OTP</strong>
+      </div>
       <div className="filters" style={{ padding: "8px 0 0" }}>
         <input ref={box} inputMode="numeric" maxLength={6} placeholder="6 digits"
                aria-label="One time password" style={{ width: 130, letterSpacing: "3px" }}
