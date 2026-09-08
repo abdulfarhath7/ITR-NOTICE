@@ -1,53 +1,85 @@
-"""Regenerate the placeholder app icon.
+"""Regenerate the app icon.
 
     python packaging/make_icons.py
 
-A sheet of paper with a folded corner and one red deadline dot, on the
-product's own gradient. Replace with real artwork before shipping - this exists
-so the bundle has every size Tauri and NSIS ask for.
+The LLC mark: the plasma hexagon from the header, sitting on ink, framed by
+the same two corner brackets the live viewport draws around a frame. No text -
+at 32px a wordmark is mud, and the hexagon is what the header shows anyway.
+Replace with commissioned artwork before shipping; this exists so the bundle
+has every size Tauri and NSIS ask for.
 """
+import math
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 OUT = Path(__file__).resolve().parent.parent / "src-tauri" / "icons"
 SIZE = 1024
-FROM, TO = (91, 99, 240), (139, 92, 246)     # the one gradient, 135deg
+
+INK = (10, 12, 20, 255)          # the app's ground
+STOPS = [(87, 101, 240), (139, 92, 246), (34, 211, 238)]   # the 120deg plasma
 
 
 def lerp(a, b, t):
     return tuple(round(x + (y - x) * t) for x, y in zip(a, b))
 
 
+def ramp(t: float):
+    """The three-stop plasma, sampled at 0..1."""
+    if t <= 0.5:
+        return lerp(STOPS[0], STOPS[1], t / 0.5)
+    return lerp(STOPS[1], STOPS[2], (t - 0.5) / 0.5)
+
+
+def hexagon(cx, cy, r):
+    """Flat-top-down hexagon, the same one the header mark is clipped to."""
+    return [(cx + r * math.sin(math.radians(a)), cy - r * math.cos(math.radians(a)))
+            for a in range(0, 360, 60)]
+
+
 def render(size: int = SIZE) -> Image.Image:
+    u = size / 1024
+
+    # ink tile, rounded the way Windows likes it
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    plate = Image.new("RGBA", (size, size), INK)
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, size - 1, size - 1], radius=int(size * 0.22), fill=255)
+    img.paste(plate, (0, 0), mask)
+
+    # the bloom behind the mark, so the tile is lit rather than flat
+    bloom = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(bloom)
+    bd.ellipse([size * .12, size * .04, size * .96, size * .88], fill=(87, 101, 240, 120))
+    bloom = bloom.filter(ImageFilter.GaussianBlur(size * .13))
+    img.alpha_composite(Image.composite(bloom, Image.new("RGBA", (size, size), (0, 0, 0, 0)), mask))
+
+    # The plasma, painted once and cut to the hexagon. The ramp is sampled
+    # across the hexagon's own box, not the tile's, so all three stops - the
+    # cyan included - actually land inside the shape.
+    r = 272 * u
+    cx = cy = size / 2
+    lo, span = cx - r, 2 * r
     grad = Image.new("RGBA", (size, size))
     px = grad.load()
     for y in range(size):
         for x in range(size):
-            px[x, y] = (*lerp(FROM, TO, (x + y) / (2 * size - 2)), 255)
-    mask = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(
-        [0, 0, size - 1, size - 1], radius=int(size * 0.22), fill=255)
-    img.paste(grad, (0, 0), mask)
+            t = ((x - lo) * .62 + (y - lo) * .38) / span
+            px[x, y] = (*ramp(min(1.0, max(0.0, t))), 255)
+    hexmask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(hexmask).polygon(hexagon(cx, cy, r), fill=255)
+    img.paste(grad, (0, 0), hexmask)
 
+    # the two corner brackets, straight off the live viewport
     draw = ImageDraw.Draw(img)
-    u = size / 1024
-    left, top, right, bottom = 300 * u, 232 * u, 724 * u, 792 * u
-    fold = 132 * u
-    draw.polygon(
-        [(left, top), (right - fold, top), (right, top + fold),
-         (right, bottom), (left, bottom)],
-        fill=(255, 255, 255, 240))
-    draw.polygon([(right - fold, top), (right, top + fold), (right - fold, top + fold)],
-                 fill=(226, 228, 246, 255))
-    for i, width in enumerate((0.62, 0.62, 0.36)):
-        y = top + (196 + i * 96) * u
-        draw.rounded_rectangle(
-            [left + 64 * u, y, left + 64 * u + (right - left - 128 * u) * width, y + 34 * u],
-            radius=17 * u, fill=(139, 141, 152, 255))
-    draw.ellipse([right - 150 * u, bottom - 150 * u, right - 46 * u, bottom - 46 * u],
-                 fill=(239, 68, 68, 255))
+    arm, w, pad, rad = 132 * u, 30 * u, 140 * u, 15 * u
+    white = (255, 255, 255, 235)
+    draw.rounded_rectangle([pad, pad, pad + arm, pad + w], radius=rad, fill=white)
+    draw.rounded_rectangle([pad, pad, pad + w, pad + arm], radius=rad, fill=white)
+    far = size - pad
+    draw.rounded_rectangle([far - arm, far - w, far, far], radius=rad, fill=white)
+    draw.rounded_rectangle([far - w, far - arm, far, far], radius=rad, fill=white)
     return img
 
 
