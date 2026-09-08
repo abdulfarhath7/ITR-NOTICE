@@ -250,5 +250,5 @@ pub fn run() {
             ask_due_date, draft_response,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Notice Desk");
+        .expect("error while running Litigation Command Center");
 }

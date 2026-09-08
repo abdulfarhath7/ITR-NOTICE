@@ -1,4 +1,4 @@
-/** ITR notice tool — the dashboard, rebuilt on the Tauri command layer.
+/** Litigation Command Center — the dashboard, rebuilt on the Tauri command layer.
  *
  * This is `app/static/app.js` with the fetch/websocket half replaced: every
  * button calls an `invoke()` command in `src-tauri/src/lib.rs`, and the one
@@ -42,7 +42,7 @@ const REFRESH_EVERY = 2000;
 
 /** Theme lived in a cookie because the web tool's server might have wanted it.
  *  There is no server now, so it lives where a desktop preference belongs. */
-const THEME_KEY = "notice-desk.theme";
+const THEME_KEY = "llc.theme";
 
 type ViewerState = { label: string; url: string; blob: Blob; filename: string };
 

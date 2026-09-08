@@ -1,4 +1,4 @@
-"""Notice Desk proxy - the one thing that must stay on a server.
+"""Litigation Command Center proxy - the one thing that must stay on a server.
 
 Holds two secrets the desktop app must never contain: the Anthropic API key
 and the prompts. Stateless: a request carries the PDF in, an answer goes
@@ -26,7 +26,7 @@ MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
 MAX_PDF_BYTES = 25 * 1024 * 1024
 FIRM_TOKENS = {t.strip() for t in os.getenv("FIRM_TOKENS", "").split(",") if t.strip()}
 
-app = FastAPI(title="Notice Desk proxy", docs_url=None, redoc_url=None)
+app = FastAPI(title="Litigation Command Center proxy", docs_url=None, redoc_url=None)
 client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 

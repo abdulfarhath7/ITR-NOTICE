@@ -8,7 +8,7 @@
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
-const SERVICE: &str = "notice-desk";
+const SERVICE: &str = "llc";
 
 /// The three things worth keeping between runs. The portal password is
 /// included but off by default - see `Slot::PortalPassword`.

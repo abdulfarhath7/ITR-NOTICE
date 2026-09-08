@@ -116,7 +116,7 @@ fn mint_token() -> String {
         .collect()
 }
 
-/// Spawn the bundled `notice-desk-backend`, wait for it to answer, and return
+/// Spawn the bundled `llc-backend`, wait for it to answer, and return
 /// how to reach it.
 ///
 /// `secrets` carries anything the keychain gave us (APP_PASSWORD,
@@ -147,21 +147,21 @@ pub async fn start(
     let data_dir = app
         .path()
         .app_data_dir()
-        .unwrap_or_else(|_| std::env::temp_dir().join("NoticeDesk"));
+        .unwrap_or_else(|_| std::env::temp_dir().join("LitigationCommandCenter"));
     let _ = std::fs::create_dir_all(&data_dir);
 
     let mut command = app
         .shell()
-        .sidecar("notice-desk-backend")
+        .sidecar("llc-backend")
         .map_err(|error| SidecarError::Spawn(error.to_string()))?
         .env("HOST", "127.0.0.1")
         .env("PORT", port.to_string())
         .env("APP_TOKEN", &token)
-        .env("NOTICE_DESK_DATA_DIR", data_dir.to_string_lossy().to_string())
+        .env("LLC_DATA_DIR", data_dir.to_string_lossy().to_string())
         // The sidecar watches this pid and exits when it goes away, which is
         // what covers every way the shell can die without reaching
         // `shutdown()`: a `tauri dev` rebuild, a crash, a taskkill.
-        .env("NOTICE_DESK_SHELL_PID", std::process::id().to_string())
+        .env("LLC_SHELL_PID", std::process::id().to_string())
         .env("PYTHONUNBUFFERED", "1");
 
     for (key, value) in secrets {

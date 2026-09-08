@@ -1,4 +1,4 @@
-# Notice Desk — Desktop · Agent Control File
+# Litigation Command Center — Desktop · Agent Control File
 
 You are building the **Windows-first Tauri 2 desktop app**. The Rust core owns
 the data; a bundled Python child process drives the tax portal; a small hosted
@@ -13,11 +13,11 @@ Actions on `windows-latest`.
 ## The shape of the thing
 
 ```
-Notice Desk.exe
+Litigation Command Center.exe
   React UI (WebView2)            src/
     | invoke() + a "scraper" event channel
   Rust core                      src-tauri/src/
-    ├── db.rs        SQLCipher archive.db in %APPDATA%\in.noticedesk.app\
+    ├── db.rs        SQLCipher archive.db in %APPDATA%\in.llc.app\
     ├── keychain.rs  Windows Credential Manager (archive key, portal password, firm token)
     ├── scraper.rs   spawns the sidecar, JSON lines over stdin/stdout
     └── claude.rs    HTTPS to the firm's proxy, bearer token

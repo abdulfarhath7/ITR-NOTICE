@@ -9,7 +9,7 @@
   filesystem, spawn a process, or reach the network beyond the CSP.
 
 ## Secrets
-Windows Credential Manager, service `in.noticedesk.app`:
+Windows Credential Manager, service `in.llc.app`:
 
 | Entry | What |
 |---|---|

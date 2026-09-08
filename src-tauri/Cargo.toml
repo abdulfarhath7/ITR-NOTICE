@@ -1,11 +1,11 @@
 [package]
-name = "notice-desk"
+name = "llc"
 version = "0.1.2"
-description = "Notice Desk - income tax notice tracking for CA firms"
+description = "Litigation Command Center - income tax notice tracking for CA firms"
 edition = "2021"
 
 [lib]
-name = "notice_desk_lib"
+name = "llc_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

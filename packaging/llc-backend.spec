@@ -70,7 +70,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="notice-desk-backend",
+    name="llc-backend",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

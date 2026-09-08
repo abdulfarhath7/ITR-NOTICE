@@ -10,9 +10,9 @@ carry over restated for the current design.
 ---
 
 ## Q1 — Bundle identifier and publisher                      [RESOLVED]
-- Settled in code: `identifier` is `in.noticedesk.app`, product name
-  "Notice Desk" (`src-tauri/tauri.conf.json`). The keychain service name and
-  `%APPDATA%\in.noticedesk.app\` both follow it, so changing it after a release
+- Settled in code: `identifier` is `in.llc.app`, product name
+  "Litigation Command Center" (`src-tauri/tauri.conf.json`). The keychain service name and
+  `%APPDATA%\in.llc.app\` both follow it, so changing it after a release
   orphans an installed user's archive *and* its encryption key.
 - Say so if you want a firm-specific id instead — it must change before the
   first installer goes out, not after.
@@ -238,9 +238,38 @@ carry over restated for the current design.
                   said in its `sync_done` stats, remembered in `localStorage` —
                   which means it is per-window, not part of the record, and a
                   reinstall loses it.
-- Default used:   `localStorage`, key `notice-desk.last-run`.
+- Default used:   `localStorage`, key `llc.last-run`.
 - Options:        A) insert a row in `scraper.rs` on `sync_done` (and on a sync
                      error) and add a `last_run` command
                   B) leave it in `localStorage`
                   C) drop the `runs` table from the schema, since nothing uses it
+- Your answer:
+
+---
+
+## Q16 — The rename to LLC / Litigation Command Center       [OPEN]
+- Question:       Is "LLC" the brand you want, and does the identifier change
+                  land before or after the first installer reaches a firm?
+- Why it matters: Two things.
+                  1. **"LLC" already means "limited liability company"** to
+                     every accountant and lawyer who will see the tile. A firm
+                     may read the icon as a company-registration tool. "LCC"
+                     (Litigation Command Centre) or a non-acronym name avoids
+                     the collision; the code change is a one-line brand string.
+                  2. The identifier moved from `in.noticedesk.app` to
+                     `in.llc.app`. That is the `%APPDATA%` folder holding
+                     `archive.db` **and** the Credential Manager service name
+                     holding the archive key. Any machine that already ran the
+                     old build keeps its data at the old path and cannot see it
+                     from the new build — no migration code was written.
+- Default used:   Renamed everywhere, no migration shim. The only installed
+                  build so far is the v0.1.1 CI artefact, which nobody has
+                  data in, so a clean break is cheaper than a migration that
+                  would have to be maintained forever.
+- Options:        A) keep "LLC" and the clean break
+                  B) keep the name, add a one-shot migration in `lib.rs`
+                     (copy `%APPDATA%\in.noticedesk.app\archive.db` and
+                     re-key it from the old keychain entry on first run)
+                  C) different brand — say the word and it is a sed away,
+                     provided it happens before an installer ships
 - Your answer:

@@ -2,9 +2,9 @@
 
     python packaging/build_sidecar.py
 
-Tauri's `externalBin` resolves `binaries/notice-desk-backend` to a file whose
+Tauri's `externalBin` resolves `binaries/llc-backend` to a file whose
 name ends in the Rust target triple, so the built executable is copied to
-`src-tauri/binaries/notice-desk-backend-<triple>[.exe]`. The triple comes from
+`src-tauri/binaries/llc-backend-<triple>[.exe]`. The triple comes from
 `rustc -vV`, which is what Tauri itself reads.
 """
 import os
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = ROOT / "packaging" / "notice-desk-backend.spec"
+SPEC = ROOT / "packaging" / "llc-backend.spec"
 OUT = ROOT / "src-tauri" / "binaries"
 
 
@@ -49,12 +49,12 @@ def main() -> int:
     )
 
     suffix = ".exe" if os.name == "nt" else ""
-    built = dist / f"notice-desk-backend{suffix}"
+    built = dist / f"llc-backend{suffix}"
     if not built.exists():
         raise SystemExit(f"PyInstaller did not produce {built}")
 
     OUT.mkdir(parents=True, exist_ok=True)
-    target = OUT / f"notice-desk-backend-{triple}{suffix}"
+    target = OUT / f"llc-backend-{triple}{suffix}"
     shutil.copy2(built, target)
     target.chmod(0o755)
     print(f"sidecar -> {target}")

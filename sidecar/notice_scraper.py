@@ -1,4 +1,4 @@
-"""Notice Desk sidecar - the portal automation as a child process.
+"""Litigation Command Center sidecar - the portal automation as a child process.
 
 The Rust core spawns this and talks to it over JSON lines:
 

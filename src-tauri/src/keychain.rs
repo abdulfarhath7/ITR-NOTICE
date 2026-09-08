@@ -7,7 +7,7 @@
 use keyring::Entry;
 use rand::RngCore;
 
-const SERVICE: &str = "in.noticedesk.app";
+const SERVICE: &str = "in.llc.app";
 
 fn e(err: impl std::fmt::Display) -> String {
     err.to_string()

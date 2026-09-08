@@ -75,7 +75,7 @@ export function buildSummary(items: Item[]): Summary {
 /** localStorage, not the archive: a run summary is a convenience, and losing
  *  it costs a line of text. TODO: read the `runs` table once the Rust core
  *  actually writes one (docs/03-api-contract.md has no command for it). */
-const RUN_KEY = "notice-desk.last-run";
+const RUN_KEY = "llc.last-run";
 
 export function loadLastRun(): LastRun | null {
   try {

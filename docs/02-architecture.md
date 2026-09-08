@@ -1,13 +1,13 @@
 # 02 · Architecture
 
 ```
-Notice Desk.exe (Tauri 2, WebView2, NSIS-installed)
+Litigation Command Center.exe (Tauri 2, WebView2, NSIS-installed)
   │
   ├── React + TS UI            src/          invoke() + one "scraper" event
   │
   ├── Rust core                src-tauri/src/
   │     ├── lib.rs        commands, settings.json, app state
-  │     ├── db.rs         SQLCipher archive.db  ── %APPDATA%\in.noticedesk.app\
+  │     ├── db.rs         SQLCipher archive.db  ── %APPDATA%\in.llc.app\
   │     ├── keychain.rs   Windows Credential Manager
   │     ├── scraper.rs    child process, JSON lines over stdin/stdout
   │     └── claude.rs     HTTPS to the firm's proxy
@@ -38,11 +38,11 @@ Notice Desk.exe (Tauri 2, WebView2, NSIS-installed)
 ## Where files live
 | What | Where |
 |---|---|
-| Encrypted archive | `%APPDATA%\in.noticedesk.app\archive.db` |
-| Scraper staging cache | `%APPDATA%\in.noticedesk.app\staging.db` |
-| Failure screenshots | `%APPDATA%\in.noticedesk.app\debug\` |
-| Non-secret settings | `%APPDATA%\in.noticedesk.app\settings.json` |
-| Secrets | Windows Credential Manager, service `in.noticedesk.app` |
+| Encrypted archive | `%APPDATA%\in.llc.app\archive.db` |
+| Scraper staging cache | `%APPDATA%\in.llc.app\staging.db` |
+| Failure screenshots | `%APPDATA%\in.llc.app\debug\` |
+| Non-secret settings | `%APPDATA%\in.llc.app\settings.json` |
+| Secrets | Windows Credential Manager, service `in.llc.app` |
 | The sidecar | inside the install directory, under `resources\scraper\` |
 
 Never write next to the executable — Program Files is read-only.

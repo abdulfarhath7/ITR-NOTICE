@@ -33,8 +33,8 @@ proxy/             the hosted service
 - No `localStorage`/`sessionStorage` for **anything the app is answerable for**:
   notices, PDFs, drafts and every secret live in the archive and the keychain,
   which are the only stores of record. Two display conveniences are the whole
-  exception, and both are disposable: `notice-desk.theme` and
-  `notice-desk.last-run` (the "Last sync …" line — see QUESTIONS Q15). Losing
+  exception, and both are disposable: `llc.theme` and
+  `llc.last-run` (the "Last sync …" line — see QUESTIONS Q15). Losing
   either costs a preference and a sentence, nothing more.
 - Nothing reaches the network except `claude.rs`. The UI never makes an HTTP call.
 - Never log a password, a token or a key. Not to stdout, not to a file.

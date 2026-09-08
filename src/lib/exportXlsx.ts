@@ -10,7 +10,7 @@ export function exportWorkbook(items: Item[]): void {
   const wb = XLSX.utils.book_new();
 
   const summary: (string | number)[][] = [
-    ["Notice Desk — summary"], ["Run date", today], ["Notices held", items.length], [],
+    ["Litigation Command Center — summary"], ["Run date", today], ["Notices held", items.length], [],
     ["Draft for review — verify every figure against the portal."], [], ["Position at a glance"],
     ["To respond", c.to_respond],
     ...BUCKETS.map((b) => [b.label, c[b.key]] as (string | number)[]),
@@ -39,5 +39,5 @@ export function exportWorkbook(items: Item[]): void {
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(register), "All notices");
 
-  XLSX.writeFile(wb, `notice-desk-${today}.xlsx`);
+  XLSX.writeFile(wb, `llc-${today}.xlsx`);
 }

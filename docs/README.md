@@ -1,4 +1,4 @@
-# docs/ — context set for Notice Desk
+# docs/ — context set for Litigation Command Center
 
 Modular context for the agent. Each file has one job. **Load only what the
 current task needs.**

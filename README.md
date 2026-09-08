@@ -1,11 +1,11 @@
-# Notice Desk — desktop
+# Litigation Command Center — desktop
 
 Income-tax notice tracking for CA firms. Tauri 2 shell, Rust core, React UI, the
 tested Playwright automation running as a bundled sidecar. Everything runs on
 the user's PC except one thing: the Claude drafting proxy.
 
 ```
-┌─ Notice Desk.exe ────────────────────────────────────────────────┐
+┌─ Litigation Command Center.exe ────────────────────────────────────────────────┐
 │  React UI (WebView2)                                              │
 │      │ invoke / events                                            │
 │  Rust core ── SQLCipher archive.db ── Windows Credential Manager  │
@@ -50,7 +50,7 @@ npm run tauri dev
 
 # 4. Installer
 npm run tauri build
-#    -> src-tauri\target\release\bundle\nsis\Notice Desk_0.1.0_x64-setup.exe
+#    -> src-tauri\target\release\bundle\nsis\Litigation Command Center_0.1.0_x64-setup.exe
 ```
 
 No Windows PC? Push a tag (`git tag v0.1.0 && git push --tags`) and
@@ -78,7 +78,7 @@ In the app: Settings → drafting service address + firm token.
   separate `notice_scraper.exe` from its `_internal/`). `scraper.rs` looks in
   the resource dir first, then `sidecar/dist/` for `tauri dev`.
 - **Program Files is read-only.** The archive, staging db and settings live in
-  `%APPDATA%\in.noticedesk.app\`. Never write next to the exe.
+  `%APPDATA%\in.llc.app\`. Never write next to the exe.
 - **Losing the Windows user profile loses the archive.** The SQLCipher key is
   in Credential Manager; a backup story means exporting the key too. Say so
   in onboarding.
