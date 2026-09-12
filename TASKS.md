@@ -15,8 +15,8 @@ Legend: `[ ]` todo · `[x]` done · `[~]` partially done, see NOTES.md
   - *Done when:* a documented command sequence produces a running window.
 - [x] **0.3** Introduce `migrations/` with a forward-only numbered runner. Baseline the current schema as `0001_baseline.sql`.
   - *Done when:* a fresh database can be built from migrations alone.
-- [ ] **0.4** Add `NOTES.md` session 1 entry and commit the docs bundle.
-- [ ] **0.5** Set up a `scripts/check.sh` that runs build, typecheck and lint for every workspace. Wire it into CI.
+- [x] **0.4** Add `NOTES.md` session 1 entry and commit the docs bundle.
+- [x] **0.5** Set up a `scripts/check.sh` that runs build, typecheck and lint for every workspace. Wire it into CI.
   - *Done when:* `./scripts/check.sh` exits 0.
 
 ## Phase 1 — Data model: the work-item spine

@@ -14,8 +14,10 @@ import base64
 import json
 import os
 import secrets
+from typing import Any
 
 import anthropic
+from anthropic.types import Message
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
@@ -64,7 +66,7 @@ DRAFT_SCHEMA = {
 }
 
 
-def _pdf_block(b64: str) -> dict:
+def _pdf_block(b64: str) -> dict[str, Any]:
     raw = base64.standard_b64decode(b64)
     if not raw:
         raise HTTPException(400, "empty PDF")
@@ -74,9 +76,10 @@ def _pdf_block(b64: str) -> dict:
             "source": {"type": "base64", "media_type": "application/pdf", "data": b64}}
 
 
-def _json_answer(response) -> dict:
+def _json_answer(response: Message) -> dict[str, Any]:
     text = next((b.text for b in response.content if b.type == "text"), "")
-    return json.loads(text)
+    answer: dict[str, Any] = json.loads(text)
+    return answer
 
 
 class DueDateIn(BaseModel):
@@ -95,7 +98,7 @@ class DraftIn(BaseModel):
 
 
 @app.post("/v1/due-date")
-async def due_date(body: DueDateIn, _: str = Depends(firm)):
+async def due_date(body: DueDateIn, _: str = Depends(firm)) -> dict[str, Any]:
     dates = []
     if body.issued_on:
         dates.append(f"The portal says it was issued on {body.issued_on}.")
@@ -112,7 +115,7 @@ async def due_date(body: DueDateIn, _: str = Depends(firm)):
         "- If the notice sets no deadline at all, return null. Do not guess.\n"
         "Return the date as DD-MMM-YYYY."
     )
-    response = await client.messages.create(
+    response = await client.messages.create(  # type: ignore[call-overload]
         model=MODEL, max_tokens=2000,
         messages=[{"role": "user", "content": [_pdf_block(body.pdf_b64),
                                                {"type": "text", "text": prompt}]}],
@@ -122,7 +125,7 @@ async def due_date(body: DueDateIn, _: str = Depends(firm)):
 
 
 @app.post("/v1/draft")
-async def draft(body: DraftIn, _: str = Depends(firm)):
+async def draft(body: DraftIn, _: str = Depends(firm)) -> dict[str, Any]:
     facts = [f"Notice reference id: {body.ref_id}."]
     if body.notice_us:
         facts.append(f"Issued under section {body.notice_us}.")
@@ -142,7 +145,7 @@ async def draft(body: DraftIn, _: str = Depends(firm)):
         "put [square brackets] where the taxpayer must fill something in. If the "
         "notice demands nothing, say so rather than inventing a request."
     )
-    response = await client.messages.create(
+    response = await client.messages.create(  # type: ignore[call-overload]
         model=MODEL, max_tokens=16000, thinking={"type": "adaptive"},
         messages=[{"role": "user", "content": [_pdf_block(body.pdf_b64),
                                                {"type": "text", "text": prompt}]}],
@@ -152,5 +155,5 @@ async def draft(body: DraftIn, _: str = Depends(firm)):
 
 
 @app.get("/healthz")
-async def healthz():
+async def healthz() -> dict[str, bool]:
     return {"ok": True}

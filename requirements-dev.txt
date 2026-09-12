@@ -1,0 +1,9 @@
+# Tooling for scripts/check.sh. Runtime requirements live next to each
+# workspace (sidecar/, proxy/, relay/).
+ruff>=0.5
+mypy>=1.10
+fastapi
+uvicorn[standard]
+anthropic
+python-dotenv
+playwright

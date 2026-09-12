@@ -1,0 +1,22 @@
+# Lint for the Python workspaces (sidecar, proxy, relay). The legacy web tool
+# in app/ and its byte-identical copies under sidecar/app/ are excluded: they
+# are frozen reference code and must not be edited to satisfy a linter.
+target-version = "py312"
+line-length = 100
+
+extend-exclude = [
+  "app",
+  "sidecar/app",
+  "test_app.py",
+  "run_backend.py",
+  "packaging",
+  "build",
+  "dist",
+  ".venv",
+]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "E722"]
+ignore = [
+  "E501",  # line length is advisory here; the formatter owns it
+]

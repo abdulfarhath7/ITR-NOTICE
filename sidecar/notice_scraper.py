@@ -39,7 +39,9 @@ import os
 import sys
 import threading
 import traceback
+from collections.abc import Coroutine
 from pathlib import Path
+from typing import Any
 
 # The staging database lives where the Rust core tells us (app data dir),
 # not next to the executable - Program Files is read-only.
@@ -48,7 +50,7 @@ from app import db  # noqa: E402
 if os.environ.get("NOTICE_DB"):
     db.DB_PATH = Path(os.environ["NOTICE_DB"])
 
-from app.portal.scraper import run_sync            # noqa: E402
+from app.portal.scraper import run_sync  # noqa: E402
 from app.portal.session import PortalSession, WrongPasswordError  # noqa: E402
 
 PDF_MARKER = b"\x01"      # see module docstring
@@ -60,7 +62,7 @@ VIEWPORT_INTERVAL = 1.5          # seconds between frames
 VIEWPORT_QUALITY = 45            # jpeg quality
 
 
-def emit(**payload) -> None:
+def emit(**payload: object) -> None:
     sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
     sys.stdout.flush()
 
@@ -69,14 +71,14 @@ class Events:
     """What PortalSession / run_sync expect from the 'hub'."""
 
     def __init__(self) -> None:
-        self._otp: asyncio.Future | None = None
+        self._otp: asyncio.Future[str] | None = None
         self._pace = 0.4
 
     # ---- hooks the automation calls -----------------------------------
     async def log(self, msg: str) -> None:
         emit(ev="log", msg=msg)
 
-    async def progress(self, kind: str, **kw) -> None:
+    async def progress(self, kind: str, **kw: object) -> None:
         emit(ev="progress", kind=kind, **kw)
 
     async def login_phase(self, phase: str) -> None:
@@ -90,7 +92,7 @@ class Events:
         loop = asyncio.get_running_loop()
         self._otp = loop.create_future()
         emit(ev="otp_required")
-        code = await self._otp
+        code: str = await self._otp
         self._otp = None
         return code
 
@@ -126,7 +128,7 @@ class Events:
         self._pace = max(0.0, float(seconds))
 
 
-async def _viewport_loop(session) -> None:
+async def _viewport_loop(session: PortalSession) -> None:
     """Stream what the browser is looking at, so a sync is watchable.
 
     Lifted from the web tool's `app/main.py`, unchanged in substance. It skips
@@ -138,11 +140,11 @@ async def _viewport_loop(session) -> None:
     """
     while True:
         await asyncio.sleep(VIEWPORT_INTERVAL)
-        if not session.safe_to_capture() or session.page_closed():
+        page = session.page
+        if page is None or not session.safe_to_capture() or session.page_closed():
             continue
         try:
-            frame = await session.page.screenshot(type="jpeg",
-                                                  quality=VIEWPORT_QUALITY)
+            frame = await page.screenshot(type="jpeg", quality=VIEWPORT_QUALITY)
         except Exception:
             continue          # a navigation mid-shot is normal, just skip it
         emit(ev="viewport", img=base64.standard_b64encode(frame).decode("ascii"))
@@ -152,8 +154,8 @@ class Runner:
     def __init__(self) -> None:
         self.events = Events()
         self.session: PortalSession | None = None
-        self.busy: asyncio.Task | None = None
-        self.watcher: asyncio.Task | None = None
+        self.busy: asyncio.Task[None] | None = None
+        self.watcher: asyncio.Task[None] | None = None
 
     async def _drop_session(self) -> None:
         """The only way a session ends. The frame pump holds a reference to the
@@ -200,7 +202,7 @@ class Runner:
     async def stop(self) -> None:
         await self._drop_session()
 
-    def spawn(self, coro) -> None:
+    def spawn(self, coro: Coroutine[Any, Any, None]) -> None:
         """Long jobs run as tasks so stdin stays responsive (OTP arrives
         in the middle of login)."""
         if self.busy and not self.busy.done():
@@ -210,7 +212,7 @@ class Runner:
         self.busy = asyncio.create_task(coro)
 
 
-def _stdin_reader(loop: asyncio.AbstractEventLoop, queue: asyncio.Queue) -> None:
+def _stdin_reader(loop: asyncio.AbstractEventLoop, queue: asyncio.Queue[str | None]) -> None:
     for line in sys.stdin:
         loop.call_soon_threadsafe(queue.put_nowait, line)
     loop.call_soon_threadsafe(queue.put_nowait, None)     # EOF = parent gone
@@ -219,7 +221,7 @@ def _stdin_reader(loop: asyncio.AbstractEventLoop, queue: asyncio.Queue) -> None
 async def main() -> None:
     db.init_db()
     runner = Runner()
-    queue: asyncio.Queue = asyncio.Queue()
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_running_loop()
     threading.Thread(target=_stdin_reader, args=(loop, queue), daemon=True).start()
     emit(ev="ready")
