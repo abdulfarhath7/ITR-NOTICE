@@ -33,7 +33,7 @@ Read `docs/02-data-model.md` in full first.
 - [x] **1.7** Migration: `ingestion_runs` — `run_at`, `panel_swept`, `records_found`, `gaps`, `operator`, `status`.
 - [x] **1.8** Backfill existing notice rows into the new shape. No data loss.
   - *Done when:* row counts before and after reconcile, and a spot check of ten notices matches.
-- [ ] **1.9** Update all read paths to the new schema. Delete the old tables in a separate migration only after the app runs green.
+- [x] **1.9** Update all read paths to the new schema. Delete the old tables in a separate migration only after the app runs green.
 
 ## Phase 2 — Known bugs and the status state machine
 

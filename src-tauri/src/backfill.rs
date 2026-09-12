@@ -157,8 +157,9 @@ mod tests {
 
     /// Acceptance for task 1.8, run by hand against a copy of a real legacy
     /// archive: `LEGACY_DB=/path/to/copy.db cargo test legacy_archive -- --ignored --nocapture`.
-    /// Prints counts before and after and spot-checks ten notices field by
-    /// field. Never prints names or PANs.
+    /// (`LEGACY_DB_ORIGINAL` points at an untouched second copy for the spot
+    /// check.) Prints counts before and after and spot-checks ten notices
+    /// field by field. Never prints names or PANs.
     #[test]
     #[ignore]
     fn legacy_archive_reconciles() {
@@ -182,17 +183,20 @@ mod tests {
         println!("clients = {clients}, year_contexts = {ycs}");
 
         // Ten notices, field by field: reference, DIN, dates (converted),
-        // status mapping, PDF hash presence.
+        // status mapping, PDF hash presence. Compared against a second,
+        // untouched copy of the legacy file since 0010 drops the legacy
+        // tables in the migrated one.
+        con.execute("ATTACH DATABASE ?1 AS legacy", [std::env::var("LEGACY_DB_ORIGINAL").unwrap()]).unwrap();
         let mut st = con.prepare(
             "SELECT n.ref_id, n.doc_ref_id, n.issued_on, n.due_date, n.responded, n.pdf_blob IS NOT NULL,
                     c.reference_id, c.din, c.issued_on, c.response_due_date, c.status,
                     (SELECT count(*) FROM documents d WHERE d.parent_id = c.id AND d.state='stored'),
                     p.status, lp.status, lp.assessment_year, yc.assessment_year
-             FROM legacy_notices n
+             FROM legacy.notices n
              JOIN communications c ON c.reference_id = n.ref_id
              JOIN proceedings p ON p.id = c.proceeding_id
              JOIN year_contexts yc ON yc.id = p.year_context_id
-             JOIN legacy_proceedings lp ON lp.id = n.proceeding_id
+             JOIN legacy.proceedings lp ON lp.id = n.proceeding_id
              ORDER BY n.id LIMIT 10").unwrap();
         let rows = st.query_map([], |r| Ok((
             r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, Option<String>>(2)?,
