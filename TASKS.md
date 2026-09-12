@@ -113,11 +113,11 @@ Read `docs/04-roles-and-devices.md`.
 
 Read `docs/11-exports.md`.
 
-- [ ] **8.1** Excel export, proceedings sheet, exactly the 17 columns in the given order.
-- [ ] **8.2** Multi-sheet workbook: one tab per module.
-- [ ] **8.3** Export scope selector: current filtered view, all clients, single client.
-- [ ] **8.4** Export header block stamping device cursor and collector last-run time.
-- [ ] **8.5** User-entered columns (`client_code`, `manual_due_date`, `client_file_no`) are editable in-app and sync upward.
+- [x] **8.1** Excel export, proceedings sheet, exactly the 17 columns in the given order.
+- [x] **8.2** Multi-sheet workbook: one tab per module.
+- [x] **8.3** Export scope selector: current filtered view, all clients, single client.
+- [x] **8.4** Export header block stamping device cursor and collector last-run time.
+- [x] **8.5** User-entered columns (`client_code`, `manual_due_date`, `client_file_no`) are editable in-app and sync upward.
 
 ## Phase 9 — AI drafting
 

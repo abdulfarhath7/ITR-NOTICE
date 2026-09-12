@@ -37,6 +37,7 @@ argon2 = "0.5"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 rand_core = "0.6"
+rust_xlsxwriter = "0.79"
 
 [dev-dependencies]
 # `tauri::test::mock_app` gives the ingestion tests an AppHandle.

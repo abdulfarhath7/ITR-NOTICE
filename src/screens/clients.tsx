@@ -6,11 +6,13 @@ import EmptyState from "../ui/empty-state";
 import { stamp } from "../ui/dates";
 import ClientForm from "./client-form";
 import ClientImport from "./client-import";
+import ExportDialog from "../ui/export-dialog";
 
 export default function ClientsScreen() {
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const q = useClients(search);
 
   return (
@@ -20,6 +22,7 @@ export default function ClientsScreen() {
         <input className="input" placeholder="Search name, code or PAN" value={search}
                onChange={(e) => setSearch(e.target.value)} aria-label="Search clients" style={{ width: 240 }} />
         <button className="btn" onClick={() => setImporting(true)}>Import</button>
+        <button className="btn" onClick={() => setExporting(true)}>Export</button>
         <button className="btn accent" onClick={() => setAdding(true)}>Add</button>
       </div>
       <div className="page-body">
@@ -73,6 +76,7 @@ export default function ClientsScreen() {
       {adding ? <ClientForm existing={null} onClose={() => setAdding(false)}
                             onSaved={(c) => { setAdding(false); navigate({ name: "client", id: c.id }); }} /> : null}
       {importing ? <ClientImport onClose={() => setImporting(false)} /> : null}
+      {exporting ? <ExportDialog choices={{}} onClose={() => setExporting(false)} /> : null}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import Field from "../ui/field";
 import { StatusPill } from "../ui/pill";
 import { stamp } from "../ui/dates";
 import ClientForm from "./client-form";
+import ExportDialog from "../ui/export-dialog";
 
 const MODULES: { key: Module; label: string }[] = [
   { key: "proceedings", label: "e-Proceedings" },
@@ -125,6 +126,7 @@ export default function ClientDetailScreen({ id }: { id: string }) {
   const items = useWorkItems({ client_ids: [id] });
   const [year, setYear] = useState<string | null | undefined>(undefined);   // undefined = not chosen yet
   const [editing, setEditing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [fileNo, setFileNo] = useState<string | null>(null);
 
   const years = q.data?.years ?? [];
@@ -163,6 +165,7 @@ export default function ClientDetailScreen({ id }: { id: string }) {
         <h1>{c.name}</h1>
         <span className="meta mono">{c.pan_masked}</span>
         {c.source === "portal" ? <button className="btn" onClick={() => { void refreshNow(); }}>Refresh from portal</button> : null}
+        <button className="btn" onClick={() => setExporting(true)}>Export</button>
         <button className="btn" onClick={() => setEditing(true)}>Edit</button>
       </div>
       <div className="page-body">
@@ -211,6 +214,7 @@ export default function ClientDetailScreen({ id }: { id: string }) {
       </div>
       {editing ? <ClientForm existing={c} onClose={() => setEditing(false)}
                              onSaved={() => { setEditing(false); invalidate(`clients:${id}`); }} /> : null}
+      {exporting ? <ExportDialog choices={{ client: { id: c.id, name: c.name } }} onClose={() => setExporting(false)} /> : null}
     </div>
   );
 }

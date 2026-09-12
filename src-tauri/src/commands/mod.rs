@@ -5,6 +5,7 @@
 pub mod ai;
 pub mod clients;
 pub mod documents;
+pub mod export;
 pub mod ingestion;
 pub mod settings;
 pub mod sync;

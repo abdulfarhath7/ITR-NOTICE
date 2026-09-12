@@ -133,3 +133,11 @@ Append as you go. This is where the next session picks up your thread.
     module-level `CALLER = Depends(caller)` instead.
   - `pkill -f "uvicorn relay.main:app"` matched the shell running it and
     killed the whole command; bracket a character in the pattern.
+- Phase 8: `src-tauri/src/export.rs` with `rust_xlsxwriter`: four sheets,
+  the 17 proceedings columns in order, real Excel dates (`dd-mmm-yyyy`),
+  numeric amounts, text identifiers, blank gaps, the three-row header block
+  with IST timestamp, collector last run and this device's cursor. Scope
+  selector on Attention (current view, by the visible rows' ids), Clients
+  (all) and Client detail (one client), with counts shown before committing.
+  8.5's user-entered columns were already app-editable and ledgered, so
+  they sync like any other write.

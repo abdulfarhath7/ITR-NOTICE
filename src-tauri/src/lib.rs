@@ -10,6 +10,7 @@ mod csv_import;
 mod dates;
 mod db;
 mod error;
+mod export;
 mod gstin;
 mod ids;
 mod ingest;
@@ -97,6 +98,7 @@ pub fn run() {
             commands::sync::list_devices, commands::sync::create_invite, commands::sync::set_collector,
             commands::sync::remove_device, commands::sync::transfer_admin, commands::sync::get_sync_state,
             commands::sync::sync_now, commands::sync::leave_firm,
+            commands::export::export_excel, commands::export::export_preview,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

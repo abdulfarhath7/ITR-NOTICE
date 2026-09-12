@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
-  BundleManifest, Cadences, ClientDetail, DeviceInfo, ExportSummary, FirmCreated, ImportSummary,
+  BundleManifest, Cadences, ClientDetail, DeviceInfo, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
   RelayConfig, Roster, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
   ProceedingDetail, ReturnDetail, Scope, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
@@ -80,6 +80,9 @@ export const api = {
   syncState: () => invoke<SyncState>("get_sync_state"),
   syncNow: () => invoke<SyncResult>("sync_now"),
   leaveFirm: () => invoke<void>("leave_firm"),
+
+  exportExcel: (scope: ExportScope, path: string) => invoke<ExportReport>("export_excel", { scope, path }),
+  exportPreview: (scope: ExportScope) => invoke<[string, number][]>("export_preview", { scope }),
 };
 
 export function onIngestion(handler: (ev: IngestionEvent) => void): Promise<UnlistenFn> {

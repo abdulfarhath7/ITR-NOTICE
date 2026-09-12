@@ -495,3 +495,9 @@ export interface SyncState {
 export interface SyncResult {
   pushed: number; pulled: number; applied: number; snapshot_published: boolean; sweep_waiting_for_lease: boolean; errors: string[];
 }
+
+export type ExportScope =
+  | { kind: "view"; items: [string, string][]; label?: string | null }
+  | { kind: "all" }
+  | { kind: "client"; client_id: string };
+export interface ExportReport { path: string; proceedings: number; demands: number; returns: number; forms: number; unverified_fields: number }

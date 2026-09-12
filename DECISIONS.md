@@ -246,3 +246,23 @@ Context: Q17 defaults to a warning after one missed scheduled run; the
 default cadence is daily (Q12).
 Decision: A constant, `COLLECTOR_SILENT_HOURS = 26`, in `src-tauri/src/sync.rs`.
 Reversible: easily.
+
+## D-022 — The proceedings sheet is one row per proceeding
+Date: 2026-09-12
+Context: docs/11's 17 columns mix proceeding-level fields (type, name,
+created mode) with communication-level ones (DIN, issued on) and
+response-level ones (submitted on).
+Decision: One row per proceeding. DIN and Issued On come from the
+proceeding when it carries them, else from its earliest communication;
+Response Submitted On is the latest filed response. A firm that wants a
+row per notice gets it from the Attention view's own export scope.
+Rejected: A row per communication (would repeat the proceeding columns and
+break the "S.No per matter" the firm's tracker uses).
+Reversible: easily.
+
+## D-023 — "Unverified fields" counts gap-flagged fields
+Date: 2026-09-12
+Context: The header block's third line needs a number.
+Decision: The sum of `gap_flags` entries across exported rows — the fields
+that export as blank because the portal did not state them.
+Reversible: easily.

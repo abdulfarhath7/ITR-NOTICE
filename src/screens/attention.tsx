@@ -9,6 +9,7 @@ import type { Module } from "../lib/types";
 import DueText from "../ui/due-text";
 import EmptyState from "../ui/empty-state";
 import { StatusPill } from "../ui/pill";
+import ExportDialog from "../ui/export-dialog";
 
 const MODULE_LABEL: Record<Module, string> = {
   proceedings: "Proceeding", demands: "Demand", returns: "Return", forms: "Form",
@@ -20,6 +21,7 @@ export default function AttentionScreen() {
   const [module, setModule] = useState<"" | Module>("");
   const [status, setStatus] = useState("");
   const [window, setWindow] = useState<DueWindow>("");
+  const [exporting, setExporting] = useState(false);
 
   const clients = useClients("");
   const q = useWorkItems({
@@ -45,6 +47,7 @@ export default function AttentionScreen() {
       <div className="page-head">
         <h1>Attention</h1>
         <span className="meta num">{q.loading ? "Loading" : `${visible.length} open item${visible.length === 1 ? "" : "s"}`}</span>
+        <button className="btn" onClick={() => setExporting(true)}>Export</button>
       </div>
       <div className="page-body">
         <div className="filters">
@@ -138,6 +141,12 @@ export default function AttentionScreen() {
           </div>
         )}
       </div>
+      {exporting ? (
+        <ExportDialog onClose={() => setExporting(false)} choices={{
+          view: { items: visible.map((i) => [i.row.module, i.row.id] as [string, string]),
+                  label: `attention list, ${visible.length} open item${visible.length === 1 ? "" : "s"}` },
+        }} />
+      ) : null}
     </div>
   );
 }
