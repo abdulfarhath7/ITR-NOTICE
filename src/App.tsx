@@ -443,10 +443,11 @@ export default function App() {
     try {
       const answer = await api.askDueDate(refId);
       if (answer.due_date) {
+        // A suggestion, shown as one. The stated column stays empty.
         setRows((all) => all.map((r) => r.ref_id === refId
-          ? { ...r, due_date: answer.due_date, due_date_source: "claude", due_date_basis: answer.basis }
+          ? { ...r, suggested_due_date: answer.due_date, due_date_basis: answer.basis }
           : r));
-        toast(`Due ${answer.due_date}${answer.basis ? " — " + answer.basis : ""}`);
+        toast(`Suggested ${answer.due_date}${answer.basis ? " — " + answer.basis : ""}`);
       } else {
         // Plenty of letters genuinely set no deadline: say so quietly.
         setNoDateStated((m) => ({

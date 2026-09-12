@@ -1,25 +1,26 @@
 /** Filters + the notices table. Port of the last `.card` in
  *  `app/static/index.html`, including the row actions and both empty states. */
-import { dueInDays, dueLabel, orDash } from "../lib/format";
+import { orDash } from "../lib/format";
+import { actionsFor } from "../lib/status";
+import type { Item } from "../lib/buckets";
 import type { NoticeRow } from "../lib/types";
+import DueText from "./DueText";
 
 /** The one button that spends money, marked with the same ✦ as everything
  *  else Claude wrote on this page. */
 export const DATE_BTN = "✦ Date";
 
-/** Countdown chip: green with room, amber inside two weeks, red inside three
- *  days or already gone. */
-function DueChip({ n }: { n: NoticeRow }) {
-  if (!n.due_date) {
-    // A suggestion is shown as one - muted, marked - never as a deadline.
-    return n.suggested_due_date
-      ? <span className="ai-chip" title="suggested by Claude, not stated by the portal">✦ suggested {n.suggested_due_date}</span>
-      : <span className="chip none">not stated</span>;
-  }
-  const d = dueInDays(n.due_date);
-  if (d === null) return <span className="chip none">{n.due_date}</span>;
-  const cls = d < 3 ? "late" : d <= 14 ? "soon" : "ok";
-  return <span className={`chip ${cls}`} title={n.due_date}>{dueLabel(d)}</span>;
+/** The due chip, through the one renderer. A suggestion is shown as one -
+ *  muted, marked - never as a deadline. */
+function DueChip({ n }: { n: Item }) {
+  return (
+    <>
+      <DueText due={n.due} chip />
+      {!n.due_date && n.suggested_due_date
+        ? <span className="ai-chip" title="suggested by Claude, not stated by the portal">✦ suggested {n.suggested_due_date}</span>
+        : null}
+    </>
+  );
 }
 
 /** Four dots per row, so the table reads as the checklist it is: do we hold
@@ -62,7 +63,7 @@ const Spin = () => <span className="spin" />;
 
 export interface NoticesProps {
   rows: NoticeRow[];            // everything held, for the year list and the count
-  visible: NoticeRow[];         // what the filters left
+  visible: Item[];              // what the filters left
   loading: boolean;
   years: string[];
   ay: string; onAy: (v: string) => void;
@@ -143,6 +144,9 @@ export default function Notices(p: NoticesProps) {
             ) : p.visible.map((n) => {
               const running = p.busy[n.ref_id];
               const noDate = p.noDateStated[n.ref_id];
+              // The action matrix, in one place (docs/02). View and Save
+              // are never withheld; Draft follows the status.
+              const can = actionsFor(n.machineStatus);
               return (
                 <tr key={n.ref_id}>
                   <td>
@@ -159,11 +163,11 @@ export default function Notices(p: NoticesProps) {
                   <td><StatusCell n={n} /></td>
                   <td className="right">
                     <div className="rowacts">
-                      {n.has_pdf ? <>
-                        <button onClick={() => p.onView(n.ref_id)}>View</button>
-                        <button onClick={() => p.onSave(n.ref_id)}>Save</button>
-                      </> : null}
-                      {!n.due_date && n.has_pdf ? (
+                      {can.view ? <button disabled={!n.has_pdf} title={n.has_pdf ? undefined : "no PDF stored yet"}
+                                          onClick={() => p.onView(n.ref_id)}>View</button> : null}
+                      {can.save ? <button disabled={!n.has_pdf} title={n.has_pdf ? undefined : "no PDF stored yet"}
+                                          onClick={() => p.onSave(n.ref_id)}>Save</button> : null}
+                      {can.draft && !n.due_date && !n.suggested_due_date && n.has_pdf ? (
                         // Plenty of letters genuinely set no deadline: say so quietly.
                         noDate !== undefined
                           ? <span className="mut" title={noDate}>no date stated</span>
@@ -171,7 +175,7 @@ export default function Notices(p: NoticesProps) {
                               {running === "date" ? <Spin /> : DATE_BTN}
                             </button>
                       ) : null}
-                      {n.has_pdf ? (
+                      {can.draft && n.has_pdf ? (
                         <button className="primary accent" disabled={!!running}
                                 onClick={() => p.onDraft(n.ref_id)}>
                           {running === "draft" ? <Spin /> : "Draft"}

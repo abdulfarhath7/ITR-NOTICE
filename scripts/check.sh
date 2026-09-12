@@ -22,6 +22,9 @@ step "secret scan"
 step "frontend: tsc + vite build"
 npm run --silent build
 
+step "frontend: vitest"
+npm run --silent test
+
 step "rust: cargo check + tests"
 ( cd src-tauri && cargo check --quiet && cargo test --quiet )
 

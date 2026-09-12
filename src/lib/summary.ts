@@ -15,8 +15,8 @@ export const CHIPS: { key: ChipKey; label: string }[] = [
   { key: "due_3", label: "Due ≤3 days" },
   { key: "due_10", label: "Due ≤10 days" },
   { key: "on_track", label: "On track (>10d)" },
-  { key: "no_due_date", label: "No due date yet" },
-  { key: "responded", label: "Responded" },
+  { key: "no_due_date", label: "No due date stated" },
+  { key: "responded", label: "Response submitted" },
   { key: "closed", label: "Closed" },
 ];
 
@@ -43,6 +43,9 @@ export interface LastRun {
   skipped_cached: number;
 }
 
+/** One predicate for the attention list and its badge. */
+export const ATTENTION_BUCKETS: BucketKey[] = ["overdue", "due_3", "no_due_date"];
+
 export interface Summary {
   chips: { key: ChipKey; label: string; count: number }[];
   attention: Item[];
@@ -54,11 +57,12 @@ export function buildSummary(items: Item[]): Summary {
   for (const i of items) tally[i.bucket] += 1;
   tally.to_respond = TO_RESPOND.reduce((n, k) => n + tally[k], 0);
 
-  // The dates that have gone, the ones about to, and the notices with no date
-  // at all - which are the easiest to forget. Anything answered is out by
-  // virtue of its bucket.
+  // The dates that have gone, the ones about to, and the open notices with
+  // no stated date - which are the easiest to forget. Settled items are out
+  // by virtue of their bucket, so a closed item can never appear here
+  // (docs/15). The count badge and this list share ATTENTION_BUCKETS.
   const attention = items
-    .filter((i) => i.bucket === "overdue" || i.bucket === "due_3" || i.bucket === "no_due_date")
+    .filter((i) => ATTENTION_BUCKETS.includes(i.bucket))
     .sort((a, b) => {
       const an = a.days === null, bn = b.days === null;
       if (an !== bn) return an ? 1 : -1;

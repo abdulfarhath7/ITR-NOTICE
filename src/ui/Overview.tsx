@@ -3,7 +3,8 @@
  * Counted over everything the account holds - never over the filtered view,
  * which would make the filters look like they changed the facts. */
 import type { ReactNode } from "react";
-import { dueInDays, relTime } from "../lib/format";
+import { relTime } from "../lib/format";
+import { classify } from "../lib/buckets";
 import type { LastRun } from "../lib/summary";
 import type { NoticeRow } from "../lib/types";
 
@@ -58,10 +59,11 @@ export default function Overview({ rows, loading, run }: {
   rows: NoticeRow[]; loading: boolean; run: LastRun | null;
 }) {
   const n = (v: number) => (loading ? null : v);
-  const week = rows.filter((r) => {
-    const d = dueInDays(r.due_date);
-    return d !== null && d >= 0 && d <= 7;
-  }).length;
+  // Through the one renderer, so a settled item is never "due this week".
+  const items = classify(rows);
+  const week = items.filter((i) => i.days !== null && i.days >= 0 && i.days <= 7
+    && i.bucket !== "closed" && i.bucket !== "responded").length;
+  const missing = items.filter((i) => i.bucket === "no_due_date").length;
 
   return (
     <section className="overview">
@@ -73,8 +75,7 @@ export default function Overview({ rows, loading, run }: {
       <div className="stats">
         <Stat value={n(rows.length)} label="Total notices" icon={I.stack} />
         <Stat value={n(week)} label="Due this week" icon={I.clock} />
-        <Stat tone="warn" value={n(rows.filter((r) => !r.due_date).length)}
-              label="Missing date" icon={I.help} />
+        <Stat tone="warn" value={n(missing)} label="Open, no date stated" icon={I.help} />
         <Stat value={n(rows.filter((r) => r.has_pdf).length)} label="Docs saved" icon={I.file} />
         <Stat tone="ok" value={n(rows.filter((r) => r.has_draft).length)}
               label="Drafts ready" icon={I.pen} />

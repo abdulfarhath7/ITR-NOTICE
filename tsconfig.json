@@ -22,5 +22,5 @@
   // against this tree - ws.ts talks to a websocket that no longer exists,
   // utils.ts wants Tailwind's clsx/tailwind-merge, files.ts wants the
   // dialog/fs plugins the capability file does not grant. See NOTES.md.
-  "exclude": ["src/lib/ws.ts", "src/lib/utils.ts", "src/lib/files.ts"]
+  "exclude": ["src/lib/ws.ts", "src/lib/utils.ts", "src/lib/files.ts", "src/**/*.test.ts"]
 }

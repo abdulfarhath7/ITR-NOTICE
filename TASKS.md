@@ -39,14 +39,14 @@ Read `docs/02-data-model.md` in full first.
 
 Read `docs/15-known-bugs.md`.
 
-- [ ] **2.1** Replace the open/closed boolean with the status state machine from `docs/02-data-model.md`.
-- [ ] **2.2** Implement the action matrix. Closed and submitted items keep View and Save; only Draft is withheld.
+- [x] **2.1** Replace the open/closed boolean with the status state machine from `docs/02-data-model.md`.
+- [x] **2.2** Implement the action matrix. Closed and submitted items keep View and Save; only Draft is withheld.
   - *Done when:* a closed proceeding shows View and Save, and no Draft button.
-- [ ] **2.3** Fix negative due dates. Store dates as date-only, compute in IST, render sign-aware strings.
+- [x] **2.3** Fix negative due dates. Store dates as date-only, compute in IST, render sign-aware strings.
   - *Done when:* no view can ever render a raw negative number of days.
-- [ ] **2.4** Add a date-parsing test fixture with a day-of-month above 12 to catch DD/MM versus MM/DD inversion.
-- [ ] **2.5** Status must win over dates: a closed item never renders as overdue.
-- [ ] **2.6** Render `NULL` due dates as "not stated" everywhere, never as a blank cell or an epoch date.
+- [x] **2.4** Add a date-parsing test fixture with a day-of-month above 12 to catch DD/MM versus MM/DD inversion.
+- [x] **2.5** Status must win over dates: a closed item never renders as overdue.
+- [x] **2.6** Render `NULL` due dates as "not stated" everywhere, never as a blank cell or an epoch date.
 
 ## Phase 3 — Clients and credentials
 

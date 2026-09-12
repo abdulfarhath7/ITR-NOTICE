@@ -224,6 +224,28 @@ impl Status {
         }
     }
 
+    /// The action matrix (docs/02): View and Save are always allowed; only
+    /// Draft and the manual due date follow the status. This is the Rust
+    /// half of the one place the matrix lives (`src/lib/status.ts` mirrors it
+    /// for the screens).
+    pub fn allows_draft(self) -> bool {
+        matches!(self, Status::Open | Status::AdjournmentSought)
+    }
+
+    pub fn allows_manual_due_date(self) -> bool {
+        matches!(self, Status::Open | Status::AdjournmentSought | Status::Unknown)
+    }
+
+    /// The transitions the machine allows (docs/02). Same status is a no-op.
+    pub fn can_transition(self, to: Status) -> bool {
+        use Status::*;
+        self == to || matches!((self, to),
+            (Open, AdjournmentSought | ResponseSubmitted | Closed)
+            | (AdjournmentSought, Open | Closed)
+            | (ResponseSubmitted, Closed)
+            | (Unknown, Open | AdjournmentSought | ResponseSubmitted | Closed))
+    }
+
     /// The portal's own words. Anything unrecognised is `unknown`, never a
     /// guess.
     pub fn from_portal(word: Option<&str>) -> Status {

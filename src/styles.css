@@ -607,9 +607,13 @@ tr:hover .rowacts, .rowacts:focus-within { opacity: 1; }
 table.attn thead th { background: var(--attn-head), var(--panel-solid); color: var(--text);
                       border-bottom-color: var(--divider); }
 table.attn tbody td { font-size: 12.5px; }
-.days { font: 700 12px var(--mono); }
-.days.late { color: var(--danger-text); }
-.days.soon { color: var(--warn-text); }
+/* Due text: the one renderer's four tones. Never a bare number. */
+.due { font: 500 12px var(--mono); white-space: nowrap; }
+.due.late { color: var(--danger-text); }
+.due.soon { color: var(--warn-text); }
+.due.ok { color: var(--text); }
+.due.none { color: var(--muted); }
+.unverified { color: var(--muted); font-style: italic; }
 .allclear { color: var(--ok-text); font-weight: 600; }
 
 /* ====================================================================== */

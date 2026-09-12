@@ -1,26 +1,9 @@
+/** Grouping rows into the report's buckets. Status first, then the date;
+ *  the day count comes from `describeDue` and is used for ordering only. */
+import { describeDue, type DueDescription } from "./due";
+import { parseStatus, type Status } from "./status";
 import type { NoticeRow } from "./types";
-
-const MONTHS: Record<string, number> = {
-  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
-};
-
-/** Portal dates look like 17-Aug-2026; tolerate the few other shapes the
- * web tool accepted. Returns a local-midnight Date or null. */
-export function parseDate(text: string | null | undefined): Date | null {
-  if (!text) return null;
-  const raw = text.trim();
-  let m = raw.match(/^(\d{1,2})[-/](\w{3,9})[-/](\d{4})$/);
-  if (m) {
-    const mon = MONTHS[m[2].slice(0, 3).toLowerCase()];
-    if (mon !== undefined) return new Date(+m[3], mon, +m[1]);
-  }
-  m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  m = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
-  return null;
-}
+import { todayIst, type Ymd } from "./dates";
 
 export type BucketKey =
   | "overdue" | "due_3" | "due_10" | "on_track" | "no_due_date" | "responded" | "closed";
@@ -30,29 +13,37 @@ export const BUCKETS: { key: BucketKey; label: string }[] = [
   { key: "due_3", label: "Due within 3 days" },
   { key: "due_10", label: "Due within 10 days" },
   { key: "on_track", label: "On track" },
-  { key: "no_due_date", label: "No due date yet" },
-  { key: "responded", label: "Responded" },
+  { key: "no_due_date", label: "No due date stated" },
+  { key: "responded", label: "Response submitted" },
   { key: "closed", label: "Closed" },
 ];
 
 export const TO_RESPOND: BucketKey[] = ["overdue", "due_3", "due_10", "on_track", "no_due_date"];
 
-export function daysLeft(row: NoticeRow, today = new Date()): number | null {
-  const due = parseDate(row.due_date);
-  if (!due) return null;
-  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((due.getTime() - t0.getTime()) / 86_400_000);
+export interface Item extends NoticeRow {
+  bucket: BucketKey;
+  machineStatus: Status;
+  due: DueDescription;
+  /** sort key only - never rendered */
+  days: number | null;
 }
 
-export function isOpen(row: NoticeRow): boolean {
-  return (row.status ?? "").trim().toLowerCase() !== "closed";
+/** The proceeding's status, with the communication's own submission
+ *  outranking it: a notice that has been answered is answered even while
+ *  the proceeding stays open for the next one. */
+export function statusOf(row: NoticeRow): Status {
+  const proc = parseStatus(row.status);
+  if (proc === "closed") return "closed";
+  const comm = parseStatus(row.communication_status);
+  if (comm === "response_submitted") return "response_submitted";
+  return proc === "unknown" ? comm : proc;
 }
 
-/** A filed reply outranks every deadline; a closed proceeding outranks that. */
-export function bucketOf(row: NoticeRow, today = new Date()): BucketKey {
-  if (!isOpen(row)) return "closed";
-  if (row.responded) return "responded";
-  const d = daysLeft(row, today);
+export function bucketOf(row: NoticeRow, today: Ymd = todayIst()): BucketKey {
+  const st = statusOf(row);
+  if (st === "closed") return "closed";
+  if (st === "response_submitted") return "responded";
+  const d = describeDue(row.due_date, st, today).days;
   if (d === null) return "no_due_date";
   if (d < 0) return "overdue";
   if (d <= 3) return "due_3";
@@ -60,13 +51,12 @@ export function bucketOf(row: NoticeRow, today = new Date()): BucketKey {
   return "on_track";
 }
 
-export interface Item extends NoticeRow {
-  bucket: BucketKey;
-  days: number | null;
-}
-
-export function classify(rows: NoticeRow[], today = new Date()): Item[] {
-  return rows.map((r) => ({ ...r, bucket: bucketOf(r, today), days: daysLeft(r, today) }));
+export function classify(rows: NoticeRow[], today: Ymd = todayIst()): Item[] {
+  return rows.map((r) => {
+    const machineStatus = statusOf(r);
+    const due = describeDue(r.due_date, machineStatus, today);
+    return { ...r, bucket: bucketOf(r, today), machineStatus, due, days: due.days };
+  });
 }
 
 export function counts(items: Item[]): Record<BucketKey | "to_respond", number> {

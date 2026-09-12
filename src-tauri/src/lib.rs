@@ -228,6 +228,15 @@ async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: 
     if let (Some(d), false) = (existing, regenerate) {
         return Ok(d);
     }
+    // The action matrix: no draft on a submitted or closed item.
+    let status = if row.communication_status == "response_submitted" {
+        repo::model::Status::ResponseSubmitted
+    } else {
+        repo::model::Status::parse(row.status.as_deref().unwrap_or("unknown"))
+    };
+    if !status.allows_draft() {
+        return Err(AppError::state(format!("no draft for a {} item", status.as_str().replace('_', " "))));
+    }
     let pdf = pdf.ok_or_else(|| AppError::state("no PDF stored yet - run a sync first"))?;
     let a: DraftAnswer = proxy(&state)?
         .draft(&ref_id, &pdf, row.notice_us.as_deref(), row.assessee_name.as_deref(),
