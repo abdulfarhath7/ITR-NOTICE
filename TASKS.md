@@ -31,7 +31,7 @@ Read `docs/02-data-model.md` in full first.
 - [x] **1.5** Migration: `adjournment_requests`.
 - [x] **1.6** Migration: `documents` — one polymorphic store, `doc_kind`, `parent_type`, `parent_id`, `file_hash`, `source_url`, `fetched_at`, `page_count`, `verified_flag`.
 - [x] **1.7** Migration: `ingestion_runs` — `run_at`, `panel_swept`, `records_found`, `gaps`, `operator`, `status`.
-- [ ] **1.8** Backfill existing notice rows into the new shape. No data loss.
+- [x] **1.8** Backfill existing notice rows into the new shape. No data loss.
   - *Done when:* row counts before and after reconcile, and a spot check of ten notices matches.
 - [ ] **1.9** Update all read paths to the new schema. Delete the old tables in a separate migration only after the app runs green.
 
