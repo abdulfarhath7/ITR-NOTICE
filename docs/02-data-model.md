@@ -72,9 +72,9 @@ comes from the registry, not from a separate table.
 | section_1961 | TEXT NULL | legacy reference, shown in brackets |
 | din_reference | TEXT NULL | |
 | authority | TEXT NULL | issuing or appellate authority |
-| initiated_on | TEXT NULL | date |
+| initiated_on | TEXT NULL | date; not populated by the portal engine (Q22: the card's stepper date is not read) |
 | due_date | TEXT NULL | portal-stated response due date |
-| manual_due_date | TEXT NULL | user-entered, fills a blank only (Q14) |
+| manual_due_date | TEXT NULL | user-entered; may sit beside a portal date and then drives the worklist (Q14) |
 | suggested_due_date | TEXT NULL | AI suggestion; never promoted automatically |
 | limitation_date | TEXT NULL | statutory clock on the proceeding itself |
 | status | TEXT | see state machine below |
@@ -217,3 +217,11 @@ Two separate ideas, both required:
 A field in `gap_flags` renders as "not stated". It never renders as blank, as
 zero, or as a guessed value. A due date is a statutory limitation; a wrong one
 is worse than none.
+
+## Which due date drives the worklist (Q14)
+
+`manual_due_date`, when a person entered one, is the effective due date for
+the Attention ranking, the overdue calculation and every due cell; the
+portal's `due_date` is shown beside it, labelled, and exported in its own
+column. A promoted AI suggestion writes `manual_due_date`, never `due_date`.
+The portal's field is never overwritten.

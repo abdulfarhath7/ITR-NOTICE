@@ -183,6 +183,13 @@ Append as you go. This is where the next session picks up your thread.
   also give each job its own challenge slot (today `RunHandle.sidecar` is
   one handle) and make the monitor show one row per worker.
 
+- Phase 12 done except nothing: 12.1–12.12 applied (Q01, Q04, Q08, Q09,
+  Q13, Q14, Q16, Q17, Q21, Q22). Reversals recorded as D-026 to D-032;
+  D-002 is superseded by D-027, D-012 by D-026. docs/02, 04, 05, 06, 07,
+  09, 11, 00 and the user guide updated to match.
+- Still open for the human: Q08 (the two live tests), Q11 (count the AR
+  panel), Q24 (unsigned release), and the three blocked items.
+
 ### For the next session
 - Run the Windows release job (tag `v0.2.0`) and fix whatever the frozen
   sidecar does on Windows; the `CREATE_NO_WINDOW` flag and the sidecar

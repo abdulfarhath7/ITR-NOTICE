@@ -8,8 +8,10 @@ supplied by the domain team and are assumed true (see `QUESTIONS.md` Q08–Q11).
 1. **One live session per taxpayer.** A new login evicts the previous one.
    Parallel fan-out across clients does not merely risk lockouts, it breaks
    itself. Ingestion is a **sequential queue**.
-2. **A human clears login.** Password, captcha and often an OTP. The service
-   is built around an **attended, resumable run**, not an unattended job.
+2. **A human may be needed at login.** In practice an OTP is rare or never
+   (Q09), so runs are **scheduled and unattended** by default; the
+   attended, resumable machinery stays as the fallback: a captcha or OTP
+   pauses the run and alerts, it never fails it.
 3. **Six panels, not one.** e-Proceedings is served under three views —
    Self, Of Other PAN or TAN, As Authorized Representative — each with a
    "For your action" and a "For your information" tab. A practitioner's book
@@ -48,7 +50,11 @@ publish changeset
 
 **Never fail on a human.** When the run needs a captcha or OTP, the job state
 becomes `awaiting_operator` and stays there. No timeout, no retry storm, no
-marking the client failed.
+marking the client failed. The app raises an OS notification and a sidebar
+pill; a scheduled run waits the same way.
+
+**Concurrency is one constant.** `INGESTION_WORKERS` (default 1) is the
+only place sequentiality lives (Q08, D-028). Nothing else assumes it.
 
 **Never retry a bad password.** One failure parks the client for the run. A
 second attempt risks locking the taxpayer out of their own account. Surface it

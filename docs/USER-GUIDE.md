@@ -17,7 +17,7 @@ pays anything.
 | **Item** | One proceeding, demand, return or form: its details, its documents, and the notice-and-response thread. |
 | **Ingestion** | Start a sweep, answer the portal's OTP or captcha, watch progress, pause, resume. |
 | **Devices** | The firm's devices, who collects, how far this device is behind, bundles in and out. |
-| **Settings** | Sweep cadence, the drafting proxy, the data folder, appearance. |
+| **Settings** | Sweep cadence, the unattended schedule, the drafting proxy, the data folder, appearance. |
 
 ## Getting started
 
@@ -35,8 +35,11 @@ pays anything.
    go into the operating system's keychain only. A client reached through
    an Authorised Representative login needs none of its own — set "Reached
    through login" to that PAN instead.
-5. **Sweep.** Ingestion → Start. Clear the OTP when the card appears. The
-   sweep waits as long as it takes and retries nothing on its own.
+5. **Sweep.** Ingestion → Start, or let it run by itself: Settings →
+   Unattended sweep sets a time and days. If the portal asks for an OTP or
+   a captcha, the run pauses, the app notifies you, and the sidebar shows
+   *Run waiting for you*. Nothing times out and nothing is retried on its
+   own.
 
 ## Reading a due date
 
@@ -47,8 +50,8 @@ pays anything.
 | **Due 22 Sep** | Later than a week. |
 | **Closed · was due 2 Aug** | Settled. A closed item is never shown as overdue. |
 | **Not stated** | The portal did not show a date. LCC never fills one in. |
-| *suggested 30 Sep* (grey, italic) | An AI suggestion. It becomes a working date only when you press **Promote**, and only where the portal stated none. |
-| **manual** | A date you entered yourself, where the portal stated none. |
+| *suggested 30 Sep* (grey, italic) | An AI suggestion. It becomes a working date only when you press **Promote**. |
+| **manual** | A date you entered yourself. It drives the list even when the portal states another date, which stays visible beside it. |
 
 A **limitation date** is the statutory deadline for the proceeding itself,
 not the reply deadline. The portal rarely states it; LCC shows "Not
@@ -103,5 +106,12 @@ offer no Draft, but View and Save are always there.
 - **Lost the admin laptop** — on a new device: Devices → Set up sync →
   Recover admin, with the recovery code and the firm key from any other
   firm device's invite.
+- **A device is lost or leaves the firm** — the admin removes it on
+  Devices. Its relay access ends at once; its local book and keys are
+  deleted the next time that device comes online with the app open. A
+  device that never reconnects keeps its copy — the dialog says so.
+- **The collector has gone quiet** — every device shows a banner, and
+  everyone who gave an email address gets one message per missed run, at
+  most one a day, plus one when it is back.
 
 Nothing here is legal advice. Verify every figure against the portal.

@@ -5,7 +5,7 @@
 One workbook, one sheet per module. The proceedings sheet is fixed by the
 firm's existing format and must match exactly, in this order.
 
-### Sheet 1 — Proceedings (the 17 columns)
+### Sheet 1 — Proceedings (the 16 columns)
 
 | # | Column | Source |
 |---|---|---|
@@ -20,14 +20,15 @@ firm's existing format and must match exactly, in this order.
 | 9 | Section | `section_2025`, with `section_1961` in brackets |
 | 10 | Proceeding Name | `proceedings` display name |
 | 11 | DIN | `din_reference` |
-| 12 | Issued On | `communications.issued_on` or `initiated_on` |
+| 12 | Issued On | earliest `communications.issued_on`; blank and gap-flagged with none (Q22) |
 | 13 | Response Due Date | `due_date` |
 | 14 | Manual Due Date | `manual_due_date` (user-entered) |
 | 15 | Response Submitted On | `responses.filed_on`, latest |
-| 16 | Created Mode | `created_mode` (Q01) |
-| 17 | Client File # | `clients.client_file_no` (user-entered) |
+| 16 | Client File # | `clients.client_file_no` (user-entered) |
 
-Columns 2, 14 and 17 never come from the portal. They are firm knowledge,
+`Created Mode` was dropped from the sheet (Q01); `proceedings.created_mode` stays in the database as provenance.
+
+Columns 2, 14 and 16 never come from the portal. They are firm knowledge,
 written on any device, and they sync upward like drafts do.
 
 ### Other sheets

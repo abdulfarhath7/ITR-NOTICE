@@ -164,8 +164,8 @@ Read the updated `QUESTIONS.md` first. Each task below corresponds to an answer 
 - [x] **12.8** (Q22) Stop parsing the proceeding card's status-stepper date. Leave `initiated_on` and `closure_date` nullable and unpopulated. `Issued On` in the export now comes from the communication's `issued_on`; with no communication the cell is blank and gap-flagged.
 - [x] **12.9** (Q16) Best-effort remote wipe. A removed device, on next relay contact, pushes any pending ledger entries, then deletes the local database, document store and keychain entry, then shows a plain "this device was removed" screen. The admin confirmation dialog must state plainly that this only works if the device comes online and the app is opened.
 - [x] **12.10** (Q17) Collector-silent alerting. Banner on every device plus an email to every user after one missed scheduled run. Debounce to at most one email per day, and send a recovery email when the collector returns. Note in `docs/07-security.md` that staff email addresses now live on the relay.
-- [ ] **12.11** (Q13) Move the offline-litigation scope note out of `QUESTIONS.md` into Phase 13 below so it is not lost.
-- [ ] **12.12** Update `docs/` to match every change above, then update `DECISIONS.md` with one entry per reversal (D-002 in particular is now superseded by Q09).
+- [x] **12.11** (Q13) Move the offline-litigation scope note out of `QUESTIONS.md` into Phase 13 below so it is not lost.
+- [x] **12.12** Update `docs/` to match every change above, then update `DECISIONS.md` with one entry per reversal (D-002 in particular is now superseded by Q09).
 
 ## Phase 13 — Offline litigation (deferred, do not start)
 

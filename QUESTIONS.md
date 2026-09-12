@@ -131,7 +131,7 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Context:** Hearing dates, adjournment diary, counsel notes, paper filings — data with no portal source.
 - **Default used:** Out of scope for this build. The schema leaves room (`proceedings.hearing_date`, `notes` table) but no UI is built.
 - **Blast radius:** Large if in scope. Adds a whole data-entry surface.
-- **Answer:** Later phase, not now. Move it out of QUESTIONS.md into TASKS.md as a deferred phase so it is not lost. Schema room stays; no UI is built.
+- **Answer:** Later phase, not now. Move it out of QUESTIONS.md into TASKS.md as a deferred phase so it is not lost. Schema room stays; no UI is built. *(Moved: see TASKS.md Phase 13 — offline litigation, deferred; `proceedings.hearing_date` exists.)*
 - **Resolved:** yes
 
 ### Q14 — Can a Manual Due Date override a portal-supplied due date, or only fill a blank?

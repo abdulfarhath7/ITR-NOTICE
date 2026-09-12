@@ -32,8 +32,11 @@ first-order concern, not a finishing pass.
    requests only that client's sealed credential, uses it, and drops it. The
    request is recorded in the audit log. A stolen laptop must not be two
    hundred logins.
-7. **No remote wipe promised.** Removing a device revokes relay access only
-   (Q16). Do not imply more in the UI than the code actually does.
+7. **Remote wipe is best-effort.** Removing a device revokes relay access
+   at once; the device deletes its own book and keys the next time it comes
+   online with the app open, after handing over pending entries (Q16). A
+   disk image or a machine that never reconnects is untouched, and the
+   admin's dialog says so.
 
 ## What the relay holds beyond routing (Q17)
 

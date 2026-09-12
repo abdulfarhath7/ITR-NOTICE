@@ -19,7 +19,7 @@ can be edited by anyone who owns the laptop.
 | Export | yes | yes |
 | See the device roster | yes, read only | yes |
 | Nominate the collector | no | yes |
-| Remove a device | no | yes |
+| Remove a device (revokes access; best-effort wipe, Q16) | no | yes |
 | Transfer admin | no | yes |
 
 Keep this list short. In a CA firm the admin is a partner, and a partner must

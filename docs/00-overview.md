@@ -42,7 +42,7 @@ These are the product. Everything else is convenience.
 
 - Filing or submitting anything to the portal. Read-only, always.
 - Offline litigation workflow (hearing diary, counsel notes, paper filings).
-  See `QUESTIONS.md` Q13.
+  Deferred to `TASKS.md` Phase 13 (Q13).
 - Multi-firm administration. One firm per installation.
 - Mobile.
 

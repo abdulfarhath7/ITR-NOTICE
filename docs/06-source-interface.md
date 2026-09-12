@@ -53,7 +53,8 @@ Do not re-derive these; they cost real effort to establish.
   Ignore it.
 - `eri_crypto.py` (Python port of the Java/BouncyCastle logic) and
   `test_eri_login.py` (Phase A offline crypto validation, Phase B live UAT
-  login) already exist in the repo.
+  login) were written for this project but are **not in this repository**
+  (checked 2026-09-12); bring them into `sidecar/eri/` when ERI work resumes.
 - Phase A crypto roundtrip is confirmed correct.
 - Phase B is blocked pending the ITD-supplied UAT URL list, the `SERVICE_NAME`
   string, and the real `clientid` / `client-secret` header names.

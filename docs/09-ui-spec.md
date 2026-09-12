@@ -75,6 +75,9 @@ Never render a raw signed number. Use:
 | closed or submitted | `Closed · was due 2 Aug` (muted) |
 | NULL | `Not stated` (muted, unverified marker) |
 
+When a manual due date exists it is the date rendered, marked `manual`, with
+the portal's own date shown beside it (Q14).
+
 Status wins over date. A closed item never shows as overdue.
 
 ### Sync state — two independent facts
