@@ -30,8 +30,10 @@ pub fn save_draft_text(state: State<AppState>, ref_id: String, draft_text: Strin
     db::update_draft_text(&con, &ref_id, &draft_text)
 }
 
+/// docs/08 `suggest_due_date`: writes `suggested_due_date` only, with
+/// `verified_flag = 0`. Never the stated column.
 #[tauri::command]
-pub async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> AppResult<DueDateAnswer> {
+pub async fn suggest_due_date(state: State<'_, AppState>, ref_id: String) -> AppResult<DueDateAnswer> {
     let (row, pdf) = {
         let con = lock_db(&state)?;
         let row = db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?;
@@ -58,15 +60,17 @@ pub async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> AppResu
     Ok(ans)
 }
 
+/// docs/08 `create_draft`: cached per notice; the proxy is never called
+/// twice for the same notice.
 #[tauri::command]
-pub async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: bool) -> AppResult<Draft> {
+pub async fn create_draft(state: State<'_, AppState>, ref_id: String) -> AppResult<Draft> {
     let (row, pdf, existing) = {
         let con = lock_db(&state)?;
         (db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?,
          db::get_pdf(&con, &ref_id)?,
          db::get_draft(&con, &ref_id)?)
     };
-    if let (Some(d), false) = (existing, regenerate) {
+    if let Some(d) = existing {
         return Ok(d);
     }
     // The action matrix: no draft on a submitted or closed item.
@@ -88,4 +92,21 @@ pub async fn draft_response(state: State<'_, AppState>, ref_id: String, regenera
     let con = lock_db(&state)?;
     db::save_draft(&con, &d, None)?;
     db::get_draft(&con, &ref_id)?.ok_or_else(|| AppError::not_found("draft"))
+}
+
+/// The explicit human action that turns a suggestion into a date the app
+/// acts on. It fills the manual due date (a blank only, Q14); the portal's
+/// stated date is never touched and the row stays machine-read.
+#[tauri::command]
+pub fn promote_suggested_due_date(state: State<AppState>, proceeding_id: String) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    let p = crate::repo::proceedings::get(&con, &proceeding_id)?.ok_or_else(|| AppError::not_found("proceeding"))?;
+    if !Status::parse(&p.status).allows_manual_due_date() {
+        return Err(AppError::state("this item is settled; its dates are no longer editable"));
+    }
+    if p.due_date.is_some() {
+        return Err(AppError::state("the portal states a due date; nothing to promote"));
+    }
+    let suggested = p.suggested_due_date.clone().ok_or_else(|| AppError::state("there is no suggested date to promote"))?;
+    crate::repo::proceedings::set_manual_due_date(&con, &proceeding_id, Some(&suggested))
 }

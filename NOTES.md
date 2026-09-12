@@ -141,3 +141,9 @@ Append as you go. This is where the next session picks up your thread.
   (all) and Client detail (one client), with counts shown before committing.
   8.5's user-entered columns were already app-editable and ledgered, so
   they sync like any other write.
+- Phase 9: commands renamed to docs/08 (`create_draft`, `suggest_due_date`,
+  `promote_suggested_due_date`). A draft is made once per notice — the
+  Regenerate control is gone. A suggestion lands in `suggested_due_date`
+  only; Promote copies it into the manual due date (a blank only, Q14) by
+  an explicit click, never automatically. The review screen shows the
+  notice PDF beside the draft. Draft stays behind the action matrix.

@@ -81,7 +81,7 @@ pub fn run() {
             commands::settings::get_settings, commands::settings::save_settings,
             list_notices, get_notice_pdf,
             commands::ai::get_draft, commands::ai::save_draft_text,
-            commands::ai::ask_due_date, commands::ai::draft_response,
+            commands::ai::suggest_due_date, commands::ai::create_draft, commands::ai::promote_suggested_due_date,
             commands::clients::list_clients, commands::clients::get_client,
             commands::clients::create_client, commands::clients::update_client,
             commands::clients::derive_from_gstin, commands::clients::set_client_file_no,

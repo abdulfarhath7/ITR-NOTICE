@@ -71,8 +71,8 @@ function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => voi
   );
 }
 
-function Thread({ p, onDraft, docs }: {
-  p: ProceedingDetail; onDraft: (c: CommunicationView) => void;
+function Thread({ p, onDraft, onSuggest, docs }: {
+  p: ProceedingDetail; onDraft: (c: CommunicationView) => void; onSuggest: (c: CommunicationView) => void;
   docs: ReturnType<typeof useDocuments>;
 }) {
   const entries: { when: string | null; node: React.ReactNode; key: string }[] = [];
@@ -106,6 +106,9 @@ function Thread({ p, onDraft, docs }: {
           {can.draft ? (
             <div className="row">
               <button className="btn small" onClick={() => onDraft(c)}>{c.has_draft ? "Open draft" : "Draft"}</button>
+              {!c.response_due_date && !p.suggested_due_date && c.documents.some((d) => d.state === "stored")
+                ? <button className="btn small quiet" onClick={() => onSuggest(c)} title="asks the proxy once; the answer is a suggestion, never a stated date">Suggest a due date</button>
+                : null}
             </div>
           ) : null}
         </div>
@@ -157,6 +160,7 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
   const q = useProceeding(module === "proceedings" ? id : null);
   const docs = useDocuments();
   const draft = useDraft();
+  const [draftSource, setDraftSource] = useState<string | null>(null);
 
   if (module === "demands") return <DemandScreen id={id} />;
   if (module === "returns") return <ReturnScreen id={id} />;
@@ -172,6 +176,17 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
   const due = describeDue(p.due_date ?? p.manual_due_date, status);
   const limitation = describeDue(p.limitation_date, status);
   const refresh = () => invalidate(`proceedings:${id}`);
+  const promote = async () => {
+    try { await api.promoteSuggestedDueDate(p.id); toast("Suggested date promoted to the manual due date."); refresh(); invalidate("work_items"); }
+    catch (e) { toastError(describeError(e)); }
+  };
+  const suggest = async (c: CommunicationView) => {
+    try {
+      const a = await api.suggestDueDate(c.reference_id);
+      toast(a.due_date ? `Suggested ${a.due_date}${a.basis ? ` — ${a.basis}` : ""}` : (a.basis ?? "No deadline was found in this notice."));
+      refresh();
+    } catch (e) { toastError(describeError(e)); }
+  };
 
   return (
     <div className="page">
@@ -198,7 +213,11 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
                 <dt>Manual due date</dt><dd><ManualDueDate p={p} onSaved={refresh} /></dd>
                 <dt>Suggested due date</dt>
                 <dd>{p.suggested_due_date
-                  ? <><span className="suggested">{p.suggested_due_date}</span> <span className="pill warning">suggested</span></>
+                  ? <span className="row">
+                      <span className="suggested">{p.suggested_due_date}</span> <span className="pill warning">suggested</span>
+                      {actionsFor(p.status).editManualDueDate && !p.due_date && p.manual_due_date !== p.suggested_due_date
+                        ? <button className="btn small" onClick={() => { void promote(); }}>Promote to manual due date</button> : null}
+                    </span>
                   : <span className="muted">none</span>}</dd>
                 <dt>Limitation date</dt><dd><DueText due={limitation} /></dd>
                 <dt>Portal status</dt><dd>{p.portal_status ?? <span className="muted">Not stated</span>}</dd>
@@ -229,7 +248,8 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
         <div className="card">
           <div className="card-head"><h2>Thread</h2></div>
           <div className="card-body">
-            <Thread p={p} docs={docs} onDraft={(c) => { void draft.open(c.reference_id); }} />
+            <Thread p={p} docs={docs} onDraft={(c) => { setDraftSource(c.documents.find((d) => d.state === "stored")?.id ?? null); void draft.open(c.reference_id); }}
+                    onSuggest={(c) => { void suggest(c); }} />
           </div>
         </div>
       </div>
@@ -237,9 +257,8 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
       {docs.preview ? <DocumentPreview preview={docs.preview} onClose={docs.closePreview}
                                        onOpen={() => { if (docs.preview) void docs.openExternal(docs.preview.doc); }}
                                        onSave={() => { if (docs.preview) void docs.saveAs(docs.preview.doc); }} /> : null}
-      {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} onClose={draft.close}
-                                  onSave={(t) => { void draft.saveText(t); }}
-                                  onRegenerate={() => { if (draft.draft) void draft.open(draft.draft.ref_id, true); }} /> : null}
+      {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} sourceDocumentId={draftSource} onClose={draft.close}
+                                  onSave={(t) => { void draft.saveText(t); }} /> : null}
     </div>
   );
 }

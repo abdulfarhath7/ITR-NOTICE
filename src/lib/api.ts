@@ -40,8 +40,9 @@ export const api = {
 
   draft: (refId: string) => invoke<Draft | null>("get_draft", { refId }),
   saveDraftText: (refId: string, draftText: string) => invoke<void>("save_draft_text", { refId, draftText }),
-  askDueDate: (refId: string) => invoke<DueDateAnswer>("ask_due_date", { refId }),
-  draftResponse: (refId: string, regenerate: boolean) => invoke<Draft>("draft_response", { refId, regenerate }),
+  suggestDueDate: (refId: string) => invoke<DueDateAnswer>("suggest_due_date", { refId }),
+  createDraft: (refId: string) => invoke<Draft>("create_draft", { refId }),
+  promoteSuggestedDueDate: (proceedingId: string) => invoke<void>("promote_suggested_due_date", { proceedingId }),
 
   startIngestion: (scope: Scope, allNow = false) => invoke<string>("start_ingestion_run", { scope, allNow }),
   sweepCadence: () => invoke<Cadences>("get_sweep_cadence"),

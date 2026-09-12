@@ -121,10 +121,10 @@ Read `docs/11-exports.md`.
 
 ## Phase 9 — AI drafting
 
-- [ ] **9.1** Draft generation through the server-side proxy. Cache per notice. Never call twice for the same notice.
-- [ ] **9.2** Suggested due date writes only to `suggested_due_date` with `verified_flag = false`. Promotion requires an explicit user action.
-- [ ] **9.3** Draft review screen: source notice on one side, draft on the other, edit before use.
-- [ ] **9.4** No draft button on submitted or closed items.
+- [x] **9.1** Draft generation through the server-side proxy. Cache per notice. Never call twice for the same notice.
+- [x] **9.2** Suggested due date writes only to `suggested_due_date` with `verified_flag = false`. Promotion requires an explicit user action.
+- [x] **9.3** Draft review screen: source notice on one side, draft on the other, edit before use.
+- [x] **9.4** No draft button on submitted or closed items.
 
 ## Phase 10 — Packaging and release
 

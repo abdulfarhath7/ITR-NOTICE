@@ -1,5 +1,5 @@
-/** The AI draft for one communication: cached per notice, never fetched
- *  twice on its own. */
+/** The AI draft for one communication: cached per notice; the proxy is
+ *  never called twice for the same notice (docs/08). */
 import { useCallback, useState } from "react";
 import { api, describeError } from "../lib/api";
 import { toast, toastError } from "../lib/toast";
@@ -9,11 +9,11 @@ export function useDraft() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const open = useCallback(async (refId: string, regenerate = false) => {
+  const open = useCallback(async (refId: string) => {
     setBusy(true);
     try {
-      const existing = regenerate ? null : await api.draft(refId);
-      setDraft(existing ?? await api.draftResponse(refId, regenerate));
+      const existing = await api.draft(refId);
+      setDraft(existing ?? await api.createDraft(refId));
     } catch (e) { toastError(describeError(e)); }
     finally { setBusy(false); }
   }, []);
