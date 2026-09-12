@@ -133,3 +133,45 @@ Read `docs/11-exports.md`.
 - [x] **10.3** Settings screen: sweep cadence, worker count, data folder, about.
 - [x] **10.4** Write `docs/USER-GUIDE.md` in plain language, no jargon.
 - [x] **10.5** Final pass: update `TASKS.md`, `NOTES.md`, `QUESTIONS.md`, `DECISIONS.md`.
+
+---
+
+## Phase 11 — Finish the partial work
+
+Carried over from phases 5 and 10, marked `[~]`.
+
+- [~] **11.1** Complete `demands`, `demand_responses`, `payments` ingestion (was 5.1). Payments parent is `year_context_id` with nullable links to `demand_response_id` and `proceeding_id` and a `purpose` enum (Q03).
+  - *Done when:* a demand with a challan round-trips from portal to Excel.
+- [~] **11.2** Complete `returns` ingestion including `supersedes_id` chaining (was 5.2).
+  - *Done when:* an original plus a revised return render as one thread, not two rows.
+- [~] **11.3** Complete `filed_forms` ingestion, grouped by form type from the registry (was 5.3).
+- [~] **11.4** Windows build green in CI (was 10.1). Ship unsigned (Q24). Record in `NOTES.md` that SmartScreen warnings are expected and accepted for now.
+
+## Phase 12 — Apply the answered questions
+
+Read the updated `QUESTIONS.md` first. Each task below corresponds to an answer that differs from the default that was built.
+
+- [ ] **12.1** (Q04) Remove the web application. **Do not touch `relay/`** — it is a separate service that happens to also use FastAPI. Before deleting `app/`, diff it against `sidecar/` and `src-tauri/` and confirm nothing unique remains: original Playwright selectors, ERI crypto work, parser fixtures. Move anything unique first.
+  - *Done when:* `app/` is gone, `./scripts/check.sh` exits 0, the desktop app still starts, and `relay/` still runs.
+- [ ] **12.2** (Q21) Rename to **Litigation Command Center**: `productName` in `tauri.conf.json`, window title, frontend constant, export header, installer filename. Change the bundle extension `.draftax` to `.lcc` including the importer's accepted extensions.
+- [ ] **12.3** (Q21) Fix the bundle identifier typo `in.llc.app` → `in.lcc.app`. Do this before any installer ships. Pick "Center" or "Centre" and apply it in every string.
+- [ ] **12.4** (Q09) Add a scheduler. An unattended run starts at a configured time, works the queue by itself, and only pauses if a login challenge actually appears. Keep the entire attended flow as the fallback path — do not delete it.
+  - *Done when:* a scheduled run completes end to end with nobody present, and a forced challenge pauses it rather than failing it.
+- [ ] **12.5** (Q08) Move ingestion concurrency to a single config constant, default 1. No other code should assume sequentiality. Document in `NOTES.md` the two tests that would justify raising it.
+- [ ] **12.6** (Q14) Manual due date may override a portal date. Both are stored and both are displayed, clearly labelled. The manual date drives the Attention ranking and the overdue calculation; export column 13 still carries the portal date. A promoted AI suggestion writes `manual_due_date`, never `due_date`.
+  - *Done when:* a proceeding with both dates shows both, and the worklist sorts on the manual one.
+- [ ] **12.7** (Q01) Remove `Created Mode` from the Excel export. Sheet is now 16 columns. Keep `proceedings.created_mode` in the database. Check nothing downstream reads the sheet by column position before shipping.
+- [ ] **12.8** (Q22) Stop parsing the proceeding card's status-stepper date. Leave `initiated_on` and `closure_date` nullable and unpopulated. `Issued On` in the export now comes from the communication's `issued_on`; with no communication the cell is blank and gap-flagged.
+- [ ] **12.9** (Q16) Best-effort remote wipe. A removed device, on next relay contact, pushes any pending ledger entries, then deletes the local database, document store and keychain entry, then shows a plain "this device was removed" screen. The admin confirmation dialog must state plainly that this only works if the device comes online and the app is opened.
+- [ ] **12.10** (Q17) Collector-silent alerting. Banner on every device plus an email to every user after one missed scheduled run. Debounce to at most one email per day, and send a recovery email when the collector returns. Note in `docs/07-security.md` that staff email addresses now live on the relay.
+- [ ] **12.11** (Q13) Move the offline-litigation scope note out of `QUESTIONS.md` into Phase 13 below so it is not lost.
+- [ ] **12.12** Update `docs/` to match every change above, then update `DECISIONS.md` with one entry per reversal (D-002 in particular is now superseded by Q09).
+
+## Phase 13 — Offline litigation (deferred, do not start)
+
+Placeholder only. Q13 answered "later phase". Do not begin this without an explicit instruction.
+
+- [ ] **13.1** Hearing diary: hearing dates, adjournments sought and granted, outcomes.
+- [ ] **13.2** Counsel notes and briefs against a proceeding.
+- [ ] **13.3** Paper filings with no portal source, manually recorded.
+- [ ] **13.4** These are firm-authored records: they sync two-way and never come from ingestion.

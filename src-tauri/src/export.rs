@@ -294,7 +294,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         rows.push(vec![
             Cell::Int(i as i64 + 1), Cell::Text(name), text(ay.as_deref()), text(reference.as_deref()), date(raised.as_deref()),
             money(amount), money(outstanding), text(section.as_deref()),
-            text(resp.as_ref().and_then(|r| r.0.as_deref())), money(resp.as_ref().and_then(|r| r.1)),
+            text(resp.as_ref().and_then(|r| r.0.as_deref()).map(|st| st.replace('_', " ")).as_deref()), money(resp.as_ref().and_then(|r| r.1)),
             date(resp.as_ref().and_then(|r| r.2.as_deref())),
             text(pay.as_ref().and_then(|p| p.0.as_deref())), date(pay.as_ref().and_then(|p| p.1.as_deref())), money(pay.as_ref().and_then(|p| p.2)),
             Cell::Text(status.replace('_', " ")),

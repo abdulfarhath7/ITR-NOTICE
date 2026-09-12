@@ -181,7 +181,10 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
          FROM returns x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
-         WHERE 1 = 1");
+         WHERE NOT EXISTS (SELECT 1 FROM returns s WHERE s.supersedes_id = x.id)");
+    // One thread per chain: a revised or updated return replaces its
+    // predecessor in every list (task 11.2); the detail shows the chain and
+    // the export still carries every row.
     let mut binds: Vec<rusqlite::types::Value> = Vec::new();
     sql.push_str(&common_filter(f, "x.return_type", "x.acknowledgement_number", &mut binds));
     let mut st = con.prepare(&sql)?;
@@ -474,6 +477,8 @@ pub struct ReturnDetail {
     pub gaps: Vec<String>,
     pub supersedes_ack: Option<String>,
     pub superseded_by_ack: Option<String>,
+    /// The whole chain, oldest first: original, revised, updated.
+    pub chain: Vec<crate::repo::model::Return>,
     pub documents: Vec<Document>,
 }
 
@@ -484,8 +489,19 @@ pub fn return_detail(con: &Connection, id: &str) -> AppResult<Option<ReturnDetai
     let supersedes_ack = match &r.supersedes_id { Some(sid) => modules::get_return(con, sid)?.map(|x| x.acknowledgement_number), None => None };
     let superseded_by_ack: Option<String> = con.query_row(
         "SELECT acknowledgement_number FROM returns WHERE supersedes_id = ?1 LIMIT 1", [id], |x| x.get(0)).optional()?;
+    // walk to the root, then forward
+    let mut root = r.clone();
+    while let Some(prev) = root.supersedes_id.clone().and_then(|sid| modules::get_return(con, &sid).ok().flatten()) {
+        root = prev;
+    }
+    let mut chain = vec![root.clone()];
+    let mut cur = root;
+    while let Some(next) = con.query_row("SELECT * FROM returns WHERE supersedes_id = ?1 LIMIT 1", [&cur.id], modules::return_row).optional()? {
+        chain.push(next.clone());
+        cur = next;
+    }
     Ok(Some(ReturnDetail {
-        gaps: gaps(r.gap_flags.clone()), supersedes_ack, superseded_by_ack,
+        gaps: gaps(r.gap_flags.clone()), supersedes_ack, superseded_by_ack, chain,
         documents: documents::for_parent(con, "return", id)?, context, row: r,
     }))
 }

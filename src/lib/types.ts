@@ -306,6 +306,8 @@ export interface ReturnDetail extends ItemContext {
   supersedes_id: string | null;
   supersedes_ack: string | null;
   superseded_by_ack: string | null;
+  /** The whole chain, oldest first: original, revised, updated. */
+  chain: { id: string; acknowledgement_number: string; filing_type: string | null; filed_on: string | null; verification_status: string | null }[];
   verified_flag: number;
   gaps: string[];
   first_seen_at: string;

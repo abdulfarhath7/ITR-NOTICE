@@ -3,7 +3,7 @@
  *  right; every gap reads "Not stated". */
 import { useDocuments } from "../hooks/use-documents";
 import { useDemand, useFiledForm, useReturn } from "../hooks/use-proceeding";
-import { href } from "../lib/router";
+import { href, navigate } from "../lib/router";
 import type { Document } from "../lib/types";
 import { DateCell } from "../ui/dates";
 import DocumentPreview from "../ui/document-preview";
@@ -161,6 +161,22 @@ export function ReturnScreen({ id }: { id: string }) {
           <div className="card-head"><h2>Form and receipt</h2><span className="meta">always two nodes</span></div>
           <Docs docs={r.documents} d={docs} />
         </div>
+      </div>
+      <div className="card">
+        <div className="card-head"><h2>Filing thread</h2><span className="meta">original, revised, updated — one thread</span></div>
+        <table className="table"><tbody>
+          {r.chain.map((c, i) => (
+            <tr key={c.id} className={c.id === r.id ? "" : "row-link"} tabIndex={0}
+                onClick={() => { if (c.id !== r.id) navigate({ name: "item", module: "returns", id: c.id }); }}>
+              <td className="num">{i + 1}</td>
+              <td className="mono">{c.acknowledgement_number}{c.id === r.id ? <span className="sub">this one</span> : null}</td>
+              <td>{c.filing_type ?? <span className="muted">Not stated</span>}</td>
+              <td><DateCell iso={c.filed_on} /></td>
+              <td>{c.verification_status ?? <span className="muted">Not stated</span>}</td>
+              <td>{i === r.chain.length - 1 ? <span className="pill success">current</span> : <span className="pill">superseded</span>}</td>
+            </tr>
+          ))}
+        </tbody></table>
       </div>
       {docs.preview ? <DocumentPreview preview={docs.preview} onClose={docs.closePreview}
         onOpen={() => { if (docs.preview) void docs.openExternal(docs.preview.doc); }}

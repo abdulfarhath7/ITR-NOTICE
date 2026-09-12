@@ -477,6 +477,50 @@ mod tests {
         assert!(docs.iter().all(|d| d.state == "stored"));
     }
 
+    /// Task 11.1: a demand with a challan round-trips from the card shape to
+    /// the Excel workbook (CIN and amount on the Demands sheet).
+    #[test]
+    fn demand_with_challan_round_trips_to_excel() {
+        let mut con = Connection::open_in_memory().unwrap();
+        crate::migrate::run(&mut con).unwrap();
+        crate::repo::local::set(&con, crate::repo::local::DEVICE_ID, "dev_t").unwrap();
+        let card = DemandCard {
+            pan: Some("ABCDE1234F".into()), assessment_year: Some("2023-24".into()),
+            demand_reference_number: Some("2023202400012345".into()), demand_amount: Some("₹ 1,50,000".into()),
+            current_outstanding: Some("50,000.00".into()), section_or_demand_type: Some("143(1)".into()),
+            raised_on: Some("12-Jan-2026".into()), status: Some("Outstanding".into()),
+            response: Some(DemandResponseCard { stance: Some("Disagree with demand (Partially)".into()), reason: Some("demand_paid_partly".into()),
+                                                disputed_amount: Some("50,000".into()), filed_on: Some("20-Jan-2026".into()), transaction_id: None }),
+            payments: vec![PaymentCard { cin: Some("0004567890123456789".into()), bsr_code: Some("0004567".into()),
+                                         paid_on: Some("18-Jan-2026".into()), amount: Some("1,00,000".into()) }],
+            ..Default::default()
+        };
+        let id = absorb_demand(&con, None, &card).unwrap();
+        let d = modules::get_demand(&con, &id).unwrap().unwrap();
+        assert_eq!(d.demand_amount, Some(150000.0));
+        assert_eq!(d.current_outstanding, Some(50000.0));
+        assert_eq!(d.status, "response_submitted");
+        let pays = modules::payments_for_year(&con, &d.year_context_id).unwrap();
+        assert_eq!(pays.len(), 1);
+        assert_eq!(pays[0].purpose, "demand_settlement");
+        assert!(pays[0].demand_response_id.is_some(), "linked to the response, parented by the year (Q03)");
+        // same card again: no duplicate payment
+        absorb_demand(&con, None, &card).unwrap();
+        assert_eq!(modules::payments_for_year(&con, &d.year_context_id).unwrap().len(), 1);
+
+        let dir = std::env::temp_dir().join(format!("draftax-demand-{}", crate::ids::new_id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("d.xlsx");
+        let report = crate::export::export_workbook(&con, &crate::export::ExportScope::All, path.to_str().unwrap()).unwrap();
+        assert_eq!(report.demands, 1);
+        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(std::fs::read(&path).unwrap())).unwrap();
+        let mut shared = String::new();
+        std::io::Read::read_to_string(&mut zip.by_name("xl/sharedStrings.xml").unwrap(), &mut shared).unwrap();
+        assert!(shared.contains("0004567890123456789"), "the CIN is on the sheet");
+        assert!(shared.contains("partially disagreed"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn revised_return_supersedes_the_original() {
         let mut con = Connection::open_in_memory().unwrap();
@@ -492,5 +536,15 @@ mod tests {
         let row = modules::get_return(&con, &r).unwrap().unwrap();
         assert_eq!(row.supersedes_id.as_deref(), Some(o.as_str()));
         assert_eq!(modules::get_return(&con, &o).unwrap().unwrap().supersedes_id, None);
+        // Task 11.2: one thread, not two rows — the list shows the head only,
+        // the detail shows the chain.
+        let rows = crate::repo::work_items::list(&con, &crate::repo::work_items::WorkItemFilter {
+            module: Some("returns".into()), ..Default::default() }).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, r);
+        let detail = crate::repo::work_items::return_detail(&con, &r).unwrap().unwrap();
+        assert_eq!(detail.chain.iter().map(|x| x.acknowledgement_number.clone()).collect::<Vec<_>>(),
+                   vec!["111111111111111", "222222222222222"]);
+        assert_eq!(crate::repo::work_items::return_detail(&con, &o).unwrap().unwrap().chain.len(), 2);
     }
 }

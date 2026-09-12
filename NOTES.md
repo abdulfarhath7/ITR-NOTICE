@@ -158,6 +158,22 @@ Append as you go. This is where the next session picks up your thread.
   (`./scripts/check.sh`), 30 Rust tests, 11 vitest cases, 2 parser
   fixtures, 6 relay invariant tests.
 
+### Session 2 — 2026-09-12, applying the answered questions
+- Phase 11: the demand-with-challan round trip (card → rows → Demands
+  sheet with CIN) and the original-plus-revised return as one thread (list
+  shows the head, detail shows the chain) are Rust tests and UI. What is
+  still missing for 11.1–11.3 is the same thing as before: DOM captures of
+  the three list pages, so the sidecar's label tables can be pinned. The
+  pipeline from header to Excel is complete; the parsers are marked
+  low-confidence until then. 11.4: the Windows job cannot run from this
+  box; it is reviewed, renamed and points at the new sidecar path.
+  **SmartScreen warnings on install are expected and accepted for now**
+  (Q24: ship unsigned; an OV certificate when a firm installs unattended).
+- docs/06 says `eri_crypto.py` and `test_eri_login.py` exist in the repo.
+  They do not — `git ls-files | grep -i eri` finds only the stub — so
+  there was nothing to move out of `app/` for Q04. If they live outside
+  this repository, bring them into `sidecar/eri/` when ERI work resumes.
+
 ### For the next session
 - Run the Windows release job (tag `v0.2.0`) and fix whatever the frozen
   sidecar does on Windows; the `CREATE_NO_WINDOW` flag and the sidecar
