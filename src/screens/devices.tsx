@@ -14,6 +14,25 @@ import FirmSetup from "./firm-setup";
 
 const ONLINE_MINUTES = 10;
 
+/** Where this device's user is emailed when the collector misses a run (Q17). */
+function AlertEmail() {
+  const q = useQuery<string | null>("sync:alert-email", () => api.alertEmail());
+  const [value, setValue] = useState<string | null>(null);
+  const shown = value ?? q.data ?? "";
+  const save = async () => {
+    try { await api.setAlertEmail(shown.trim() || null); invalidate("sync:alert-email"); setValue(null); toast("Alert email saved."); }
+    catch (e) { toastError(describeError(e)); }
+  };
+  return (
+    <div className="card-body row">
+      <span className="meta">Collector-silent alerts go to</span>
+      <input className="input" type="email" style={{ width: 260 }} value={shown} onChange={(e) => setValue(e.target.value)} aria-label="Alert email" />
+      {value !== null && value !== (q.data ?? "") ? <button className="btn small" onClick={() => { void save(); }}>Save</button> : null}
+      <span className="meta">one email per missed run, at most one a day, and one when it returns</span>
+    </div>
+  );
+}
+
 function online(lastSeen: string | null): boolean {
   if (!lastSeen) return false;
   return Date.now() - new Date(lastSeen).getTime() < ONLINE_MINUTES * 60_000;
@@ -152,6 +171,7 @@ export default function DevicesScreen() {
               </table>
             )}
             {!admin && roster.data ? <div className="card-body meta">Only the admin can nominate the collector, remove a device or transfer the admin role. You see the same list.</div> : null}
+            <AlertEmail />
           </div>
         ) : (
           <div className="card">

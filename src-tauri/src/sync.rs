@@ -238,13 +238,13 @@ mod tests {
         let b = fresh(&format!("dev_b_{}", &crate::ids::new_id()[..8]));
         let (id_a, id_b) = (local::device_id(&a.lock().unwrap()).unwrap(), local::device_id(&b.lock().unwrap()).unwrap());
 
-        let e = Relay::register_firm(&url, &id_a, "Example & Co", "Laptop A").await.unwrap();
+        let e = Relay::register_firm(&url, &id_a, "Example & Co", "Laptop A", None).await.unwrap();
         assert!(!e.recovery_code.is_empty());
         relay::store_enrolment(&a.lock().unwrap(), &e).unwrap();
         let ra = Relay::new(e.config.clone());
         let invite = ra.create_invite().await.unwrap();
 
-        let eb = Relay::enrol(&url, &id_b, &invite, "Laptop B").await.unwrap();
+        let eb = Relay::enrol(&url, &id_b, &invite, "Laptop B", None).await.unwrap();
         relay::store_enrolment(&b.lock().unwrap(), &eb).unwrap();
 
         // A writes a client and syncs; B syncs and has it.

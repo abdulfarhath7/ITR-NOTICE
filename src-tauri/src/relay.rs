@@ -196,10 +196,10 @@ impl Relay {
     /// receives the recovery code (returned once; the caller shows it once).
     /// No archive lock is held across the network call; the caller stores
     /// the result with `store_enrolment`.
-    pub async fn register_firm(url: &str, device_id: &str, firm_name: &str, device_name: &str) -> AppResult<Enrolment> {
+    pub async fn register_firm(url: &str, device_id: &str, firm_name: &str, device_name: &str, email: Option<&str>) -> AppResult<Enrolment> {
         let key = bundle::signing_key()?;
         let tmp = Relay::new(RelayConfig { url: url.into(), firm_id: String::new(), firm_name: None, device_id: device_id.into() });
-        let body = json!({ "name": firm_name, "device_id": device_id, "device_name": device_name,
+        let body = json!({ "name": firm_name, "device_id": device_id, "device_name": device_name, "email": email,
                            "public_key": bundle::public_key_b64(&key), "ram_mb": ram_mb() });
         let bytes = serde_json::to_vec(&body)?;
         let resp = tmp.call(reqwest::Method::POST, "/v1/firms", &[], bytes, "application/json", &[], None).await?;
@@ -216,7 +216,7 @@ impl Relay {
 
     /// Join with an invite string `firm_id.invite_code.firm_key_hex`
     /// (typed from the admin). The key part never reaches the relay.
-    pub async fn enrol(url: &str, device_id: &str, invite: &str, device_name: &str) -> AppResult<Enrolment> {
+    pub async fn enrol(url: &str, device_id: &str, invite: &str, device_name: &str, email: Option<&str>) -> AppResult<Enrolment> {
         let parts: Vec<&str> = invite.trim().split('.').collect();
         if parts.len() != 3 { return Err(AppError::invalid("an invite looks like firm.code.key")); }
         let (firm_id, code, key_hex) = (parts[0], parts[1], parts[2]);
@@ -224,7 +224,7 @@ impl Relay {
             .ok_or_else(|| AppError::invalid("the invite's key part is malformed"))?;
         let key = bundle::signing_key()?;
         let tmp = Relay::new(RelayConfig { url: url.into(), firm_id: firm_id.into(), firm_name: None, device_id: device_id.into() });
-        let body = json!({ "invite_code": code, "device_id": device_id, "device_name": device_name,
+        let body = json!({ "invite_code": code, "device_id": device_id, "device_name": device_name, "email": email,
                            "public_key": bundle::public_key_b64(&key), "ram_mb": ram_mb() });
         let path = format!("/v1/firms/{firm_id}/devices");
         let bytes = serde_json::to_vec(&body)?;
@@ -237,12 +237,12 @@ impl Relay {
 
     /// Recover admin on a fresh device with the recovery code plus the
     /// firm key (from any other firm device or a bundle).
-    pub async fn recover(url: &str, device_id: &str, firm_id: &str, recovery_code: &str, key_hex: &str, device_name: &str) -> AppResult<Enrolment> {
+    pub async fn recover(url: &str, device_id: &str, firm_id: &str, recovery_code: &str, key_hex: &str, device_name: &str, email: Option<&str>) -> AppResult<Enrolment> {
         let fk: [u8; 32] = hex::decode(key_hex.trim()).ok().and_then(|b| b.try_into().ok())
             .ok_or_else(|| AppError::invalid("the firm key is malformed"))?;
         let key = bundle::signing_key()?;
         let tmp = Relay::new(RelayConfig { url: url.into(), firm_id: firm_id.into(), firm_name: None, device_id: device_id.into() });
-        let body = json!({ "recovery_code": recovery_code, "device_id": device_id, "device_name": device_name,
+        let body = json!({ "recovery_code": recovery_code, "device_id": device_id, "device_name": device_name, "email": email,
                            "public_key": bundle::public_key_b64(&key), "ram_mb": ram_mb() });
         let path = format!("/v1/firms/{firm_id}/admin/recover");
         let bytes = serde_json::to_vec(&body)?;
@@ -275,6 +275,12 @@ impl Relay {
 
     pub async fn remove_device(&self, device_id: &str) -> AppResult<()> {
         self.json(reqwest::Method::DELETE, &format!("/v1/firms/{}/devices/{device_id}", self.cfg.firm_id), None, &[]).await?;
+        Ok(())
+    }
+
+    /// Where collector-silent alerts go for this device's user (Q17).
+    pub async fn set_email(&self, email: Option<&str>) -> AppResult<()> {
+        self.json(reqwest::Method::POST, &format!("/v1/firms/{}/me/email", self.cfg.firm_id), Some(json!({"email": email})), &[]).await?;
         Ok(())
     }
 

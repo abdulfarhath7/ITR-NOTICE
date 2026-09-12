@@ -18,6 +18,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 import time
 from collections.abc import AsyncIterator
@@ -30,17 +31,33 @@ from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 from pydantic import BaseModel
 
-from . import db
+from . import alerts, db
 
 LEASE_HOURS = 24            # Q06
 LOCK_SECONDS = 5 * 60       # docs/04
 SIGNATURE_SKEW_SECONDS = 300
 
 
+async def _alert_loop() -> None:
+    """Hourly: collector-silent emails (Q17)."""
+    import asyncio
+    while True:
+        try:
+            alerts.run_once()
+        except Exception:  # noqa: BLE001 - an alert pass must never take the relay down
+            logging.getLogger("relay").exception("alert pass failed")
+        await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
+    import asyncio
     db.init()
-    yield
+    task = asyncio.create_task(_alert_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
 
 
 app = FastAPI(title="Litigation Command Center relay", docs_url=None, redoc_url=None, lifespan=_lifespan)
@@ -148,6 +165,7 @@ def require_admin(c: Caller) -> None:
 # ---------------------------------------------------------------- firms
 
 class RegisterFirm(BaseModel):
+    email: str | None = None
     name: str
     device_id: str           # minted by the device; its ledger stream is keyed by it
     device_name: str
@@ -179,9 +197,9 @@ async def register_firm(body: RegisterFirm, request: Request,
         _check_device_id(con, device_id)
         con.execute("INSERT INTO firms (id, name, admin_device_id, recovery_code_hash, created_at) VALUES (?,?,?,?,?)",
                     (firm_id, body.name.strip(), device_id, hash_code(recovery), now()))
-        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, enrolled_at, last_seen) "
-                    "VALUES (?,?,?,?,'admin','normal',?,?,?)",
-                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, now(), now()))
+        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, email, enrolled_at, last_seen) "
+                    "VALUES (?,?,?,?,'admin','normal',?,?,?,?)",
+                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, body.email, now(), now()))
         audit(con, firm_id, device_id, "firm_registered")
     # The recovery code is returned exactly once and stored only as a hash.
     return {"firm_id": firm_id, "device_id": device_id, "recovery_code": recovery}
@@ -200,6 +218,7 @@ def create_invite(firm_id: str, c: Caller = CALLER) -> dict[str, str]:
 
 
 class Enrol(BaseModel):
+    email: str | None = None
     invite_code: str
     device_id: str
     device_name: str
@@ -222,9 +241,9 @@ async def enrol_device(firm_id: str, body: Enrol, request: Request,
         if inv is None or inv["used_at"]:
             raise HTTPException(403, "invite is unknown or already used")
         _check_device_id(con, device_id)
-        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, enrolled_at, last_seen) "
-                    "VALUES (?,?,?,?,'member','normal',?,?,?)",
-                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, now(), now()))
+        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, email, enrolled_at, last_seen) "
+                    "VALUES (?,?,?,?,'member','normal',?,?,?,?)",
+                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, body.email, now(), now()))
         con.execute("UPDATE invites SET used_by = ?, used_at = ? WHERE code = ?", (device_id, now(), body.invite_code))
         audit(con, firm_id, device_id, "device_enrolled")
     return {"device_id": device_id}
@@ -308,6 +327,7 @@ def transfer_admin(firm_id: str, body: DeviceId, c: Caller = CALLER) -> dict[str
 
 
 class Recover(BaseModel):
+    email: str | None = None
     recovery_code: str
     device_id: str
     device_name: str
@@ -335,9 +355,9 @@ async def recover_admin(firm_id: str, body: Recover, request: Request,
         device_id = body.device_id
         _check_device_id(con, device_id)
         con.execute("UPDATE devices SET permission = 'member' WHERE firm_id = ? AND permission = 'admin'", (firm_id,))
-        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, enrolled_at, last_seen) "
-                    "VALUES (?,?,?,?,'admin','normal',?,?,?)",
-                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, now(), now()))
+        con.execute("INSERT INTO devices (id, firm_id, name, public_key, permission, role, ram_mb, email, enrolled_at, last_seen) "
+                    "VALUES (?,?,?,?,'admin','normal',?,?,?,?)",
+                    (device_id, firm_id, body.device_name.strip(), body.public_key, body.ram_mb, body.email, now(), now()))
         con.execute("UPDATE firms SET admin_device_id = ? WHERE id = ?", (device_id, firm_id))
         # The code is single use: rotate it and hand the new one back.
         new_code = "-".join(secrets.token_hex(2) for _ in range(6)).upper()
@@ -544,6 +564,19 @@ def take_refresh_requests(firm_id: str, c: Caller = CALLER) -> dict[str, Any]:
                            "WHERE firm_id = ? AND taken_at IS NULL ORDER BY id", (firm_id,)).fetchall()
         con.execute("UPDATE refresh_requests SET taken_at = ? WHERE firm_id = ? AND taken_at IS NULL", (now(), firm_id))
     return {"requests": [dict(r) for r in rows]}
+
+
+class Email(BaseModel):
+    email: str | None = None
+
+
+@app.post("/v1/firms/{firm_id}/me/email")
+def set_my_email(firm_id: str, body: Email, c: Caller = CALLER) -> dict[str, str | None]:
+    """Where this device's user wants collector-silent alerts (Q17)."""
+    require_firm(c, firm_id)
+    with db.connect() as con:
+        con.execute("UPDATE devices SET email = ? WHERE id = ?", ((body.email or "").strip() or None, c.id))
+    return {"email": (body.email or "").strip() or None}
 
 
 @app.get("/healthz")

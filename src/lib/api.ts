@@ -69,12 +69,14 @@ export const api = {
     invoke<ImportSummary>("import_bundle", { path, passphrase, writeCredentials }),
   checkPassphrase: (passphrase: string) => invoke<void>("check_passphrase", { passphrase }),
 
-  registerFirm: (relayUrl: string, firmName: string, deviceName: string) =>
-    invoke<FirmCreated>("register_firm", { relayUrl, firmName, deviceName }),
-  enrolDevice: (relayUrl: string, invite: string, deviceName: string) =>
-    invoke<RelayConfig>("enrol_device", { relayUrl, invite, deviceName }),
-  recoverAdmin: (relayUrl: string, firmId: string, recoveryCode: string, firmKeyHex: string, deviceName: string) =>
-    invoke<FirmCreated>("recover_admin", { relayUrl, firmId, recoveryCode, firmKeyHex, deviceName }),
+  registerFirm: (relayUrl: string, firmName: string, deviceName: string, email: string | null) =>
+    invoke<FirmCreated>("register_firm", { relayUrl, firmName, deviceName, email }),
+  enrolDevice: (relayUrl: string, invite: string, deviceName: string, email: string | null) =>
+    invoke<RelayConfig>("enrol_device", { relayUrl, invite, deviceName, email }),
+  recoverAdmin: (relayUrl: string, firmId: string, recoveryCode: string, firmKeyHex: string, deviceName: string, email: string | null) =>
+    invoke<FirmCreated>("recover_admin", { relayUrl, firmId, recoveryCode, firmKeyHex, deviceName, email }),
+  setAlertEmail: (email: string | null) => invoke<void>("set_alert_email", { email }),
+  alertEmail: () => invoke<string | null>("get_alert_email"),
   roster: () => invoke<Roster>("list_devices"),
   createInvite: () => invoke<string>("create_invite"),
   setCollector: (deviceId: string) => invoke<void>("set_collector", { deviceId }),

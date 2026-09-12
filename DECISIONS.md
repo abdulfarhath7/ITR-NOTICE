@@ -352,3 +352,15 @@ that this happens only if the device comes online and the app is opened.
 Rejected: Promising a wipe (a disk image is unreachable); refusing the
 final push (would lose the firm's own edits made on that device).
 Reversible: easily.
+
+## D-032 — Collector-silent alerts: banner everywhere plus one email a day
+Date: 2026-09-12
+Context: Q17 answered "banner AND email to everyone after one missed
+scheduled run", debounced.
+Decision: The banner is client-side, already. The relay runs an hourly
+pass: when the collector has not reported for 26 hours it emails every
+device address of the firm, at most once per 24 hours while silent, and
+once more when the collector returns (`relay/alerts.py`, pure decision
+function with tests). Addresses are optional, entered at enrolment or on
+Devices, and live on the relay (docs/07).
+Reversible: easily.

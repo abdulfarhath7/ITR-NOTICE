@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS devices (
     permission  TEXT NOT NULL CHECK (permission IN ('admin','member')),
     role        TEXT NOT NULL CHECK (role IN ('collector','normal')),
     ram_mb      INTEGER,
+    email       TEXT,                       -- for collector-silent alerts (Q17); a staff address
     enrolled_at TEXT NOT NULL,
     last_seen   TEXT,
     removed_at  TEXT
@@ -81,6 +82,11 @@ CREATE TABLE IF NOT EXISTS refresh_requests (
     created_at TEXT NOT NULL,
     taken_at   TEXT
 );
+CREATE TABLE IF NOT EXISTS alerts (
+    firm_id       TEXT PRIMARY KEY,
+    silent_since  TEXT,
+    last_email_at TEXT
+);
 CREATE TABLE IF NOT EXISTS audit (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     firm_id    TEXT NOT NULL,
@@ -95,6 +101,10 @@ CREATE TABLE IF NOT EXISTS audit (
 def init(path: str | None = None) -> None:
     with connect(path) as con:
         con.executescript(SCHEMA)
+        # column added after the first schema; existing files get it here
+        have = {r["name"] for r in con.execute("PRAGMA table_info(devices)")}
+        if "email" not in have:
+            con.execute("ALTER TABLE devices ADD COLUMN email TEXT")
 
 
 @contextmanager

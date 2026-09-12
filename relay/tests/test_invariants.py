@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -15,7 +15,7 @@ from nacl.signing import SigningKey
 
 os.environ["RELAY_DB"] = os.path.join(tempfile.mkdtemp(), "relay-test.db")
 
-from relay import db  # noqa: E402
+from relay import alerts, db  # noqa: E402
 from relay.main import app  # noqa: E402
 
 
@@ -178,3 +178,29 @@ def test_handoff_tells_the_holder_it_is_no_longer_nominee(firm: tuple[TestClient
     assert admin.call("POST", f"/v1/firms/{admin.firm_id}/lease").status_code == 409
     member.call("DELETE", f"/v1/firms/{admin.firm_id}/lease")
     assert admin.call("POST", f"/v1/firms/{admin.firm_id}/lease").status_code == 200
+
+
+def test_silent_collector_emails_once_a_day_and_on_recovery(firm: tuple[TestClient, Device, Device]) -> None:
+    _, admin, member = firm
+    admin.call("POST", f"/v1/firms/{admin.firm_id}/me/email", {"email": "someone@example.com"})
+    admin.call("POST", f"/v1/firms/{admin.firm_id}/collector", {"device_id": member.id})
+    sent: list[tuple[list[str], str]] = []
+
+    def fake(to: list[str], subject: str, body: str) -> None:
+        sent.append((to, subject))
+
+    def mine(actions: list[tuple[str, str]]) -> list[str]:
+        # other tests' firms share the database; look only at this firm
+        return [a for f, a in actions if f == admin.firm_id]
+
+    later = datetime.now(UTC) + timedelta(hours=30)
+    assert mine(alerts.run_once(now=later, sender=fake)) == ["silent"]
+    ours = [s for s in sent if "someone@example.com" in s[0]]
+    assert ours and "not reported" in ours[0][1]
+    assert mine(alerts.run_once(now=later + timedelta(hours=1), sender=fake)) == []
+    assert mine(alerts.run_once(now=later + timedelta(hours=25), sender=fake)) == ["silent"]
+    # the collector reports (any signed call updates last_seen)
+    member.call("GET", f"/v1/firms/{admin.firm_id}/lease")
+    assert mine(alerts.run_once(now=datetime.now(UTC) + timedelta(minutes=1), sender=fake)) == ["recovered"]
+    ours = [s for s in sent if "someone@example.com" in s[0]]
+    assert "is back" in ours[-1][1]

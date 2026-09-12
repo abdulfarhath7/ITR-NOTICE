@@ -18,6 +18,7 @@ export default function FirmSetup({ onClose }: { onClose: () => void }) {
   const [firmId, setFirmId] = useState("");
   const [recovery, setRecovery] = useState("");
   const [firmKey, setFirmKey] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shownCode, setShownCode] = useState<string | null>(null);
@@ -27,15 +28,15 @@ export default function FirmSetup({ onClose }: { onClose: () => void }) {
     setBusy(true); setError(null);
     try {
       if (mode === "create") {
-        const r = await api.registerFirm(relayUrl, firmName, deviceName);
+        const r = await api.registerFirm(relayUrl, firmName, deviceName, email.trim() || null);
         setShownCode(r.recovery_code);
       } else if (mode === "join") {
-        await api.enrolDevice(relayUrl, invite, deviceName);
+        await api.enrolDevice(relayUrl, invite, deviceName, email.trim() || null);
         toast("Enrolled. The book is syncing from the relay.");
         invalidate("sync"); invalidate("clients"); invalidate("work_items"); invalidate("device");
         onClose();
       } else {
-        const r = await api.recoverAdmin(relayUrl, firmId, recovery, firmKey, deviceName);
+        const r = await api.recoverAdmin(relayUrl, firmId, recovery, firmKey, deviceName, email.trim() || null);
         setShownCode(r.recovery_code);
       }
     } catch (e) { setError(describeError(e)); }
@@ -82,6 +83,9 @@ export default function FirmSetup({ onClose }: { onClose: () => void }) {
       </Field>
       <Field label="This device's name" hint="as it appears on the roster">
         <input className="input" value={deviceName} onChange={(e) => setDeviceName(e.target.value)} placeholder="Partner laptop" />
+      </Field>
+      <Field label="Your email (optional)" hint="for the alert when the collector misses a run; stored on the relay">
+        <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       {mode === "create" ? (
         <>

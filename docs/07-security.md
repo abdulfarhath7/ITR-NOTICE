@@ -35,6 +35,16 @@ first-order concern, not a finishing pass.
 7. **No remote wipe promised.** Removing a device revokes relay access only
    (Q16). Do not imply more in the UI than the code actually does.
 
+## What the relay holds beyond routing (Q17)
+
+Collector-silent alerts are emailed, so **staff email addresses live on the
+relay** (`devices.email`, set at enrolment or from Devices). They are the
+only personal data the relay stores in the clear; they are never inside a
+sealed blob and are used for nothing but these alerts. SMTP settings are
+environment variables on the relay host (`SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_STARTTLS`); with none set,
+alerts are logged and not sent.
+
 ## Crypto choices
 
 | Purpose | Algorithm |

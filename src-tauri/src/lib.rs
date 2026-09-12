@@ -124,6 +124,7 @@ pub fn run() {
             commands::sync::list_devices, commands::sync::create_invite, commands::sync::set_collector,
             commands::sync::remove_device, commands::sync::transfer_admin, commands::sync::get_sync_state,
             commands::sync::sync_now, commands::sync::leave_firm,
+            commands::sync::set_alert_email, commands::sync::get_alert_email,
             commands::export::export_excel, commands::export::export_preview,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,

@@ -96,20 +96,22 @@ fn store(state: &AppState, e: &relay::Enrolment) -> AppResult<()> {
 }
 
 #[tauri::command]
-pub async fn register_firm(state: State<'_, AppState>, relay_url: String, firm_name: String, device_name: String) -> AppResult<FirmCreated> {
+pub async fn register_firm(state: State<'_, AppState>, relay_url: String, firm_name: String, device_name: String,
+                           email: Option<String>) -> AppResult<FirmCreated> {
     if firm_name.trim().is_empty() || device_name.trim().is_empty() {
         return Err(AppError::invalid("firm name and device name are required"));
     }
     let device_id = fresh_device_id(&state)?;
-    let e = Relay::register_firm(relay_url.trim(), &device_id, firm_name.trim(), device_name.trim()).await?;
+    let e = Relay::register_firm(relay_url.trim(), &device_id, firm_name.trim(), device_name.trim(), clean_email(&email)).await?;
     store(&state, &e)?;
     Ok(FirmCreated { config: e.config, recovery_code: e.recovery_code })
 }
 
 #[tauri::command]
-pub async fn enrol_device(state: State<'_, AppState>, relay_url: String, invite: String, device_name: String) -> AppResult<RelayConfig> {
+pub async fn enrol_device(state: State<'_, AppState>, relay_url: String, invite: String, device_name: String,
+                          email: Option<String>) -> AppResult<RelayConfig> {
     let device_id = fresh_device_id(&state)?;
-    let e = Relay::enrol(relay_url.trim(), &device_id, &invite, device_name.trim()).await?;
+    let e = Relay::enrol(relay_url.trim(), &device_id, &invite, device_name.trim(), clean_email(&email)).await?;
     store(&state, &e)?;
     // A new device starts from the latest snapshot, then the tail.
     let _ = sync::bootstrap_from_snapshot(&state.db).await;
@@ -119,13 +121,33 @@ pub async fn enrol_device(state: State<'_, AppState>, relay_url: String, invite:
 
 #[tauri::command]
 pub async fn recover_admin(state: State<'_, AppState>, relay_url: String, firm_id: String, recovery_code: String,
-                           firm_key_hex: String, device_name: String) -> AppResult<FirmCreated> {
+                           firm_key_hex: String, device_name: String, email: Option<String>) -> AppResult<FirmCreated> {
     let device_id = { let con = lock_db(&state)?; local::device_id(&con)? };
-    let e = Relay::recover(relay_url.trim(), &device_id, firm_id.trim(), recovery_code.trim(), &firm_key_hex, device_name.trim()).await?;
+    let e = Relay::recover(relay_url.trim(), &device_id, firm_id.trim(), recovery_code.trim(), &firm_key_hex, device_name.trim(), clean_email(&email)).await?;
     store(&state, &e)?;
     let _ = sync::bootstrap_from_snapshot(&state.db).await;
     let _ = sync::sync_now(&state.db).await;
     Ok(FirmCreated { config: e.config, recovery_code: e.recovery_code })
+}
+
+fn clean_email(e: &Option<String>) -> Option<&str> {
+    e.as_deref().map(str::trim).filter(|s| !s.is_empty())
+}
+
+/// Where this device's user receives collector-silent alerts (Q17). The
+/// address lives on the relay (docs/07).
+#[tauri::command]
+pub async fn set_alert_email(state: State<'_, AppState>, email: Option<String>) -> AppResult<()> {
+    let r = relay_for(&state)?;
+    r.set_email(clean_email(&email)).await?;
+    if let Ok(con) = state.db.lock() { let _ = local::set(&con, "alert_email", clean_email(&email).unwrap_or("")); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_alert_email(state: State<AppState>) -> AppResult<Option<String>> {
+    let con = lock_db(&state)?;
+    Ok(local::get(&con, "alert_email")?.filter(|s| !s.is_empty()))
 }
 
 fn relay_for(state: &AppState) -> AppResult<Relay> {
