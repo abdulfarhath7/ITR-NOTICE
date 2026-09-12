@@ -5,7 +5,7 @@
 pub mod ai;
 pub mod clients;
 pub mod documents;
-pub mod portal;
+pub mod ingestion;
 pub mod settings;
 pub mod work_items;
 

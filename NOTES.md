@@ -21,7 +21,12 @@ Append as you go. This is where the next session picks up your thread.
   credential, so nothing to rotate — but it is PII in a repo.
 
 ## BLOCKED
-_(nothing yet)_
+- **ERI engine.** `EriSource` compiles and reports NotConfigured. Live work
+  needs the ITD UAT URL list, the `SERVICE_NAME` string and the real client
+  id / secret header names (docs/06). `TODO(blocked)` in
+  `src-tauri/src/ingest/eri_source.rs`.
+- **Captcha markup.** No live capture shows a captcha; the selectors in
+  `sidecar/ingest/session.py` are broad guesses (Q23). `TODO(blocked)` there.
 
 ## Sessions
 
@@ -52,3 +57,43 @@ _(nothing yet)_
     regex now requires a digit in the suspected literal; `test_app.py` is
     removed (see ROTATE IMMEDIATELY).
 - Ended at: Phase 0 complete.
+
+### Session 1 (continued) — Phases 1–4
+- Phase 1: spine migrations 0002–0010, `intake::absorb` as the one mapping
+  from portal cards to rows, backfill reconciled 28/70/70/1 against a copy of
+  the real archive. The local desktop archive (`~/.local/share/in.llc.app/`)
+  was backed up to `backup-2026-09-12/` before the app first opened it on
+  the new schema.
+- Phase 2: status machine + action matrix on both sides; every due cell goes
+  through `describeDue()`; vitest covers docs/12's date cases.
+- Phase 3: the frontend was rebuilt on docs/10 (the old "command centre" CSS
+  and single-screen dashboard are gone). Router, query layer, six screens.
+- Phase 4: v2 sidecar (`sidecar/draftax_sidecar.py`, `sidecar/ingest/`),
+  anchored parsers written from the DOM captures in `data/debug/recon3`
+  (scrubbed fixtures under `sidecar/tests/fixtures/`), `NoticeSource` trait,
+  queue + locks (migration 0011), runner with the ten-row streak, the
+  monitor screen. The legacy v1 sidecar (`notice_scraper.py`,
+  `src-tauri/src/scraper.rs`) is removed; `app/portal/*` stays frozen and is
+  imported for its verified selectors and login mechanics.
+- Errors and resolutions:
+  - `Date.parse` on `17-Aug-2026` and a raw `days` cell in the old report
+    were the two halves of bug 1; both paths are gone.
+  - The legacy `_download()` clicked the page's *first* "Notice/Letter pdf"
+    button, not the current card's, so a proceeding with several notices
+    would have stored the first notice's PDF under every reference id. The
+    v2 walk scopes the click to the card (`_download_from_card`). Rows
+    absorbed by the old tool are not re-verified here; a fresh sweep fetches
+    a document only where none is stored, so re-fetching would need those
+    document rows removed first. Flagged for the human.
+  - The DOM captures show only two tabs on this account (Self, Of Other
+    PAN/TAN); the AR tab is recorded as a missing panel with a zero-count
+    row, per docs/05.
+  - `tauri::test::mock_app` needs the runner to be generic over the runtime;
+    `Runner<R: tauri::Runtime>`.
+  - mypy strict refuses calls into the untyped frozen tree; `[mypy-ingest.*]
+    disallow_untyped_calls = False`.
+- Unverified against the live portal (no credentials here, and an
+  autonomous run must not log into a real taxpayer account): the v2 walk end
+  to end, captcha detection, the stepper-date semantics (Q22). The frozen
+  sidecar answers the protocol handshake; the runner is exercised by tests
+  with a mock source.

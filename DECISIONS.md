@@ -145,3 +145,42 @@ one constant (`src/lib/product.ts`, `tauri.conf.json`). The Tauri identifier
 untouched: changing the identifier orphans every installed archive and its
 key (legacy Q16). Filed as Q21.
 Reversible: easily for the display name; the identifier deliberately not.
+
+## D-013 — Low parse confidence is audited per panel, not stored per row
+Date: 2026-09-12
+Context: Task 4.6 asks for a per-field confidence flag. Every machine-read
+row already starts at `verified_flag = 0`, and `gap_flags` means "the portal
+did not show it", which is a different fact from "read it loosely".
+Decision: The sidecar reports a confidence map per header. The runner keeps
+the value, leaves `verified_flag = 0`, and writes the low-confidence field
+counts into `ingestion_runs.gaps` for that panel, where the sweep history
+shows them. Rows carry no third flag.
+Rejected: A `low_confidence` column on every table (schema churn for an
+audit fact); putting `?field` markers into `gap_flags` (would render as
+"not stated" for a value that was stated).
+Reversible: easily.
+
+## D-014 — One ingestion job per login, not per client
+Date: 2026-09-12
+Context: TASKS 4.2 says one job per client per module. Clients reached
+through an Authorised Representative login share that login's panels: one
+session lists all of them, attributed by the PAN on each card.
+Decision: `ingestion_jobs` is keyed by `login_ref` (own PAN or
+`portal_login_ref`) and module. A client with its own credentials is still
+exactly one job; AR-reached clients ride the AR login's job.
+Rejected: A job per AR-reached client, which would log into the same
+account several times in one run and evict its own session.
+Reversible: easily.
+
+## D-015 — The sidecar holds no state; the core decides what to fetch
+Date: 2026-09-12
+Context: The pre-build scraper kept its own staging SQLite as a cache. The
+spec forbids the sidecar touching a database and puts the early-stop streak
+and change detection on row hashes the core owns.
+Decision: A header/verdict handshake over stdio. The sidecar reads a card,
+emits it, and waits; the core hashes it against what is stored and answers
+skip, fetch or stop. Fetch returns the PDF in the same stream. Pausing holds
+the next verdict, so the browser simply waits on its list page.
+Rejected: Sending the known-hash set to the sidecar (two hash
+implementations to keep identical).
+Reversible: with a protocol change.

@@ -62,16 +62,16 @@ Read `docs/15-known-bugs.md`.
 
 Read `docs/05-ingestion.md` and `docs/06-source-interface.md`.
 
-- [ ] **4.1** Define the `NoticeSource` trait/interface: `login`, `list_work_items`, `fetch_item`, `health`. Playwright is one implementation.
-- [ ] **4.2** Job queue in SQLite: one job per client per module, with attempts, backoff, and a resume cursor.
-- [ ] **4.3** Attended login flow. The queue pauses for captcha and OTP and waits without failing or timing out the job.
-- [ ] **4.4** Sweep all six panels. Record zero counts explicitly as an `ingestion_runs` row, never skip.
-- [ ] **4.5** Per-client lock, five minutes, renewable, so no two devices open one taxpayer's session.
-- [ ] **4.6** Anchored selectors plus a per-field confidence flag. Low confidence sets `verified_flag = false`.
-- [ ] **4.7** Document-first storage: fetch the PDF, hash it, store it, then write the index row referencing it.
-- [ ] **4.8** Early-stop delta walk — stop a client after ten consecutive rows whose hash is already stored and unchanged.
-- [ ] **4.9** Resumability: kill the process mid-run and restart; it must continue from the last completed client, not the beginning.
-- [ ] **4.10** Ingestion monitor screen: current client, queue position, panel being swept, pause and resume.
+- [x] **4.1** Define the `NoticeSource` trait/interface: `login`, `list_work_items`, `fetch_item`, `health`. Playwright is one implementation.
+- [x] **4.2** Job queue in SQLite: one job per client per module, with attempts, backoff, and a resume cursor.
+- [x] **4.3** Attended login flow. The queue pauses for captcha and OTP and waits without failing or timing out the job.
+- [x] **4.4** Sweep all six panels. Record zero counts explicitly as an `ingestion_runs` row, never skip.
+- [x] **4.5** Per-client lock, five minutes, renewable, so no two devices open one taxpayer's session.
+- [x] **4.6** Anchored selectors plus a per-field confidence flag. Low confidence sets `verified_flag = false`.
+- [x] **4.7** Document-first storage: fetch the PDF, hash it, store it, then write the index row referencing it.
+- [x] **4.8** Early-stop delta walk — stop a client after ten consecutive rows whose hash is already stored and unchanged.
+- [x] **4.9** Resumability: kill the process mid-run and restart; it must continue from the last completed client, not the beginning.
+- [x] **4.10** Ingestion monitor screen: current client, queue position, panel being swept, pause and resume.
 
 ## Phase 5 — Modules 2, 3 and 4
 

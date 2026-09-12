@@ -13,6 +13,11 @@ extend-exclude = [
   "build",
   "dist",
   ".venv",
+  "**/.venv",
+  "sidecar/dist",
+  "sidecar/build",
+  "src-tauri/resources",
+  "src-tauri/target",
 ]
 
 [lint]

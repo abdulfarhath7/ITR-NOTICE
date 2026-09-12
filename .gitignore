@@ -15,8 +15,8 @@ src-tauri/gen/
 # the frozen sidecar is a build artifact (sidecar/build.ps1 produces it)
 sidecar/dist/
 sidecar/build/
-src-tauri/resources/scraper/*
-!src-tauri/resources/scraper/.gitkeep
+src-tauri/resources/sidecar/*
+!src-tauri/resources/sidecar/.gitkeep
 
 # local scratch from the autonomous build loop, never shipped
 keep-building.sh

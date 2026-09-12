@@ -11,28 +11,26 @@ mod db;
 mod error;
 mod gstin;
 mod ids;
+mod ingest;
 mod intake;
 mod keychain;
 mod mask;
 mod migrate;
 mod repo;
-mod scraper;
 
 use db::NoticeRow;
 use error::AppResult;
 use rusqlite::Connection;
-use scraper::Scraper;
 use std::sync::{Arc, Mutex};
 use tauri::{Manager, State};
-use tokio::sync::Mutex as AsyncMutex;
 
 pub struct AppState {
     pub db: Arc<Mutex<Connection>>,
-    pub scraper: AsyncMutex<Option<Scraper>>,
     pub settings_path: std::path::PathBuf,
     /// Unencrypted scratch for documents handed to the OS viewer; cleared
     /// on every launch.
     pub temp_dir: std::path::PathBuf,
+    pub ingestion: commands::ingestion::IngestionService,
 }
 
 /// The legacy notice list the current dashboard reads. Replaced screen by
@@ -65,9 +63,9 @@ pub fn run() {
             commands::documents::clear_temp(&temp_dir);
             app.manage(AppState {
                 db: Arc::new(Mutex::new(con)),
-                scraper: AsyncMutex::new(None),
                 settings_path: data_dir.join("settings.json"),
                 temp_dir,
+                ingestion: commands::ingestion::IngestionService::default(),
             });
             Ok(())
         })
@@ -76,9 +74,6 @@ pub fn run() {
             list_notices, get_notice_pdf,
             commands::ai::get_draft, commands::ai::save_draft_text,
             commands::ai::ask_due_date, commands::ai::draft_response,
-            commands::portal::has_saved_password, commands::portal::forget_password,
-            commands::portal::portal_login, commands::portal::portal_otp, commands::portal::portal_sync,
-            commands::portal::portal_speed, commands::portal::portal_stop,
             commands::clients::list_clients, commands::clients::get_client,
             commands::clients::create_client, commands::clients::update_client,
             commands::clients::derive_from_gstin, commands::clients::set_client_file_no,
@@ -88,6 +83,12 @@ pub fn run() {
             commands::work_items::set_manual_due_date, commands::work_items::list_registry,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
+            commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,
+            commands::ingestion::refresh_client, commands::ingestion::pause_ingestion_run,
+            commands::ingestion::resume_ingestion_run, commands::ingestion::stop_ingestion_run,
+            commands::ingestion::get_ingestion_state, commands::ingestion::submit_login_challenge,
+            commands::ingestion::set_ingestion_pace, commands::ingestion::list_ingestion_jobs,
+            commands::ingestion::list_ingestion_runs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the desktop app");

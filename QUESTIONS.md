@@ -160,3 +160,19 @@ in `Answer:`, then re-run Claude Code to apply any that differ.
 - **Blast radius:** One constant in the frontend, one in `tauri.conf.json`, the export header.
 - **Answer:**
 - **Resolved:** no
+
+### Q22 — What is the date on the proceeding card's status stepper?
+- **Context:** Each proceeding card shows a vertical stepper: a date beside the status word (e.g. `18-Aug-2026 · Open`). The old scraper ignored it. The DOM captures show one step per card.
+- **Options:** A) the date the proceeding was initiated (first step) and, for Closed, the closure date (last step). B) the date of the latest status change only. C) something else.
+- **Default used:** A. Stored as `proceedings.initiated_on` (first step) and `closure_date` (last step when Closed), `verified_flag = 0`.
+- **Blast radius:** Two date columns and the export's "Issued On" fallback.
+- **Answer:**
+- **Resolved:** no
+
+### Q23 — Does the portal show a captcha at login, and where?
+- **Context:** No capture shows one; the previous build never met one. The sidecar looks for an image/input whose id, name, placeholder, alt or class contains "captcha" on the user-id and password pages and relays it as a challenge.
+- **Options:** A) never on this flow. B) sometimes, on the password page. C) sometimes, elsewhere (after OTP, on force-login).
+- **Default used:** B-shaped detection at both Continue presses; a miss falls through to the OTP wait, so a captcha would surface as a login timeout with a debug screenshot.
+- **Blast radius:** One selector pair in `sidecar/ingest/session.py`.
+- **Answer:**
+- **Resolved:** no

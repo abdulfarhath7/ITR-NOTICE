@@ -33,6 +33,10 @@ sha2 = "0.10"
 chrono-tz = "0.10"
 csv = "1"
 
+[dev-dependencies]
+# `tauri::test::mock_app` gives the ingestion tests an AppHandle.
+tauri = { version = "2", features = ["test"] }
+
 [profile.release]
 codegen-units = 1
 lto = true

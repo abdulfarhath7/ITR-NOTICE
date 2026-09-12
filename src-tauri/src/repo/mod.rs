@@ -11,6 +11,7 @@ pub mod drafts;
 pub mod local;
 pub mod model;
 pub mod proceedings;
+pub mod queue;
 pub mod registry;
 pub mod rows;
 pub mod runs;

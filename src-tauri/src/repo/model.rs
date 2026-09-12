@@ -99,7 +99,7 @@ pub struct Response {
     pub id: String,
     pub proceeding_id: String,
     pub in_reply_to: Option<String>,
-    pub response_mode: String,
+    pub response_mode: Option<String>,
     pub filed_on: Option<String>,
     pub filed_by: Option<String>,
     pub remarks: Option<String>,

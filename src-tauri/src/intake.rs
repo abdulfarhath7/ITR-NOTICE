@@ -12,9 +12,9 @@
 use crate::dates::to_iso;
 use crate::error::{AppError, AppResult};
 use crate::ids::{new_id, now, row_hash, sha256_hex};
-use crate::repo::model::{Communication, Proceeding, Status};
+use crate::repo::model::{Communication, Proceeding, Response, Status};
 use crate::repo::{clients, documents, proceedings, registry};
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 
 /// A proceeding card as the scraper reads it (`app/portal/scraper.py`).
 #[derive(Debug, Clone, Default)]
@@ -28,6 +28,9 @@ pub struct ProceedingCard {
     pub financial_year: Option<String>,
     pub applicable_act: Option<String>,
     pub status: Option<String>,
+    /// The date on the stepper's first step: when the proceeding reached
+    /// its first state (read anchored from the card; see sidecar/ingest/parse.py).
+    pub initiated_on: Option<String>,
     pub closure_date: Option<String>,
     pub closure_order: Option<String>,
 }
@@ -46,6 +49,8 @@ pub struct NoticeCard {
     /// suggestion and is stored as one; it never becomes `response_due_date`.
     pub due_date_source: Option<String>,
     pub ao_viewed_on: Option<String>,
+    /// "Last Response submitted On" — the date the firm's reply was filed.
+    pub last_response_on: Option<String>,
     pub responded: Option<i64>,
     pub downloaded_at: Option<String>,
     pub pdf: Option<Vec<u8>>,
@@ -172,22 +177,23 @@ pub fn absorb(con: &Connection, self_pan: Option<&str>, card: &ProceedingCard,
     let type_id = registry::require(con, "proceeding_type", proceeding_type_code(name.as_deref()))?;
     let status = Status::from_portal(card.status.as_deref());
     let closure_date = to_iso(card.closure_date.as_deref());
+    let initiated_on = to_iso(card.initiated_on.as_deref());
 
     let mut gaps: Vec<&str> = Vec::new();
     if ay.is_none() { gaps.push("assessment_year"); }
     if pan_from_login { gaps.push("pan"); }
     // The proceeding card never shows these; the portal states them, if at
     // all, inside the notice PDF.
-    gaps.extend(["authority", "initiated_on", "limitation_date"]);
+    gaps.extend(["authority", "limitation_date"]);
+    if initiated_on.is_none() { gaps.push("initiated_on"); }
     if card.status.is_none() { gaps.push("status"); }
     if card.closure_date.is_some() && closure_date.is_none() { gaps.push("closure_date"); }
     gaps.sort();
     let gap_json = serde_json::to_string(&gaps)?;
 
-    let hash = row_hash(&[
-        name.as_deref(), clean(&card.assessee_name).as_deref(), Some(status.as_str()),
-        closure_date.as_deref(), clean(&card.closure_order).as_deref(), Some(&gap_json),
-    ]);
+    let hash = proceeding_row_hash(name.as_deref(), clean(&card.assessee_name).as_deref(), status,
+                                   initiated_on.as_deref(), closure_date.as_deref(),
+                                   clean(&card.closure_order).as_deref(), &gap_json);
 
     let ts = now();
     let proceeding = match proceedings::by_natural_key(con, &natural_key)? {
@@ -197,6 +203,7 @@ pub fn absorb(con: &Connection, self_pan: Option<&str>, card: &ProceedingCard,
                 proceeding_type_id: type_id,
                 assessee_name: clean(&card.assessee_name).or(existing.assessee_name),
                 section_1961: section_chain_from_name(name.as_deref()).or(existing.section_1961),
+                initiated_on: initiated_on.or(existing.initiated_on),
                 status: status.as_str().into(),
                 portal_status: clean(&card.status),
                 closure_date, closure_order: clean(&card.closure_order),
@@ -219,7 +226,7 @@ pub fn absorb(con: &Connection, self_pan: Option<&str>, card: &ProceedingCard,
                 assessee_name: clean(&card.assessee_name),
                 section_2025: None,
                 section_1961: section_chain_from_name(name.as_deref()),
-                din_reference: None, authority: None, initiated_on: None, due_date: None,
+                din_reference: None, authority: None, initiated_on, due_date: None,
                 manual_due_date: None, suggested_due_date: None, limitation_date: None,
                 hearing_date: None, status: status.as_str().into(),
                 portal_status: clean(&card.status), closure_date,
@@ -279,11 +286,16 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
     gaps.sort();
     let gap_json = serde_json::to_string(&gaps)?;
 
-    let hash = row_hash(&[
-        Some(&reference_id), clean(&n.doc_ref_id).as_deref(), description.as_deref(),
-        issued_on.as_deref(), served_on.as_deref(), response_due_date.as_deref(),
-        ao_viewed_on.as_deref(), Some(status.as_str()), Some(&gap_json),
-    ]);
+    let last_response_on = to_iso(n.last_response_on.as_deref());
+    let hash = notice_row_hash(&reference_id, clean(&n.doc_ref_id).as_deref(), description.as_deref(),
+                               issued_on.as_deref(), served_on.as_deref(), response_due_date.as_deref(),
+                               ao_viewed_on.as_deref(), last_response_on.as_deref(), status, &gap_json);
+
+    // Document first, row second (docs/05): the bytes are content-addressed
+    // and written before any row that will point at them.
+    if let Some(bytes) = n.pdf.as_deref().filter(|b| !b.is_empty()) {
+        documents::store_blob(con, bytes)?;
+    }
 
     let ts = now();
     let comm = match proceedings::communication_by_reference(con, &reference_id)? {
@@ -322,6 +334,28 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
         }
     };
 
+    // The firm's filed reply, as the card states it: a date and nothing more.
+    // One response node per notice; the mode is not stated, so it is NULL.
+    if let Some(filed) = last_response_on.clone() {
+        let existing_resp: Option<Response> = con.query_row(
+            "SELECT * FROM responses WHERE in_reply_to = ?1 LIMIT 1", [&comm.id],
+            proceedings::response_row).optional()?;
+        let resp_gaps = serde_json::to_string(&["filed_by", "response_mode", "transaction_id"])?;
+        let resp_hash = row_hash(&[Some(&filed), Some(&resp_gaps)]);
+        match existing_resp {
+            Some(r) if r.row_hash == resp_hash => {}
+            Some(r) => proceedings::save_response(con, &Response {
+                filed_on: Some(filed), row_hash: resp_hash, gap_flags: Some(resp_gaps),
+                verified_flag: 0, updated_at: ts.clone(), ..r })?,
+            None => proceedings::save_response(con, &Response {
+                id: new_id(), proceeding_id: proceeding.id.clone(), in_reply_to: Some(comm.id.clone()),
+                response_mode: None, filed_on: Some(filed), filed_by: None, remarks: None, transaction_id: None,
+                direction: "outbound".into(), verified_flag: 0, gap_flags: Some(resp_gaps), row_hash: resp_hash,
+                created_at: ts.clone(), updated_at: ts.clone(),
+            })?,
+        }
+    }
+
     if claude_sourced {
         if let Some(d) = to_iso(n.due_date.as_deref()) {
             let mut p = proceeding.clone();
@@ -341,6 +375,65 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
         })?;
     }
     Ok(comm.id)
+}
+
+/// The proceeding row hash: what a re-read compares against to decide
+/// "known and unchanged". Includes status and the gap list (docs/05).
+#[allow(clippy::too_many_arguments)]
+pub fn proceeding_row_hash(name: Option<&str>, assessee: Option<&str>, status: Status,
+                           initiated_on: Option<&str>, closure_date: Option<&str>,
+                           closure_order: Option<&str>, gap_json: &str) -> String {
+    row_hash(&[name, assessee, Some(status.as_str()), initiated_on, closure_date, closure_order, Some(gap_json)])
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn notice_row_hash(reference_id: &str, din: Option<&str>, description: Option<&str>,
+                       issued_on: Option<&str>, served_on: Option<&str>, due: Option<&str>,
+                       ao_viewed_on: Option<&str>, last_response_on: Option<&str>, status: Status,
+                       gap_json: &str) -> String {
+    row_hash(&[Some(reference_id), din, description, issued_on, served_on, due, ao_viewed_on,
+               last_response_on, Some(status.as_str()), Some(gap_json)])
+}
+
+/// Would this notice card change anything already stored? Computes the
+/// same hash `absorb` would write and compares it with the stored row,
+/// without writing. `None` when the notice is unknown.
+pub fn notice_unchanged(con: &Connection, proceeding_status: Status, n: &NoticeCard) -> AppResult<Option<bool>> {
+    let reference_id = n.ref_id.trim();
+    let Some(existing) = proceedings::communication_by_reference(con, reference_id)? else { return Ok(None); };
+    let description = clean(&n.description);
+    let section = clean(&n.notice_us).or_else(|| section_from_text(description.as_deref()));
+    let claude_sourced = n.due_date_source.as_deref() == Some("claude");
+    let response_due_date = if claude_sourced { None } else { to_iso(clean(&n.due_date).as_deref()) };
+    let issued_on = to_iso(n.issued_on.as_deref());
+    let served_on = to_iso(n.served_on.as_deref());
+    let ao_viewed_on = to_iso(n.ao_viewed_on.as_deref());
+    let last_response_on = to_iso(n.last_response_on.as_deref());
+    let status = match n.responded {
+        Some(1) => Status::ResponseSubmitted,
+        Some(0) => if proceeding_status == Status::Closed { Status::Closed } else { Status::Open },
+        _ => if proceeding_status == Status::Closed { Status::Closed } else { Status::Unknown },
+    };
+    let mut gaps: Vec<&str> = Vec::new();
+    if response_due_date.is_none() { gaps.push("response_due_date"); }
+    if issued_on.is_none() { gaps.push("issued_on"); }
+    if served_on.is_none() { gaps.push("served_on"); }
+    if clean(&n.doc_ref_id).is_none() { gaps.push("din"); }
+    if section.is_none() { gaps.push("section"); }
+    if n.responded.is_none() { gaps.push("status"); }
+    gaps.sort();
+    let gap_json = serde_json::to_string(&gaps)?;
+    let hash = notice_row_hash(reference_id, clean(&n.doc_ref_id).as_deref(), description.as_deref(),
+                               issued_on.as_deref(), served_on.as_deref(), response_due_date.as_deref(),
+                               ao_viewed_on.as_deref(), last_response_on.as_deref(), status, &gap_json);
+    Ok(Some(existing.row_hash == hash))
+}
+
+/// Is a stored document already attached to this notice?
+pub fn notice_has_document(con: &Connection, reference_id: &str) -> AppResult<bool> {
+    let Some(c) = proceedings::communication_by_reference(con, reference_id.trim())? else { return Ok(false); };
+    Ok(documents::find(con, "communication", &c.id, "communication")?
+        .map(|d| d.state == "stored").unwrap_or(false))
 }
 
 /// The legacy archive stamped `YYYY-MM-DD HH:MM:SS` (UTC, no marker).

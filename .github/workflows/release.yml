@@ -66,9 +66,9 @@ jobs:
       - name: Check the sidecar landed
         shell: pwsh
         run: |
-          $exe = "src-tauri/resources/scraper/notice_scraper.exe"
+          $exe = "src-tauri/resources/sidecar/draftax_sidecar.exe"
           if (-not (Test-Path $exe)) { throw "$exe is missing - the freeze failed" }
-          $size = [math]::Round((Get-ChildItem src-tauri/resources/scraper -Recurse |
+          $size = [math]::Round((Get-ChildItem src-tauri/resources/sidecar -Recurse |
                                  Measure-Object Length -Sum).Sum / 1MB)
           Write-Host "sidecar is $size MB"
           if ($size -lt 100) { throw "sidecar is only $size MB - Chromium is probably not in it" }

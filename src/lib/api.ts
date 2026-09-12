@@ -3,7 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   ClientDetail, ClientInput, ClientSummary, Derived, Draft, DueDateAnswer, ImportPreview,
-  ProceedingDetail, ScraperEvent, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
+  IngestionEvent, IngestionJob, IngestionRun, IngestionState, ProceedingDetail, Scope, Settings,
+  TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
 
 export const api = {
@@ -38,18 +39,21 @@ export const api = {
   askDueDate: (refId: string) => invoke<DueDateAnswer>("ask_due_date", { refId }),
   draftResponse: (refId: string, regenerate: boolean) => invoke<Draft>("draft_response", { refId, regenerate }),
 
-  hasSavedPassword: (userId: string) => invoke<boolean>("has_saved_password", { userId }),
-  forgetPassword: (userId: string) => invoke<void>("forget_password", { userId }),
-  login: (userId: string, password: string | null, remember: boolean) =>
-    invoke<void>("portal_login", { userId, password, remember }),
-  otp: (code: string) => invoke<void>("portal_otp", { code }),
-  sync: (limit: number | null) => invoke<void>("portal_sync", { limit }),
-  speed: (seconds: number) => invoke<void>("portal_speed", { seconds }),
-  stop: () => invoke<void>("portal_stop"),
+  startIngestion: (scope: Scope) => invoke<string>("start_ingestion_run", { scope }),
+  resumeSweep: (sweepId: string) => invoke<string>("resume_ingestion_sweep", { sweepId }),
+  refreshClient: (clientId: string) => invoke<string>("refresh_client", { clientId }),
+  pauseIngestion: () => invoke<void>("pause_ingestion_run"),
+  resumeIngestion: () => invoke<void>("resume_ingestion_run"),
+  stopIngestion: () => invoke<void>("stop_ingestion_run"),
+  ingestionState: () => invoke<IngestionState>("get_ingestion_state"),
+  submitChallenge: (kind: string, value: string) => invoke<void>("submit_login_challenge", { kind, value }),
+  setPace: (seconds: number) => invoke<void>("set_ingestion_pace", { seconds }),
+  ingestionJobs: (sweepId?: string) => invoke<IngestionJob[]>("list_ingestion_jobs", { sweepId: sweepId ?? null }),
+  ingestionRuns: (limit?: number) => invoke<IngestionRun[]>("list_ingestion_runs", { limit: limit ?? null }),
 };
 
-export function onScraper(handler: (ev: ScraperEvent) => void): Promise<UnlistenFn> {
-  return listen<ScraperEvent>("scraper", (e) => handler(e.payload));
+export function onIngestion(handler: (ev: IngestionEvent) => void): Promise<UnlistenFn> {
+  return listen<IngestionEvent>("ingestion", (e) => handler(e.payload));
 }
 
 /** base64 -> object URL. Caller revokes it. */

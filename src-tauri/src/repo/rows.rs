@@ -16,7 +16,7 @@ pub const SYNCED_TABLES: &[&str] = &[
 
 /// Local tables written through the same function for uniformity, never
 /// ledgered.
-pub const LOCAL_TABLES: &[&str] = &["ingestion_runs", "document_blobs", "local_kv"];
+pub const LOCAL_TABLES: &[&str] = &["ingestion_runs", "document_blobs", "local_kv", "ingestion_sweeps", "ingestion_jobs", "session_locks"];
 
 fn check_table(table: &str) -> AppResult<()> {
     if SYNCED_TABLES.contains(&table) || LOCAL_TABLES.contains(&table) {

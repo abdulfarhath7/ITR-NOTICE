@@ -20,11 +20,11 @@ if (Test-Path "requirements.lock.txt") {
 }
 python -m playwright install chromium
 
-pyinstaller --noconfirm --clean notice_scraper.spec
+pyinstaller --noconfirm --clean draftax_sidecar.spec
 
-$dest = Join-Path $PSScriptRoot "..\src-tauri\resources\scraper"
+$dest = Join-Path $PSScriptRoot "..\src-tauri\resources\sidecar"
 if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
-Copy-Item -Recurse "dist\notice_scraper" $dest
+Copy-Item -Recurse "dist\draftax_sidecar" $dest
 # the folder is tracked but empty in git; keep the placeholder alive
 New-Item -ItemType File -Force (Join-Path $dest ".gitkeep") | Out-Null
 Write-Host "Sidecar ready at $dest"

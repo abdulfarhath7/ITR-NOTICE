@@ -134,6 +134,14 @@ export default function ClientDetailScreen({ id }: { id: string }) {
     return Object.fromEntries(MODULES.map((m) => [m.key, rows.filter((r) => r.module === m.key)])) as Record<Module, WorkItemRow[]>;
   }, [items.data, selectedYear]);
 
+  const refreshNow = async () => {
+    try {
+      await api.refreshClient(id);
+      toast("Refresh queued. Watch it on the Ingestion screen.");
+      navigate({ name: "ingestion" });
+    } catch (e) { toastError(describeError(e)); }
+  };
+
   const saveFileNo = async () => {
     if (fileNo === null) return;
     try {
@@ -154,6 +162,7 @@ export default function ClientDetailScreen({ id }: { id: string }) {
         <a className="btn small quiet" href={href({ name: "clients" })}>Clients</a>
         <h1>{c.name}</h1>
         <span className="meta mono">{c.pan_masked}</span>
+        {c.source === "portal" ? <button className="btn" onClick={() => { void refreshNow(); }}>Refresh from portal</button> : null}
         <button className="btn" onClick={() => setEditing(true)}>Edit</button>
       </div>
       <div className="page-body">

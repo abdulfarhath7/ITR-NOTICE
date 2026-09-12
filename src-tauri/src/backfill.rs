@@ -49,7 +49,7 @@ pub fn run(tx: &Transaction) -> Result<(), MigrateError> {
             Ok((r.get::<_, i64>(0)?, ProceedingCard {
                 tab: r.get(1)?, sub_tab: r.get(2)?, proceeding_name: r.get(3)?, pan: r.get(4)?,
                 assessee_name: r.get(5)?, assessment_year: r.get(6)?, financial_year: r.get(7)?,
-                applicable_act: r.get(8)?, status: r.get(9)?, closure_date: r.get(10)?,
+                applicable_act: r.get(8)?, status: r.get(9)?, initiated_on: None, closure_date: r.get(10)?,
                 closure_order: r.get(11)?,
             }))
         })?;
@@ -70,8 +70,8 @@ pub fn run(tx: &Transaction) -> Result<(), MigrateError> {
             Ok((r.get::<_, Option<i64>>(0)?, NoticeCard {
                 ref_id: r.get(1)?, notice_us: r.get(2)?, doc_ref_id: r.get(3)?, description: r.get(4)?,
                 issued_on: r.get(5)?, served_on: r.get(6)?, due_date: r.get(7)?,
-                due_date_source: r.get(8)?, ao_viewed_on: r.get(9)?, responded: r.get(10)?,
-                downloaded_at: r.get(11)?, pdf: r.get(12)?,
+                due_date_source: r.get(8)?, ao_viewed_on: r.get(9)?, last_response_on: None,
+                responded: r.get(10)?, downloaded_at: r.get(11)?, pdf: r.get(12)?,
             }))
         })?;
         for row in rows {

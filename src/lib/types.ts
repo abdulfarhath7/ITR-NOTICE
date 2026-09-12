@@ -254,17 +254,72 @@ export interface Draft {
 
 export interface DueDateAnswer { due_date: string | null; basis: string | null }
 
-/** Everything the sidecar says, re-emitted by Rust on the `scraper` channel. */
-export type ScraperEvent =
-  | { ev: "ready" }
-  | { ev: "log"; msg: string }
-  | { ev: "stderr"; msg: string }
-  | { ev: "progress"; kind: string; [k: string]: unknown }
-  | { ev: "login_phase"; phase: string }
-  | { ev: "otp_required" }
-  | { ev: "login_ok" }
-  | { ev: "notice"; ref_id: string }
+export type Scope =
+  | { kind: "all" }
+  | { kind: "module"; module: Module }
+  | { kind: "client"; client_id: string };
+
+export interface Challenge { kind: "otp" | "captcha" | string; image_b64: string | null }
+
+export interface IngestionCounts {
+  cards: number; notices: number; fetched: number; skipped: number; changed: number; panels_done: number;
+}
+
+export interface IngestionState {
+  running: boolean;
+  paused: boolean;
+  sweep_id: string | null;
+  job_id: string | null;
+  current_login_ref_masked: string | null;
+  current_client_id: string | null;
+  current_client_name: string | null;
+  queue_position: number;
+  queue_total: number;
+  module: string | null;
+  panel: string | null;
+  phase: string | null;
+  awaiting_operator: Challenge | null;
+  counts: IngestionCounts;
+  last_error: string | null;
+  finished_at: string | null;
+  resumable_sweep_id: string | null;
+  last_run_at: string | null;
+}
+
+export interface IngestionJob {
+  id: string;
+  sweep_id: string;
+  login_ref: string;
+  client_id: string | null;
+  module: Module;
+  position: number;
+  status: string;
+  attempts: number;
+  next_attempt_at: string | null;
+  cursor: string | null;
+  last_error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface IngestionRun {
+  id: string;
+  run_at: string;
+  device_id: string;
+  client_id: string | null;
+  module: Module;
+  panel_swept: string | null;
+  records_found: number;
+  gaps: string | null;
+  operator: string | null;
+  status: string;
+  notes: string | null;
+}
+
+/** What the runner and the sidecar say, on the `ingestion` channel. */
+export type IngestionEvent =
+  | { ev: "state" }
+  | { ev: "log"; level: "info" | "warn" | "error"; msg: string }
+  | { ev: "progress"; data: Record<string, unknown> }
   | { ev: "viewport"; img: string }
-  | { ev: "sync_done"; stats: Record<string, unknown> }
-  | { ev: "error"; kind?: string; msg: string }
-  | { ev: "exited" };
+  | { ev: "challenge"; kind: string };
