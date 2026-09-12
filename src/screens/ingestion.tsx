@@ -113,6 +113,7 @@ export default function IngestionScreen() {
   const jobs = useQuery<IngestionJob[]>(jobsKey, () => api.ingestionJobs(s?.sweep_id ?? s?.resumable_sweep_id ?? undefined));
   const runs = useQuery<IngestionRun[]>(`ingestion:runs:${s?.counts.panels_done ?? 0}:${s?.finished_at ?? ""}`, () => api.ingestionRuns(60));
   const clientsById = Object.fromEntries((clients.data ?? []).map((c) => [c.id, c.name]));
+  const due = useQuery<string[]>(`ingestion:due:${s?.finished_at ?? ""}`, () => api.modulesDue());
 
   return (
     <div className="page">
@@ -150,7 +151,7 @@ export default function IngestionScreen() {
               <div className="card">
                 <div className="card-head"><h2>Start a sweep</h2></div>
                 <div className="card-body stack">
-                  <p className="muted">One login at a time, e-Proceedings, all six panels. A human clears the captcha and OTP; the queue waits. Read-only against the portal.</p>
+                  <p className="muted">One login at a time. e-Proceedings sweeps all six panels; demands, returns and forms each sweep their list. A human clears the captcha and OTP; the queue waits. Read-only against the portal.</p>
                   <div className="row">
                     <Field label="Scope">
                       <select className="select" value={scopeKind} onChange={(e) => setScopeKind(e.target.value as "all" | "client")}>
@@ -168,10 +169,19 @@ export default function IngestionScreen() {
                     ) : null}
                   </div>
                   <div className="row">
-                    <button className="btn accent" disabled={scopeKind === "client" && !clientId}
-                            onClick={() => { void ing.start(scopeKind === "all" ? { kind: "all" } : { kind: "client", client_id: clientId }); }}>
-                      Start
-                    </button>
+                    {scopeKind === "all" ? (
+                      <>
+                        <button className="btn accent" disabled={!due.data?.length}
+                                title={due.data?.length ? `due: ${due.data.join(", ")}` : "nothing is due by cadence"}
+                                onClick={() => { void ing.start({ kind: "all" }); }}>
+                          Sweep what is due{due.data?.length ? ` (${due.data.join(", ")})` : ""}
+                        </button>
+                        <button className="btn" onClick={() => { void ing.start({ kind: "all" }, true); }}>Sweep everything now</button>
+                      </>
+                    ) : (
+                      <button className="btn accent" disabled={!clientId}
+                              onClick={() => { void ing.start({ kind: "client", client_id: clientId }, true); }}>Start</button>
+                    )}
                     <span className="meta">Last sweep on this device: {stamp(s?.last_run_at)}</span>
                   </div>
                 </div>
@@ -188,7 +198,7 @@ export default function IngestionScreen() {
                       : <span className="muted">login not in the book</span>} <span className="mono muted">{s.current_login_ref_masked}</span></dd>
                     <dt>Queue</dt><dd className="num">{s.queue_position} of {s.queue_total}</dd>
                     <dt>Module</dt><dd>{s.module ?? "—"}</dd>
-                    <dt>Panel</dt><dd>{s.panel ? (PANEL_LABEL[s.panel] ?? s.panel) : <span className="muted">—</span>} <span className="muted num">({s.counts.panels_done} of 6 done)</span></dd>
+                    <dt>Panel</dt><dd>{s.panel ? (PANEL_LABEL[s.panel] ?? s.panel) : <span className="muted">—</span>} <span className="muted num">({s.counts.panels_done} of {s.panel_total || 6} done)</span></dd>
                     <dt>Counts</dt><dd className="num">{s.counts.cards} cards · {s.counts.notices} notices · {s.counts.fetched} fetched · {s.counts.changed} changed · {s.counts.skipped} known</dd>
                     {ing.progress && "card" in ing.progress ? <><dt>Card</dt><dd className="num">{String(ing.progress.card)} of {String(ing.progress.of)} {ing.progress.name ? `· ${String(ing.progress.name)}` : ""}</dd></> : null}
                     {ing.progress && "notice" in ing.progress ? <><dt>Downloading</dt><dd className="num">notice {String(ing.progress.notice)} of {String(ing.progress.of)}</dd></> : null}

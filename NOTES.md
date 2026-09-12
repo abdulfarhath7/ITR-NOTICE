@@ -27,6 +27,14 @@ Append as you go. This is where the next session picks up your thread.
   `src-tauri/src/ingest/eri_source.rs`.
 - **Captcha markup.** No live capture shows a captcha; the selectors in
   `sidecar/ingest/session.py` are broad guesses (Q23). `TODO(blocked)` there.
+- **Demands, returns and forms parsers.** No DOM capture of "Response to
+  Outstanding Demand", "View Filed Returns" or "View Filed Forms" exists, and
+  docs/05 forbids parsers written from screenshots. `sidecar/ingest/modules.py`
+  navigates by menu text and maps whatever labels the portal renders through
+  a label table, marking every field low-confidence. To unblock: capture
+  outerHTML + HAR of the three lists from a live session, scrub, commit under
+  `sidecar/tests/fixtures/`, pin the label tables with tests.
+  `TODO(blocked)` at the top of that file.
 
 ## Sessions
 
@@ -97,3 +105,10 @@ Append as you go. This is where the next session picks up your thread.
   to end, captcha detection, the stepper-date semantics (Q22). The frozen
   sidecar answers the protocol handshake; the runner is exercised by tests
   with a mock source.
+- Phase 5: migration 0013 (demands, demand_responses, payments, returns,
+  filed_forms), `intake_modules.rs` with the pair rule and supersedes
+  chaining (tests), the four-module union in `list_work_items`, detail
+  screens, cadence in `local_kv` (Q12 defaults) with "Sweep what is due" /
+  "Sweep everything now". The module walkers in the sidecar are blocked on
+  captures (see BLOCKED); the pipeline from header to row is complete and
+  tested with mock headers.

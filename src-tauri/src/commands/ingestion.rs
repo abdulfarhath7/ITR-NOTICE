@@ -7,6 +7,7 @@ use crate::ingest::portal_source::{Controls, SidecarHandle};
 use crate::ingest::runner::{RunHandle, Runner};
 use crate::ingest::state::{self, IngestionState, Shared};
 use crate::repo::model::IngestionRun;
+use crate::repo::cadence::{self, Cadences};
 use crate::repo::queue::{self, Job, Scope, Sweep};
 use crate::repo::{local, runs};
 use crate::AppState;
@@ -60,20 +61,46 @@ fn launch(app: AppHandle, state: &AppState, sweep: Sweep) -> AppResult<String> {
     Ok(sweep.id)
 }
 
+/// `all` sweeps the modules whose cadence is due (Q12); `all_now` sweeps
+/// every module regardless; `module` one module; `client` every module for
+/// one client.
 #[tauri::command]
-pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope) -> AppResult<String> {
+pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope, all_now: Option<bool>) -> AppResult<String> {
     let sweep = {
         let con = lock_db(&state)?;
         let device_id = local::device_id(&con)?;
-        let modules: Vec<&str> = match &scope {
-            Scope::Module { module } => vec![module.as_str()],
-            // Only e-Proceedings is swept in this phase; the other modules
-            // arrive in Phase 5 and are queued from here once they exist.
-            _ => vec!["proceedings"],
+        let every: Vec<String> = queue::MODULES.iter().map(|m| m.to_string()).collect();
+        let modules: Vec<String> = match &scope {
+            Scope::Module { module } => vec![module.clone()],
+            Scope::Client { .. } => every,
+            Scope::All => if all_now.unwrap_or(false) { every } else {
+                let due = cadence::modules_due(&con)?;
+                if due.is_empty() { return Err(AppError::state("nothing is due yet by cadence; use Sweep everything now")); }
+                due
+            },
         };
-        queue::create_sweep(&con, &device_id, &scope, &modules)?
+        let refs: Vec<&str> = modules.iter().map(String::as_str).collect();
+        queue::create_sweep(&con, &device_id, &scope, &refs)?
     };
     launch(app, &state, sweep)
+}
+
+#[tauri::command]
+pub fn get_sweep_cadence(state: State<AppState>) -> AppResult<Cadences> {
+    let con = lock_db(&state)?;
+    cadence::get(&con)
+}
+
+#[tauri::command]
+pub fn set_sweep_cadence(state: State<AppState>, cadences: Cadences) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    cadence::set(&con, &cadences)
+}
+
+#[tauri::command]
+pub fn modules_due(state: State<AppState>) -> AppResult<Vec<String>> {
+    let con = lock_db(&state)?;
+    cadence::modules_due(&con)
 }
 
 /// Continue the sweep a previous process left unfinished.
@@ -90,7 +117,7 @@ pub fn resume_ingestion_sweep(app: AppHandle, state: State<AppState>, sweep_id: 
 
 #[tauri::command]
 pub fn refresh_client(app: AppHandle, state: State<AppState>, client_id: String) -> AppResult<String> {
-    start_ingestion_run(app, state, Scope::Client { client_id })
+    start_ingestion_run(app, state, Scope::Client { client_id }, Some(true))
 }
 
 #[tauri::command]

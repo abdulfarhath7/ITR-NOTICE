@@ -2,9 +2,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
-  ClientDetail, ClientInput, ClientSummary, Derived, Draft, DueDateAnswer, ImportPreview,
-  IngestionEvent, IngestionJob, IngestionRun, IngestionState, ProceedingDetail, Scope, Settings,
-  TypeEntry, WorkItemFilter, WorkItemRow,
+  Cadences, ClientDetail, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
+  FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
+  ProceedingDetail, ReturnDetail, Scope, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
 
 export const api = {
@@ -26,6 +26,9 @@ export const api = {
 
   workItems: (filter?: WorkItemFilter) => invoke<WorkItemRow[]>("list_work_items", { filter: filter ?? null }),
   proceeding: (id: string) => invoke<ProceedingDetail>("get_proceeding", { id }),
+  demand: (id: string) => invoke<DemandDetail>("get_demand", { id }),
+  return_: (id: string) => invoke<ReturnDetail>("get_return", { id }),
+  filedForm: (id: string) => invoke<FiledFormDetail>("get_filed_form", { id }),
   setManualDueDate: (proceedingId: string, date: string | null) =>
     invoke<void>("set_manual_due_date", { proceedingId, date }),
   registry: (registryName: string) => invoke<TypeEntry[]>("list_registry", { registryName }),
@@ -39,7 +42,10 @@ export const api = {
   askDueDate: (refId: string) => invoke<DueDateAnswer>("ask_due_date", { refId }),
   draftResponse: (refId: string, regenerate: boolean) => invoke<Draft>("draft_response", { refId, regenerate }),
 
-  startIngestion: (scope: Scope) => invoke<string>("start_ingestion_run", { scope }),
+  startIngestion: (scope: Scope, allNow = false) => invoke<string>("start_ingestion_run", { scope, allNow }),
+  sweepCadence: () => invoke<Cadences>("get_sweep_cadence"),
+  setSweepCadence: (cadences: Cadences) => invoke<void>("set_sweep_cadence", { cadences }),
+  modulesDue: () => invoke<string[]>("modules_due"),
   resumeSweep: (sweepId: string) => invoke<string>("resume_ingestion_sweep", { sweepId }),
   refreshClient: (clientId: string) => invoke<string>("refresh_client", { clientId }),
   pauseIngestion: () => invoke<void>("pause_ingestion_run"),

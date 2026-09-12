@@ -18,6 +18,7 @@ use crate::ingest::portal_source::{Controls, PortalSource, SidecarHandle};
 use crate::ingest::source::*;
 use crate::ingest::state::{self, Counts, Shared};
 use crate::intake::{self, NoticeCard, ProceedingCard};
+use crate::intake_modules::{self, DemandCard, DemandResponseCard, FormCard, PaymentCard, ReturnCard};
 use crate::mask;
 use crate::repo::model::{IngestionRun, Status};
 use crate::repo::queue::{self, Job};
@@ -60,6 +61,46 @@ fn notice_from(n: &HashMap<String, Value>, pdf: Option<Vec<u8>>) -> NoticeCard {
     }
 }
 
+fn opt_map(v: Option<&Value>) -> Option<HashMap<String, Value>> {
+    v.and_then(Value::as_object).map(|o| o.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+}
+
+fn demand_from(p: &HashMap<String, Value>) -> DemandCard {
+    let response = opt_map(p.get("response")).map(|r| DemandResponseCard {
+        stance: s(r.get("stance")), reason: s(r.get("reason")), disputed_amount: s(r.get("disputed_amount")),
+        filed_on: s(r.get("filed_on")), transaction_id: s(r.get("transaction_id")),
+    });
+    let payments = p.get("payments").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_object()).map(|o| PaymentCard {
+        cin: s(o.get("cin")), bsr_code: s(o.get("bsr_code")), paid_on: s(o.get("paid_on")), amount: s(o.get("amount")),
+    }).collect()).unwrap_or_default();
+    DemandCard {
+        pan: s(p.get("pan")), assessee_name: s(p.get("assessee_name")), assessment_year: s(p.get("assessment_year")),
+        demand_reference_number: s(p.get("demand_reference_number")), demand_amount: s(p.get("demand_amount")),
+        current_outstanding: s(p.get("current_outstanding")), section_or_demand_type: s(p.get("section_or_demand_type")),
+        raised_on: s(p.get("raised_on")), uploaded_by: s(p.get("uploaded_by")),
+        rectification_rights: s(p.get("rectification_rights")), status: s(p.get("status")), response, payments,
+    }
+}
+
+fn return_from(p: &HashMap<String, Value>, pdf: Option<Vec<u8>>, receipt: Option<Vec<u8>>) -> ReturnCard {
+    ReturnCard {
+        pan: s(p.get("pan")), assessee_name: s(p.get("assessee_name")), assessment_year: s(p.get("assessment_year")),
+        acknowledgement_number: s(p.get("acknowledgement_number")), return_type: s(p.get("return_type")),
+        filing_type: s(p.get("filing_type")), filed_on: s(p.get("filed_on")),
+        verification_status: s(p.get("verification_status")), processing_status: s(p.get("processing_status")),
+        form_pdf: pdf, receipt_pdf: receipt,
+    }
+}
+
+fn form_from(p: &HashMap<String, Value>, pdf: Option<Vec<u8>>, receipt: Option<Vec<u8>>) -> FormCard {
+    FormCard {
+        pan: s(p.get("pan")), assessee_name: s(p.get("assessee_name")), assessment_year: s(p.get("assessment_year")),
+        form_label: s(p.get("form_label")), acknowledgement_number: s(p.get("acknowledgement_number")),
+        filed_on: s(p.get("filed_on")), filing_type: s(p.get("filing_type")), status: s(p.get("status")),
+        filed_by: s(p.get("filed_by")), form_pdf: pdf, receipt_pdf: receipt,
+    }
+}
+
 /// One panel's sink: decides verdicts, absorbs rows, counts.
 struct PanelSink<'a, R: tauri::Runtime> {
     db: &'a Arc<Mutex<Connection>>,
@@ -94,9 +135,77 @@ impl<'a, R: tauri::Runtime> PanelSink<'a, R> {
     }
 }
 
+impl<'a, R: tauri::Runtime> PanelSink<'a, R> {
+    /// Demands, returns and forms: one card per header, no notice level.
+    fn on_module_header(&mut self, header: &WorkItemHeader) -> Verdict {
+        self.counts.cards += 1;
+        let p = &header.proceeding;
+        let module = header.panel.as_str();
+        let result: Result<(bool, bool), String> = (|| {
+            let con = self.db.lock().map_err(|e| e.to_string())?;
+            match module {
+                "demands" => {
+                    let card = demand_from(p);
+                    drop(con);
+                    let mut con = self.db.lock().map_err(|e| e.to_string())?;
+                    let tx = con.transaction().map_err(|e| e.to_string())?;
+                    intake_modules::absorb_demand(&tx, Some(self.login_pan), &card).map_err(|e| e.to_string())?;
+                    tx.commit().map_err(|e| e.to_string())?;
+                    Ok((false, true))
+                }
+                "returns" | "forms" => {
+                    let ack = s(p.get("acknowledgement_number")).ok_or("card has no acknowledgement number")?;
+                    let (parent_type, exists) = if module == "returns" {
+                        ("return", crate::repo::modules::return_by_ack(&con, &ack).map_err(|e| e.to_string())?.map(|r| r.id))
+                    } else {
+                        ("filed_form", crate::repo::modules::filed_form_by_ack(&con, &ack).map_err(|e| e.to_string())?.map(|f| f.id))
+                    };
+                    let stored = match &exists {
+                        Some(id) => crate::repo::documents::for_parent(&con, parent_type, id).map_err(|e| e.to_string())?
+                            .iter().filter(|d| d.state == "stored").count(),
+                        None => 0,
+                    };
+                    let wants = p.get("has_pdf_button").and_then(Value::as_bool).unwrap_or(false);
+                    // Fetch when the portal offers a file and the pair is not yet complete.
+                    Ok((wants && stored < 2, stored >= 2 && exists.is_some()))
+                }
+                _ => Err(format!("unknown module panel {module}")),
+            }
+        })();
+        match result {
+            Ok((fetch, _)) if fetch => { self.pending = Some((ProceedingCard::default(), p.clone())); Verdict::Fetch }
+            Ok((_, known)) => {
+                if module != "demands" {
+                    // Row without files to fetch: write it now.
+                    if let Err(e) = self.absorb_module(module, p, None, None) { self.errors.push(e); }
+                }
+                if known { self.streak += 1; self.counts.skipped += 1; } else { self.streak = 0; self.counts.changed += 1; }
+                self.publish();
+                if self.streak >= EARLY_STOP_STREAK { Verdict::Stop } else { Verdict::Skip }
+            }
+            Err(e) => { self.errors.push(e); Verdict::Skip }
+        }
+    }
+
+    fn absorb_module(&mut self, module: &str, p: &HashMap<String, Value>, pdf: Option<Vec<u8>>, receipt: Option<Vec<u8>>) -> Result<(), String> {
+        let mut con = self.db.lock().map_err(|e| e.to_string())?;
+        let tx = con.transaction().map_err(|e| e.to_string())?;
+        match module {
+            "returns" => { intake_modules::absorb_return(&tx, Some(self.login_pan), &return_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
+            "forms" => { intake_modules::absorb_filed_form(&tx, Some(self.login_pan), &form_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
+            "demands" => { intake_modules::absorb_demand(&tx, Some(self.login_pan), &demand_from(p)).map_err(|e| e.to_string())?; }
+            _ => return Err(format!("unknown module panel {module}")),
+        }
+        tx.commit().map_err(|e| e.to_string())
+    }
+}
+
 impl<'a, R: tauri::Runtime> crate::ingest::source::PanelSink for PanelSink<'a, R> {
     fn on_header(&mut self, header: &WorkItemHeader) -> Verdict {
         self.note_confidence(header);
+        if matches!(header.panel.as_str(), "demands" | "returns" | "forms") {
+            return self.on_module_header(header);
+        }
         let card = match card_from(header) {
             Ok(c) => c,
             Err(e) => { self.errors.push(e); return Verdict::Skip; }
@@ -159,6 +268,16 @@ impl<'a, R: tauri::Runtime> crate::ingest::source::PanelSink for PanelSink<'a, R
             self.errors.push(format!("an item arrived with nothing pending ({})", item.reference_id));
             return;
         };
+        if card.tab.is_empty() {
+            // A module card (return or form): the pair rule applies.
+            let module = if n.contains_key("return_type") || n.contains_key("verification_status") { "returns" } else { "forms" };
+            let got = item.pdf.as_ref().map(|b| !b.is_empty()).unwrap_or(false) || item.receipt.as_ref().map(|b| !b.is_empty()).unwrap_or(false);
+            if let Err(e) = self.absorb_module(module, &n, item.pdf, item.receipt) { self.errors.push(e); return; }
+            if got { self.counts.fetched += 1; }
+            self.counts.changed += 1;
+            self.publish();
+            return;
+        }
         let got_pdf = item.pdf.as_ref().map(|b| !b.is_empty()).unwrap_or(false);
         let notice = notice_from(&n, item.pdf);
         // The blob is stored before the rows inside one transaction (intake
@@ -366,7 +485,10 @@ impl<R: tauri::Runtime> Runner<R> {
 
         let module = Module::parse(&job.module).unwrap_or(Module::Proceedings);
         let mut cursor = job.cursor();
-        for panel in PANELS {
+        let panels = panels_for(module);
+        let total = panels.len() as i64;
+        state::update(&self.shared, |st| st.panel_total = total);
+        for panel in panels {
             if self.controls.stopping() { return Err(SourceError::Other("stopped by the operator".into())); }
             if cursor.panels_done.iter().any(|p| p == panel) { continue; }
             self.controls.wait_while_paused().await;

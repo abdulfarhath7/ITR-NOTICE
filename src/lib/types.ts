@@ -233,6 +233,109 @@ export interface ProceedingDetail {
   documents: Document[];
 }
 
+export interface ItemContext {
+  client_id: string;
+  client_name: string;
+  client_code: string | null;
+  pan_masked: string;
+  assessment_year: string | null;
+  financial_year: string | null;
+}
+
+export interface DemandResponseView {
+  id: string;
+  demand_id: string;
+  stance: string | null;
+  reason_code_id: string | null;
+  reason_label: string | null;
+  disputed_amount: number | null;
+  filed_on: string | null;
+  transaction_id: string | null;
+  verified_flag: number;
+  gap_flags: string | null;
+  documents: Document[];
+}
+
+export interface PaymentRow {
+  id: string;
+  year_context_id: string;
+  demand_response_id: string | null;
+  proceeding_id: string | null;
+  purpose: string;
+  cin: string | null;
+  bsr_code: string | null;
+  paid_on: string | null;
+  amount: number | null;
+  verified_flag: number;
+  gap_flags: string | null;
+}
+
+export interface DemandDetail extends ItemContext {
+  id: string;
+  year_context_id: string;
+  demand_reference_number: string | null;
+  demand_amount: number | null;
+  current_outstanding: number | null;
+  section_or_demand_type: string | null;
+  raised_on: string | null;
+  uploaded_by: string | null;
+  rectification_rights: string | null;
+  status: string;
+  portal_status: string | null;
+  proceeding_id: string | null;
+  verified_flag: number;
+  gap_flags: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  gaps: string[];
+  responses: DemandResponseView[];
+  payments: PaymentRow[];
+  documents: Document[];
+}
+
+export interface ReturnDetail extends ItemContext {
+  id: string;
+  year_context_id: string;
+  acknowledgement_number: string;
+  return_type: string | null;
+  filing_type: string | null;
+  filed_on: string | null;
+  verification_status: string | null;
+  processing_status: string | null;
+  status: string;
+  supersedes_id: string | null;
+  supersedes_ack: string | null;
+  superseded_by_ack: string | null;
+  verified_flag: number;
+  gaps: string[];
+  first_seen_at: string;
+  last_seen_at: string;
+  documents: Document[];
+}
+
+export interface FiledFormDetail extends ItemContext {
+  id: string;
+  year_context_id: string;
+  form_type_id: string;
+  acknowledgement_number: string;
+  form_label: string | null;
+  filed_on: string | null;
+  filing_type: string | null;
+  portal_status: string | null;
+  status: string;
+  filed_by: string | null;
+  verified_flag: number;
+  gaps: string[];
+  type_label: string;
+  type_category: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  documents: Document[];
+}
+
+export type Cadence = "daily" | "weekly" | "monthly" | "manual";
+export interface Cadences { proceedings: Cadence; demands: Cadence; returns: Cadence; forms: Cadence }
+
 export interface TypeEntry {
   id: string;
   registry_name: string;
@@ -277,6 +380,7 @@ export interface IngestionState {
   queue_total: number;
   module: string | null;
   panel: string | null;
+  panel_total: number;
   phase: string | null;
   awaiting_operator: Challenge | null;
   counts: IngestionCounts;

@@ -70,7 +70,19 @@ pub struct WorkItemDetail {
     pub reference_id: String,
     pub filename: Option<String>,
     pub pdf: Option<Vec<u8>>,
+    /// The acknowledgement / receipt for returns and forms (the pair rule).
+    pub receipt: Option<Vec<u8>>,
     pub note: Option<String>,
+}
+
+/// What a module sweeps: e-Proceedings has six panels, the others one list.
+pub fn panels_for(module: Module) -> Vec<&'static str> {
+    match module {
+        Module::Proceedings => PANELS.to_vec(),
+        Module::Demands => vec!["demands"],
+        Module::Returns => vec!["returns"],
+        Module::Forms => vec!["forms"],
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

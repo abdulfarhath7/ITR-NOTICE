@@ -5,11 +5,13 @@
 //! one place that will also append the ledger entry (Phase 6). Reads are
 //! explicit queries returning explicit DTOs.
 
+pub mod cadence;
 pub mod clients;
 pub mod documents;
 pub mod drafts;
 pub mod local;
 pub mod model;
+pub mod modules;
 pub mod proceedings;
 pub mod queue;
 pub mod registry;

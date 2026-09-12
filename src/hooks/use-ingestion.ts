@@ -55,7 +55,7 @@ export function useIngestion() {
 
   return {
     state, log, frame, progress,
-    start: (scope: Scope) => guard(() => { setFrame(null); setProgress(null); return api.startIngestion(scope); }),
+    start: (scope: Scope, allNow = false) => guard(() => { setFrame(null); setProgress(null); return api.startIngestion(scope, allNow); }),
     resumeSweep: (id: string) => guard(() => api.resumeSweep(id)),
     pause: () => guard(() => api.pauseIngestion()),
     resume: () => guard(() => api.resumeIngestion()),

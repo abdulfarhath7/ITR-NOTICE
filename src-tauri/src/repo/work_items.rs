@@ -5,7 +5,7 @@ use crate::error::AppResult;
 use crate::mask;
 use crate::repo::model::{AdjournmentRequest, Communication, Document, Proceeding, Response};
 use crate::repo::{clients, documents, drafts, proceedings, registry};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -52,22 +52,23 @@ fn gaps(json: Option<String>) -> Vec<String> {
 }
 
 pub fn list(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>> {
-    let mut sql = String::from(
-        "SELECT p.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
-                p.display_name, t.label, p.din_reference, p.section_2025, p.section_1961,
-                p.due_date, p.manual_due_date, p.suggested_due_date, p.limitation_date, p.status,
-                p.source_panel, p.verified_flag, p.gap_flags,
-                (SELECT count(*) FROM documents d JOIN communications c2 ON c2.id = d.parent_id
-                  WHERE d.parent_type = 'communication' AND c2.proceeding_id = p.id AND d.state = 'stored'),
-                (SELECT count(*) FROM communications c3 WHERE c3.proceeding_id = p.id
-                  AND c3.status IN ('open','adjournment_sought','unknown')),
-                p.last_seen_at
-         FROM proceedings p
-         JOIN year_contexts yc ON yc.id = p.year_context_id
-         JOIN clients cl ON cl.id = yc.client_id
-         JOIN type_registry t ON t.id = p.proceeding_type_id
-         WHERE 1 = 1");
-    let mut binds: Vec<rusqlite::types::Value> = Vec::new();
+    let want = |m: &str| f.module.as_deref().map(|x| x.is_empty() || x == m).unwrap_or(true);
+    let mut out: Vec<WorkItemRow> = Vec::new();
+    if want("proceedings") { out.extend(list_proceedings(con, f)?); }
+    if want("demands") { out.extend(list_demands(con, f)?); }
+    if want("returns") { out.extend(list_returns(con, f)?); }
+    if want("forms") { out.extend(list_forms(con, f)?); }
+    // Stated due first, soonest first; then most recently seen.
+    out.sort_by(|a, b| a.due_date.is_none().cmp(&b.due_date.is_none())
+        .then_with(|| a.due_date.cmp(&b.due_date))
+        .then_with(|| b.last_seen_at.cmp(&a.last_seen_at)));
+    Ok(out)
+}
+
+/// The WHERE clause shared by the four module queries: client, year,
+/// status and search against the client and the item's own title column.
+fn common_filter(f: &WorkItemFilter, title_col: &str, ref_col: &str, binds: &mut Vec<rusqlite::types::Value>) -> String {
+    let mut sql = String::new();
     if let Some(ids) = &f.client_ids {
         if !ids.is_empty() {
             let marks: Vec<String> = ids.iter().map(|id| { binds.push(id.clone().into()); format!("?{}", binds.len()) }).collect();
@@ -80,20 +81,36 @@ pub fn list(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>>
     }
     if let Some(st) = f.status.as_deref().filter(|s| !s.is_empty()) {
         binds.push(st.to_string().into());
-        sql.push_str(&format!(" AND p.status = ?{}", binds.len()));
+        sql.push_str(&format!(" AND x.status = ?{}", binds.len()));
     }
     if let Some(q) = f.search.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         binds.push(format!("%{}%", q.to_lowercase()).into());
         let n = binds.len();
         sql.push_str(&format!(
-            " AND (lower(cl.name) LIKE ?{n} OR lower(p.display_name) LIKE ?{n}
-               OR lower(coalesce(cl.client_code,'')) LIKE ?{n} OR lower(coalesce(p.din_reference,'')) LIKE ?{n})"));
+            " AND (lower(cl.name) LIKE ?{n} OR lower(coalesce({title_col},'')) LIKE ?{n}
+               OR lower(coalesce(cl.client_code,'')) LIKE ?{n} OR lower(coalesce({ref_col},'')) LIKE ?{n})"));
     }
-    if matches!(f.module.as_deref(), Some(m) if !m.is_empty() && m != "proceedings") {
-        // Other modules arrive in Phase 5; until then their lists are empty.
-        return Ok(Vec::new());
-    }
-    sql.push_str(" ORDER BY p.due_date IS NULL, p.due_date, p.last_seen_at DESC");
+    sql
+}
+
+fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>> {
+    let mut sql = String::from(
+        "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
+                x.display_name, t.label, x.din_reference, x.section_2025, x.section_1961,
+                x.due_date, x.manual_due_date, x.suggested_due_date, x.limitation_date, x.status,
+                x.source_panel, x.verified_flag, x.gap_flags,
+                (SELECT count(*) FROM documents d JOIN communications c2 ON c2.id = d.parent_id
+                  WHERE d.parent_type = 'communication' AND c2.proceeding_id = x.id AND d.state = 'stored'),
+                (SELECT count(*) FROM communications c3 WHERE c3.proceeding_id = x.id
+                  AND c3.status IN ('open','adjournment_sought','unknown')),
+                x.last_seen_at
+         FROM proceedings x
+         JOIN year_contexts yc ON yc.id = x.year_context_id
+         JOIN clients cl ON cl.id = yc.client_id
+         JOIN type_registry t ON t.id = x.proceeding_type_id
+         WHERE 1 = 1");
+    let mut binds: Vec<rusqlite::types::Value> = Vec::new();
+    sql.push_str(&common_filter(f, "x.display_name", "x.din_reference", &mut binds));
 
     let mut st = con.prepare(&sql)?;
     let rows = st.query_map(rusqlite::params_from_iter(binds), |r| {
@@ -116,6 +133,124 @@ pub fn list(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>>
         row.section = render_section(row.section_2025.as_deref(), row.section_1961.as_deref());
     }
     Ok(out)
+}
+
+fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>> {
+    let mut sql = String::from(
+        "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
+                x.demand_reference_number, x.section_or_demand_type, x.demand_amount, x.current_outstanding,
+                x.raised_on, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
+                (SELECT count(*) FROM demand_responses r WHERE r.demand_id = x.id)
+         FROM demands x
+         JOIN year_contexts yc ON yc.id = x.year_context_id
+         JOIN clients cl ON cl.id = yc.client_id
+         WHERE 1 = 1");
+    let mut binds: Vec<rusqlite::types::Value> = Vec::new();
+    sql.push_str(&common_filter(f, "x.section_or_demand_type", "x.demand_reference_number", &mut binds));
+    let mut st = con.prepare(&sql)?;
+    let rows = st.query_map(rusqlite::params_from_iter(binds), |r| {
+        let pan: String = r.get(4)?;
+        let reference: Option<String> = r.get(7)?;
+        let section: Option<String> = r.get(8)?;
+        let outstanding: Option<f64> = r.get(10)?;
+        let responses: i64 = r.get(16)?;
+        Ok(WorkItemRow {
+            module: "demands".into(), id: r.get(0)?, client_id: r.get(1)?, client_name: r.get(2)?,
+            client_code: r.get(3)?, pan_masked: mask::pan(&pan), year_context_id: r.get(5)?,
+            assessment_year: r.get(6)?,
+            title: match outstanding {
+                Some(a) => format!("Demand · outstanding {}", money(a)),
+                None => "Demand · outstanding amount not stated".into(),
+            },
+            type_label: section.clone().unwrap_or_else(|| "Outstanding demand".into()),
+            reference, section, section_2025: None, section_1961: None,
+            due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
+            status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
+            document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
+        })
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>> {
+    let mut sql = String::from(
+        "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
+                x.acknowledgement_number, x.return_type, x.filing_type, x.filed_on, x.verification_status,
+                x.processing_status, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
+                (SELECT count(*) FROM documents d WHERE d.parent_type = 'return' AND d.parent_id = x.id AND d.state = 'stored')
+         FROM returns x
+         JOIN year_contexts yc ON yc.id = x.year_context_id
+         JOIN clients cl ON cl.id = yc.client_id
+         WHERE 1 = 1");
+    let mut binds: Vec<rusqlite::types::Value> = Vec::new();
+    sql.push_str(&common_filter(f, "x.return_type", "x.acknowledgement_number", &mut binds));
+    let mut st = con.prepare(&sql)?;
+    let rows = st.query_map(rusqlite::params_from_iter(binds), |r| {
+        let pan: String = r.get(4)?;
+        let rtype: Option<String> = r.get(8)?;
+        let ftype: Option<String> = r.get(9)?;
+        let verification: Option<String> = r.get(11)?;
+        Ok(WorkItemRow {
+            module: "returns".into(), id: r.get(0)?, client_id: r.get(1)?, client_name: r.get(2)?,
+            client_code: r.get(3)?, pan_masked: mask::pan(&pan), year_context_id: r.get(5)?,
+            assessment_year: r.get(6)?,
+            title: format!("{} {}", rtype.clone().unwrap_or_else(|| "Return".into()),
+                           ftype.clone().map(|t| format!("({t})")).unwrap_or_default()).trim().to_string(),
+            type_label: verification.map(|v| format!("Verification: {v}")).unwrap_or_else(|| "Return filed".into()),
+            reference: r.get(7)?, section: None, section_2025: None, section_1961: None,
+            due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
+            status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
+            document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
+        })
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>> {
+    let mut sql = String::from(
+        "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
+                x.acknowledgement_number, coalesce(x.form_label, t.label), t.label, x.filed_on, x.portal_status,
+                x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
+                (SELECT count(*) FROM documents d WHERE d.parent_type = 'filed_form' AND d.parent_id = x.id AND d.state = 'stored')
+         FROM filed_forms x
+         JOIN year_contexts yc ON yc.id = x.year_context_id
+         JOIN clients cl ON cl.id = yc.client_id
+         JOIN type_registry t ON t.id = x.form_type_id
+         WHERE 1 = 1");
+    let mut binds: Vec<rusqlite::types::Value> = Vec::new();
+    sql.push_str(&common_filter(f, "x.form_label", "x.acknowledgement_number", &mut binds));
+    let mut st = con.prepare(&sql)?;
+    let rows = st.query_map(rusqlite::params_from_iter(binds), |r| {
+        let pan: String = r.get(4)?;
+        Ok(WorkItemRow {
+            module: "forms".into(), id: r.get(0)?, client_id: r.get(1)?, client_name: r.get(2)?,
+            client_code: r.get(3)?, pan_masked: mask::pan(&pan), year_context_id: r.get(5)?,
+            assessment_year: r.get(6)?, title: r.get(8)?, type_label: r.get(9)?, reference: r.get(7)?,
+            section: None, section_2025: None, section_1961: None,
+            due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
+            status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
+            document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
+        })
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
+/// `1,23,456.00` in the Indian grouping, no symbol.
+pub fn money(amount: f64) -> String {
+    let negative = amount < 0.0;
+    let whole = amount.abs().trunc() as i64;
+    let paise = ((amount.abs() - amount.abs().trunc()) * 100.0).round() as i64;
+    let digits = whole.to_string();
+    let grouped = if digits.len() <= 3 { digits } else {
+        let (head, tail) = digits.split_at(digits.len() - 3);
+        let mut parts: Vec<String> = Vec::new();
+        let mut h = head.to_string();
+        while h.len() > 2 { let (a, b) = h.split_at(h.len() - 2); parts.push(b.to_string()); h = a.to_string(); }
+        if !h.is_empty() { parts.push(h); }
+        parts.reverse();
+        format!("{},{}", parts.join(","), tail)
+    };
+    format!("{}{grouped}.{paise:02}", if negative { "-" } else { "" })
 }
 
 /// `Sec 268 (old 148)` when both are known; either alone otherwise.
@@ -266,5 +401,115 @@ pub fn client_detail(con: &Connection, id: &str, has_credential: impl Fn(&str) -
         has_credential: has_credential(&login_ref),
         login_ref_effective: login_ref,
         row: c,
+    }))
+}
+
+// ------------------------------------------------------------ module details
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ItemContext {
+    pub client_id: String,
+    pub client_name: String,
+    pub client_code: Option<String>,
+    pub pan_masked: String,
+    pub assessment_year: Option<String>,
+    pub financial_year: Option<String>,
+}
+
+fn context_for(con: &Connection, year_context_id: &str) -> AppResult<ItemContext> {
+    Ok(con.query_row(
+        "SELECT cl.id, cl.name, cl.client_code, cl.pan, yc.assessment_year, yc.financial_year
+         FROM year_contexts yc JOIN clients cl ON cl.id = yc.client_id WHERE yc.id = ?1",
+        params![year_context_id],
+        |r| Ok(ItemContext {
+            client_id: r.get(0)?, client_name: r.get(1)?, client_code: r.get(2)?,
+            pan_masked: mask::pan(&r.get::<_, String>(3)?), assessment_year: r.get(4)?, financial_year: r.get(5)?,
+        }))?)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DemandDetail {
+    #[serde(flatten)]
+    pub row: crate::repo::model::Demand,
+    #[serde(flatten)]
+    pub context: ItemContext,
+    pub gaps: Vec<String>,
+    pub responses: Vec<DemandResponseView>,
+    pub payments: Vec<crate::repo::model::Payment>,
+    pub documents: Vec<Document>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DemandResponseView {
+    #[serde(flatten)]
+    pub row: crate::repo::model::DemandResponse,
+    pub reason_label: Option<String>,
+    pub documents: Vec<Document>,
+}
+
+pub fn demand_detail(con: &Connection, id: &str) -> AppResult<Option<DemandDetail>> {
+    use crate::repo::modules;
+    let Some(d) = modules::get_demand(con, id)? else { return Ok(None); };
+    let context = context_for(con, &d.year_context_id)?;
+    let mut responses = Vec::new();
+    for r in modules::demand_responses_for(con, id)? {
+        let reason_label = match &r.reason_code_id { Some(rid) => registry::get(con, rid)?.map(|t| t.label), None => None };
+        responses.push(DemandResponseView { documents: documents::for_parent(con, "demand_response", &r.id)?, reason_label, row: r });
+    }
+    let payments = modules::payments_for_year(con, &d.year_context_id)?.into_iter()
+        .filter(|p| responses.iter().any(|r| Some(&r.row.id) == p.demand_response_id.as_ref()) || p.demand_response_id.is_none())
+        .collect();
+    Ok(Some(DemandDetail {
+        gaps: gaps(d.gap_flags.clone()), responses, payments,
+        documents: documents::for_parent(con, "demand", id)?, context, row: d,
+    }))
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReturnDetail {
+    #[serde(flatten)]
+    pub row: crate::repo::model::Return,
+    #[serde(flatten)]
+    pub context: ItemContext,
+    pub gaps: Vec<String>,
+    pub supersedes_ack: Option<String>,
+    pub superseded_by_ack: Option<String>,
+    pub documents: Vec<Document>,
+}
+
+pub fn return_detail(con: &Connection, id: &str) -> AppResult<Option<ReturnDetail>> {
+    use crate::repo::modules;
+    let Some(r) = modules::get_return(con, id)? else { return Ok(None); };
+    let context = context_for(con, &r.year_context_id)?;
+    let supersedes_ack = match &r.supersedes_id { Some(sid) => modules::get_return(con, sid)?.map(|x| x.acknowledgement_number), None => None };
+    let superseded_by_ack: Option<String> = con.query_row(
+        "SELECT acknowledgement_number FROM returns WHERE supersedes_id = ?1 LIMIT 1", [id], |x| x.get(0)).optional()?;
+    Ok(Some(ReturnDetail {
+        gaps: gaps(r.gap_flags.clone()), supersedes_ack, superseded_by_ack,
+        documents: documents::for_parent(con, "return", id)?, context, row: r,
+    }))
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FiledFormDetail {
+    #[serde(flatten)]
+    pub row: crate::repo::model::FiledForm,
+    #[serde(flatten)]
+    pub context: ItemContext,
+    pub type_label: String,
+    pub type_category: Option<String>,
+    pub gaps: Vec<String>,
+    pub documents: Vec<Document>,
+}
+
+pub fn filed_form_detail(con: &Connection, id: &str) -> AppResult<Option<FiledFormDetail>> {
+    use crate::repo::modules;
+    let Some(f) = modules::get_filed_form(con, id)? else { return Ok(None); };
+    let context = context_for(con, &f.year_context_id)?;
+    let t = registry::get(con, &f.form_type_id)?;
+    Ok(Some(FiledFormDetail {
+        type_label: t.as_ref().map(|t| t.label.clone()).unwrap_or_else(|| "Form".into()),
+        type_category: t.and_then(|t| t.category),
+        gaps: gaps(f.gap_flags.clone()), documents: documents::for_parent(con, "filed_form", id)?, context, row: f,
     }))
 }

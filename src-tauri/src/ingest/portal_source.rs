@@ -218,7 +218,7 @@ impl NoticeSource for PortalSource {
             if !self.logged_in {
                 return Err(SourceError::SessionLost("not logged in".into()));
             }
-            self.handle.send(json!({"cmd": "list", "panel": panel})).await?;
+            self.handle.send(json!({"cmd": "list", "panel": panel, "module": _module.as_str()})).await?;
             let mut missing = false;
             let mut missing_note: Option<String> = None;
             loop {
@@ -236,10 +236,12 @@ impl NoticeSource for PortalSource {
                     Some("item") => {
                         let pdf = ev["pdf_b64"].as_str()
                             .and_then(|b| base64::engine::general_purpose::STANDARD.decode(b).ok());
+                        let receipt = ev["receipt_b64"].as_str()
+                            .and_then(|b| base64::engine::general_purpose::STANDARD.decode(b).ok());
                         sink.on_item(WorkItemDetail {
                             reference_id: s(&ev["reference_id"]),
                             filename: ev["filename"].as_str().map(str::to_string),
-                            pdf, note: ev["note"].as_str().map(str::to_string),
+                            pdf, receipt, note: ev["note"].as_str().map(str::to_string),
                         });
                     }
                     Some("panel_missing") => { missing = true; missing_note = ev["msg"].as_str().map(str::to_string); }

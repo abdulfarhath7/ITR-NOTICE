@@ -28,6 +28,7 @@ pub struct IngestionState {
     pub queue_total: i64,
     pub module: Option<String>,
     pub panel: Option<String>,
+    pub panel_total: i64,
     pub phase: Option<String>,
     pub awaiting_operator: Option<Challenge>,
     pub counts: Counts,

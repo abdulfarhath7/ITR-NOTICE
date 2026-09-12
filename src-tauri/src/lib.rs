@@ -13,6 +13,7 @@ mod gstin;
 mod ids;
 mod ingest;
 mod intake;
+mod intake_modules;
 mod keychain;
 mod mask;
 mod migrate;
@@ -81,6 +82,9 @@ pub fn run() {
             commands::clients::set_client_credential, commands::clients::forget_client_credential,
             commands::work_items::list_work_items, commands::work_items::get_proceeding,
             commands::work_items::set_manual_due_date, commands::work_items::list_registry,
+            commands::work_items::get_demand, commands::work_items::get_return, commands::work_items::get_filed_form,
+            commands::ingestion::get_sweep_cadence, commands::ingestion::set_sweep_cadence,
+            commands::ingestion::modules_due,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

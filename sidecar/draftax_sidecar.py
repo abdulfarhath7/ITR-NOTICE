@@ -14,6 +14,7 @@ import traceback
 from collections.abc import Coroutine
 from typing import Any
 
+from ingest.modules import list_module
 from ingest.protocol import PROTOCOL_VERSION, emit, log
 from ingest.session import IngestSession, Relay, WrongPasswordError
 from ingest.walk import list_panel
@@ -79,7 +80,10 @@ class Runner:
             emit("error", kind="not_logged_in", msg="log in first")
             return
         try:
-            await list_panel(self.session, self.relay, panel)
+            if panel in ("demands", "returns", "forms"):
+                await list_module(self.session, self.relay, panel)
+            else:
+                await list_panel(self.session, self.relay, panel)
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001

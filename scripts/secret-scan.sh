@@ -26,7 +26,7 @@ patterns=(
   # holder type (P, C, H, F, A, T, B, L, J, G), which cuts most false hits.
   '\b[A-Z]{3}[PCHFATBLJG][A-Z][0-9]{4}[A-Z]\b'
   # Indian mobile: optional +91 / 0, then a 10-digit number starting 6-9.
-  '(\+91[ -]?|\b0)?[6-9][0-9]{9}\b'
+  '(?<![0-9])(\+91[ -]?|0)?[6-9][0-9]{9}(?![0-9])'
   # Private key blocks.
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'
   # A secret-looking name assigned a long token-shaped literal.

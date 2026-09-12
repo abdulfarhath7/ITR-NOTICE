@@ -18,6 +18,7 @@ import DraftDrawer from "../ui/draft-drawer";
 import DueText from "../ui/due-text";
 import EmptyState from "../ui/empty-state";
 import { StatusPill } from "../ui/pill";
+import { DemandScreen, FiledFormScreen, ReturnScreen } from "./module-items";
 
 const PANEL_LABEL: Record<string, string> = {
   "self:action": "Self · for your action", "self:information": "Self · for your information",
@@ -157,9 +158,12 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
   const docs = useDocuments();
   const draft = useDraft();
 
+  if (module === "demands") return <DemandScreen id={id} />;
+  if (module === "returns") return <ReturnScreen id={id} />;
+  if (module === "forms") return <FiledFormScreen id={id} />;
   if (module !== "proceedings") {
     return <div className="page"><div className="page-body"><div className="card">
-      <EmptyState title="Not available yet." body="Demands, returns and forms arrive in a later phase of this build." /></div></div></div>;
+      <EmptyState title="Unknown module." body="This link points at a module the app does not know." /></div></div></div>;
   }
   if (q.error) return <div className="page"><div className="page-body"><div className="banner danger">{q.error}</div></div></div>;
   if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;

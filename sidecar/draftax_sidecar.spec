@@ -10,7 +10,7 @@ a = Analysis(
     datas=pw_datas,
     hiddenimports=pw_hidden + ["app", "app.config", "app.portal", "app.portal.session",
                                "app.portal.scraper", "ingest", "ingest.protocol",
-                               "ingest.parse", "ingest.session", "ingest.walk"],
+                               "ingest.parse", "ingest.session", "ingest.walk", "ingest.modules"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

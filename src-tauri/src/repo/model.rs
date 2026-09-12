@@ -258,3 +258,103 @@ impl Status {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Demand {
+    pub id: String,
+    pub year_context_id: String,
+    pub natural_key: String,
+    pub demand_reference_number: Option<String>,
+    pub demand_amount: Option<f64>,
+    pub current_outstanding: Option<f64>,
+    pub section_or_demand_type: Option<String>,
+    pub raised_on: Option<String>,
+    pub uploaded_by: Option<String>,
+    pub rectification_rights: Option<String>,
+    pub status: String,
+    pub portal_status: Option<String>,
+    pub proceeding_id: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DemandResponse {
+    pub id: String,
+    pub demand_id: String,
+    pub stance: Option<String>,
+    pub reason_code_id: Option<String>,
+    pub disputed_amount: Option<f64>,
+    pub filed_on: Option<String>,
+    pub transaction_id: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Payment {
+    pub id: String,
+    pub year_context_id: String,
+    pub demand_response_id: Option<String>,
+    pub proceeding_id: Option<String>,
+    pub purpose: String,
+    pub cin: Option<String>,
+    pub bsr_code: Option<String>,
+    pub paid_on: Option<String>,
+    pub amount: Option<f64>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Return {
+    pub id: String,
+    pub year_context_id: String,
+    pub acknowledgement_number: String,
+    pub return_type: Option<String>,
+    pub filing_type: Option<String>,
+    pub filed_on: Option<String>,
+    pub verification_status: Option<String>,
+    pub processing_status: Option<String>,
+    pub status: String,
+    pub supersedes_id: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FiledForm {
+    pub id: String,
+    pub year_context_id: String,
+    pub form_type_id: String,
+    pub acknowledgement_number: String,
+    pub form_label: Option<String>,
+    pub filed_on: Option<String>,
+    pub filing_type: Option<String>,
+    pub portal_status: Option<String>,
+    pub status: String,
+    pub filed_by: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}

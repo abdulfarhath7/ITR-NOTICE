@@ -66,7 +66,7 @@ impl NoticeSource for MockSource {
                         fetched += 1;
                         let ref_id = h.notice.as_ref().unwrap()["reference_id"].as_str().unwrap().to_string();
                         sink.on_item(WorkItemDetail { reference_id: ref_id.clone(), filename: Some(format!("{ref_id}.pdf")),
-                                                      pdf: Some(format!("%PDF-{ref_id}").into_bytes()), note: None });
+                                                      pdf: Some(format!("%PDF-{ref_id}").into_bytes()), receipt: None, note: None });
                     }
                     Verdict::Skip => skipped += 1,
                     Verdict::Stop => { stopped = true; break; }

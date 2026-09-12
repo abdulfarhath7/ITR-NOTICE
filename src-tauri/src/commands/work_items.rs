@@ -1,7 +1,7 @@
 use crate::commands::lock_db;
 use crate::error::{AppError, AppResult};
 use crate::repo::model::Status;
-use crate::repo::work_items::{self, ProceedingDetail, WorkItemFilter, WorkItemRow};
+use crate::repo::work_items::{self, DemandDetail, FiledFormDetail, ProceedingDetail, ReturnDetail, WorkItemFilter, WorkItemRow};
 use crate::repo::{proceedings, registry};
 use crate::AppState;
 use tauri::State;
@@ -43,4 +43,22 @@ pub fn set_manual_due_date(state: State<AppState>, proceeding_id: String, date: 
 pub fn list_registry(state: State<AppState>, registry_name: String) -> AppResult<Vec<crate::repo::model::TypeEntry>> {
     let con = lock_db(&state)?;
     registry::list(&con, &registry_name)
+}
+
+#[tauri::command]
+pub fn get_demand(state: State<AppState>, id: String) -> AppResult<DemandDetail> {
+    let con = lock_db(&state)?;
+    work_items::demand_detail(&con, &id)?.ok_or_else(|| AppError::not_found("demand"))
+}
+
+#[tauri::command]
+pub fn get_return(state: State<AppState>, id: String) -> AppResult<ReturnDetail> {
+    let con = lock_db(&state)?;
+    work_items::return_detail(&con, &id)?.ok_or_else(|| AppError::not_found("return"))
+}
+
+#[tauri::command]
+pub fn get_filed_form(state: State<AppState>, id: String) -> AppResult<FiledFormDetail> {
+    let con = lock_db(&state)?;
+    work_items::filed_form_detail(&con, &id)?.ok_or_else(|| AppError::not_found("form"))
 }

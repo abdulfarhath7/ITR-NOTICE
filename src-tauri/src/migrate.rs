@@ -48,6 +48,7 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(10, "drop_legacy", "0010_drop_legacy.sql"),
     sql!(11, "ingestion_queue", "0011_ingestion_queue.sql"),
     sql!(12, "responses_mode_nullable", "0012_responses_mode_nullable.sql"),
+    sql!(13, "demands_returns_forms", "0013_demands_returns_forms.sql"),
 ];
 
 #[derive(Debug, Error)]

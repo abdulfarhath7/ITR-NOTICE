@@ -75,12 +75,12 @@ Read `docs/05-ingestion.md` and `docs/06-source-interface.md`.
 
 ## Phase 5 — Modules 2, 3 and 4
 
-- [ ] **5.1** Migration and ingestion for `demands`, `demand_responses`, `payments` per `docs/02-data-model.md`.
-- [ ] **5.2** Migration and ingestion for `returns`, including `supersedes_id` chaining of revised and updated returns.
-- [ ] **5.3** Migration and ingestion for `filed_forms`, grouped for display by form type from the registry.
-- [ ] **5.4** Form-and-receipt pair rule: both nodes always exist; an awaited receipt is a pending node, never an absent one.
-- [ ] **5.5** Per-module sweep cadence, configurable, defaults in `QUESTIONS.md` Q12.
-- [ ] **5.6** Unified attention list across all four modules, ranked per `docs/09-ui-spec.md`.
+- [~] **5.1** Migration and ingestion for `demands`, `demand_responses`, `payments` per `docs/02-data-model.md`.
+- [~] **5.2** Migration and ingestion for `returns`, including `supersedes_id` chaining of revised and updated returns.
+- [~] **5.3** Migration and ingestion for `filed_forms`, grouped for display by form type from the registry.
+- [x] **5.4** Form-and-receipt pair rule: both nodes always exist; an awaited receipt is a pending node, never an absent one.
+- [x] **5.5** Per-module sweep cadence, configurable, defaults in `QUESTIONS.md` Q12.
+- [x] **5.6** Unified attention list across all four modules, ranked per `docs/09-ui-spec.md`.
 
 ## Phase 6 — Change ledger, snapshots, file transfer
 
