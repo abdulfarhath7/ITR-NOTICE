@@ -1,6 +1,7 @@
 mod claude;
 mod db;
 mod keychain;
+mod migrate;
 mod scraper;
 
 use claude::{DraftAnswer, DueDateAnswer, Proxy};

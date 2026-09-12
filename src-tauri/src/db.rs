@@ -1,6 +1,6 @@
 //! The encrypted archive. One SQLCipher file in the user's app-data folder is
-//! the whole record: notices, their PDFs, drafts. Schema mirrors the web
-//! tool's `app/db.py` so the mental model (and the report logic) carries over.
+//! the whole record: notices, their PDFs, drafts. The schema lives in
+//! `migrations/` and is applied by `migrate.rs` on every open.
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -12,60 +12,7 @@ fn e(err: impl std::fmt::Display) -> String {
     err.to_string()
 }
 
-const SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS proceedings (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    tab             TEXT NOT NULL,
-    sub_tab         TEXT NOT NULL,
-    proceeding_name TEXT,
-    pan             TEXT,
-    assessee_name   TEXT,
-    assessment_year TEXT,
-    financial_year  TEXT,
-    applicable_act  TEXT,
-    status          TEXT,
-    closure_date    TEXT,
-    closure_order   TEXT,
-    first_seen      TEXT DEFAULT (datetime('now')),
-    last_seen       TEXT DEFAULT (datetime('now')),
-    UNIQUE(tab, sub_tab, proceeding_name, pan, assessment_year)
-);
-CREATE TABLE IF NOT EXISTS notices (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    proceeding_id   INTEGER REFERENCES proceedings(id),
-    ref_id          TEXT UNIQUE,
-    notice_us       TEXT,
-    doc_ref_id      TEXT,
-    description     TEXT,
-    issued_on       TEXT,
-    served_on       TEXT,
-    due_date        TEXT,
-    due_date_source TEXT,
-    due_date_basis  TEXT,
-    ao_viewed_on    TEXT,
-    responded       INTEGER,
-    pdf_blob        BLOB,
-    downloaded_at   TEXT,
-    first_seen      TEXT DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS drafts (
-    ref_id         TEXT PRIMARY KEY,
-    generated_at   TEXT DEFAULT (datetime('now')),
-    summary        TEXT,
-    checklist_json TEXT,
-    draft_text     TEXT
-);
-CREATE TABLE IF NOT EXISTS runs (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    started        TEXT DEFAULT (datetime('now')),
-    finished       TEXT,
-    status         TEXT DEFAULT 'running',
-    message        TEXT,
-    notices_new    INTEGER,
-    pdfs_saved     INTEGER,
-    skipped_cached INTEGER
-);
-"#;
+
 
 /// Open (or create) the encrypted archive. `key` is the hex key held in the
 /// OS keychain - never on disk next to the file.
@@ -73,15 +20,15 @@ pub fn open(path: &Path, key: &str) -> DbResult<Connection> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(e)?;
     }
-    let con = Connection::open(path).map_err(e)?;
+    let mut con = Connection::open(path).map_err(e)?;
     // SQLCipher: the key pragma must be the first statement on the connection.
     // Raw-key form (x'HEX') so no KDF runs on open; execute_batch keeps the
     // quotes exactly as SQLCipher wants them (pragma_update would re-quote).
     con.execute_batch(&format!("PRAGMA key = \"x'{key}'\";")).map_err(e)?;
     con.execute_batch("PRAGMA journal_mode = WAL;").map_err(e)?;
-    // Touching the schema here also proves the key is right; a wrong key
-    // surfaces as "file is not a database" on this line, not later.
-    con.execute_batch(SCHEMA).map_err(e)?;
+    // Migrating here also proves the key is right; a wrong key surfaces as
+    // "file is not a database" on this line, not later.
+    crate::migrate::run(&mut con).map_err(e)?;
     Ok(con)
 }
 

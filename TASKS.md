@@ -13,7 +13,7 @@ Legend: `[ ]` todo · `[x]` done · `[~]` partially done, see NOTES.md
   - *Done when:* the map lists every top-level directory with a one-line purpose and a live/dead verdict.
 - [x] **0.2** Get the existing desktop app building and starting on this machine. Record the exact commands in `docs/99-repo-map.md`.
   - *Done when:* a documented command sequence produces a running window.
-- [ ] **0.3** Introduce `migrations/` with a forward-only numbered runner. Baseline the current schema as `0001_baseline.sql`.
+- [x] **0.3** Introduce `migrations/` with a forward-only numbered runner. Baseline the current schema as `0001_baseline.sql`.
   - *Done when:* a fresh database can be built from migrations alone.
 - [ ] **0.4** Add `NOTES.md` session 1 entry and commit the docs bundle.
 - [ ] **0.5** Set up a `scripts/check.sh` that runs build, typecheck and lint for every workspace. Wire it into CI.
