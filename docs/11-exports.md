@@ -62,7 +62,7 @@ so Excel does not mangle leading zeros or apply scientific notation.
 Rows 1 to 3 of every sheet, above the column headers:
 
 ```
-Draftax export · <scope> · generated <timestamp IST>
+Litigation Command Center export · <scope> · generated <timestamp IST>
 Data as of: collector last run <timestamp>, this device cursor <summary>
 Unverified fields in this export: <count>
 ```

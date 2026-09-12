@@ -58,6 +58,19 @@ fn get_notice_pdf(state: State<AppState>, ref_id: String) -> AppResult<String> {
     Ok(base64::engine::general_purpose::STANDARD.encode(pdf))
 }
 
+/// The bundle identifier changed from `in.llc.app` to `in.lcc.app` (Q21).
+/// An archive written under the old folder is moved into the new one the
+/// first time the new build runs, so nothing is orphaned.
+fn carry_over_old_data_dir(new_dir: &std::path::Path) {
+    let Some(parent) = new_dir.parent() else { return; };
+    let old_dir = parent.join("in.llc.app");
+    if !old_dir.join("archive.db").exists() || new_dir.join("archive.db").exists() { return; }
+    for name in ["archive.db", "archive.db-wal", "archive.db-shm", "settings.json"] {
+        let (from, to) = (old_dir.join(name), new_dir.join(name));
+        if from.exists() { let _ = std::fs::rename(&from, &to).or_else(|_| std::fs::copy(&from, &to).map(|_| ())); }
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -65,6 +78,7 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
+            carry_over_old_data_dir(&data_dir);
             let key = keychain::db_key()?;
             let con = db::open(&data_dir.join("archive.db"), &key)?;
             let temp_dir = data_dir.join("viewer-temp");

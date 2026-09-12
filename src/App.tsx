@@ -1,6 +1,6 @@
 /** The shell: navigation on the left, one screen on the right (docs/09). */
 import { useEffect, useState } from "react";
-import { PRODUCT_NAME } from "./lib/product";
+import { PRODUCT_NAME, PRODUCT_SHORT } from "./lib/product";
 import { href, navigate, useRoute, type Route } from "./lib/router";
 import AttentionScreen from "./screens/attention";
 import ClientDetailScreen from "./screens/client-detail";
@@ -16,7 +16,7 @@ import WorkItemScreen from "./screens/work-item";
 import SyncButton from "./ui/sync-button";
 import Toasts from "./ui/toasts";
 
-const THEME_KEY = "draftax.theme";
+const THEME_KEY = "lcc.theme";
 
 const NAV: { route: Route; label: string }[] = [
   { route: { name: "attention" }, label: "Attention" },
@@ -63,7 +63,7 @@ export default function App() {
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
-        <div className="brand"><span className="mark">Dx</span>{PRODUCT_NAME}</div>
+        <div className="brand"><span className="mark">{PRODUCT_SHORT}</span>{PRODUCT_NAME}</div>
         {NAV.map((n) => (
           <a key={n.label} href={href(n.route)} aria-current={current(route, n.route) ? "page" : undefined}>{n.label}</a>
         ))}

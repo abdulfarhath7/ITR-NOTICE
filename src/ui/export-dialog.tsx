@@ -37,7 +37,7 @@ export default function ExportDialog({ choices, onClose }: { choices: ExportChoi
 
   const run = async () => {
     setError(null);
-    const path = await save({ defaultPath: `draftax-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    const path = await save({ defaultPath: `lcc-${new Date().toISOString().slice(0, 10)}.xlsx`,
                               filters: [{ name: "Excel workbook", extensions: ["xlsx"] }] });
     if (!path) return;
     setBusy(true);

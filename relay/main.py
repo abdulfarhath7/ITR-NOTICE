@@ -1,4 +1,4 @@
-"""The Draftax relay (docs/03, docs/04, docs/08).
+"""The Litigation Command Center relay (docs/03, docs/04, docs/08).
 
 Dumb and blind: sealed blobs in, sealed blobs out by cursor, plus the
 collector lease, per-client locks, the device roster and the admin rules.
@@ -43,7 +43,7 @@ async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="Draftax relay", docs_url=None, redoc_url=None, lifespan=_lifespan)
+app = FastAPI(title="Litigation Command Center relay", docs_url=None, redoc_url=None, lifespan=_lifespan)
 
 
 def now() -> str:

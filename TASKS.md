@@ -153,8 +153,8 @@ Read the updated `QUESTIONS.md` first. Each task below corresponds to an answer 
 
 - [x] **12.1** (Q04) Remove the web application. **Do not touch `relay/`** — it is a separate service that happens to also use FastAPI. Before deleting `app/`, diff it against `sidecar/` and `src-tauri/` and confirm nothing unique remains: original Playwright selectors, ERI crypto work, parser fixtures. Move anything unique first.
   - *Done when:* `app/` is gone, `./scripts/check.sh` exits 0, the desktop app still starts, and `relay/` still runs.
-- [ ] **12.2** (Q21) Rename to **Litigation Command Center**: `productName` in `tauri.conf.json`, window title, frontend constant, export header, installer filename. Change the bundle extension `.draftax` to `.lcc` including the importer's accepted extensions.
-- [ ] **12.3** (Q21) Fix the bundle identifier typo `in.llc.app` → `in.lcc.app`. Do this before any installer ships. Pick "Center" or "Centre" and apply it in every string.
+- [x] **12.2** (Q21) Rename to **Litigation Command Center**: `productName` in `tauri.conf.json`, window title, frontend constant, export header, installer filename. Change the bundle extension `.draftax` to `.lcc` including the importer's accepted extensions.
+- [x] **12.3** (Q21) Fix the bundle identifier typo `in.llc.app` → `in.lcc.app`. Do this before any installer ships. Pick "Center" or "Centre" and apply it in every string.
 - [ ] **12.4** (Q09) Add a scheduler. An unattended run starts at a configured time, works the queue by itself, and only pauses if a login challenge actually appears. Keep the entire attended flow as the fallback path — do not delete it.
   - *Done when:* a scheduled run completes end to end with nobody present, and a forced challenge pauses it rather than failing it.
 - [ ] **12.5** (Q08) Move ingestion concurrency to a single config constant, default 1. No other code should assume sequentiality. Document in `NOTES.md` the two tests that would justify raising it.

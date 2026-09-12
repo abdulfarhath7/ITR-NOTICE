@@ -7,7 +7,10 @@
 use keyring::Entry;
 use rand::RngCore;
 
-const SERVICE: &str = "in.llc.app";
+const SERVICE: &str = "in.lcc.app";
+/// The identifier before the LCC/LLC typo was fixed (Q21). Secrets stored
+/// under it are copied forward on first use, never read again after that.
+const OLD_SERVICE: &str = "in.llc.app";
 
 fn e(err: impl std::fmt::Display) -> String {
     err.to_string()
@@ -24,7 +27,14 @@ pub fn save_secret(name: &str, value: &str) -> Result<(), String> {
 pub fn load_secret(name: &str) -> Result<Option<String>, String> {
     match entry(name)?.get_password() {
         Ok(v) => Ok(Some(v)),
-        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(keyring::Error::NoEntry) => {
+            // One-time carry-over from the old service name.
+            match Entry::new(OLD_SERVICE, name).map_err(e)?.get_password() {
+                Ok(v) => { save_secret(name, &v)?; Ok(Some(v)) }
+                Err(keyring::Error::NoEntry) => Ok(None),
+                Err(err) => Err(e(err)),
+            }
+        }
         Err(err) => Err(e(err)),
     }
 }

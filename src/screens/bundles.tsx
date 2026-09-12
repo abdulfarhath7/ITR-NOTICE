@@ -1,4 +1,4 @@
-/** Export and import of `.draftax` bundles (tasks 6.6–6.8). Credentials
+/** Export and import of `.lcc` bundles (tasks 6.6–6.8). Credentials
  *  are off by default; turning them on asks twice and demands a strong
  *  passphrase. Import always previews the manifest before merging. */
 import { useState } from "react";
@@ -27,8 +27,8 @@ export function ExportBundle({ onClose }: { onClose: () => void }) {
     if (credentials) {
       try { await api.checkPassphrase(passphrase); } catch (e) { setError(describeError(e)); return; }
     }
-    const path = await save({ defaultPath: `draftax-${new Date().toISOString().slice(0, 10)}.${BUNDLE_EXTENSION}`,
-                              filters: [{ name: "Draftax bundle", extensions: [BUNDLE_EXTENSION] }] });
+    const path = await save({ defaultPath: `lcc-${new Date().toISOString().slice(0, 10)}.${BUNDLE_EXTENSION}`,
+                              filters: [{ name: "LCC bundle", extensions: [BUNDLE_EXTENSION] }] });
     if (!path) return;
     setBusy(true);
     try {
@@ -80,7 +80,7 @@ export function ImportBundle({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const pick = async () => {
-    const chosen = await open({ multiple: false, filters: [{ name: "Draftax bundle", extensions: [BUNDLE_EXTENSION] }] });
+    const chosen = await open({ multiple: false, filters: [{ name: "LCC bundle", extensions: [BUNDLE_EXTENSION] }] });
     if (typeof chosen === "string") { setPath(chosen); setManifest(null); setResult(null); }
   };
   const peek = async () => {

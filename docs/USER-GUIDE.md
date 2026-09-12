@@ -1,6 +1,6 @@
-# Draftax — user guide
+# Litigation Command Center — user guide
 
-Draftax keeps every income tax notice, demand, filed return and filed form
+Litigation Command Center (LCC) keeps every income tax notice, demand, filed return and filed form
 for every client of the firm in one place, so nothing arrives unnoticed and
 nothing is ever guessed.
 
@@ -46,12 +46,12 @@ pays anything.
 | **Due today** / **Due in 5 days** | Within a week. |
 | **Due 22 Sep** | Later than a week. |
 | **Closed · was due 2 Aug** | Settled. A closed item is never shown as overdue. |
-| **Not stated** | The portal did not show a date. Draftax never fills one in. |
+| **Not stated** | The portal did not show a date. LCC never fills one in. |
 | *suggested 30 Sep* (grey, italic) | An AI suggestion. It becomes a working date only when you press **Promote**, and only where the portal stated none. |
 | **manual** | A date you entered yourself, where the portal stated none. |
 
 A **limitation date** is the statutory deadline for the proceeding itself,
-not the reply deadline. The portal rarely states it; Draftax shows "Not
+not the reply deadline. The portal rarely states it; LCC shows "Not
 stated" until a person enters it.
 
 ## What the marks mean
@@ -60,7 +60,7 @@ stated" until a person enters it.
   swept row starts this way.
 - **Not stated** with the unverified mark — the portal did not display this
   field.
-- **Credentials need attention** — the portal rejected a password. Draftax
+- **Credentials need attention** — the portal rejected a password. LCC
   never retries a password on its own; repeated attempts lock the taxpayer
   out of their account. Fix it on the client's page.
 
@@ -69,7 +69,7 @@ stated" until a person enters it.
 The sidebar's **Sync** button has three states: *up to date*, *N changes
 behind*, *cannot reach relay*. Next to it, separately, is when the
 **collector last reported**. Both matter: a device can be fully up to date
-while the collector has been switched off for a week, and Draftax says so.
+while the collector has been switched off for a week, and LCC says so.
 
 Without a relay, move the book between devices with a **bundle** (Devices →
 Export bundle / Import bundle). A bundle is encrypted with a passphrase.
@@ -97,7 +97,7 @@ offer no Draft, but View and Save are always there.
 - **The run is waiting** — look at Ingestion; the portal is asking for an
   OTP or a captcha.
 - **A panel says "absent"** — that account has no such tab on the portal.
-  Draftax records that it looked, so a silent miss cannot hide.
+  LCC records that it looked, so a silent miss cannot hide.
 - **Cannot reach relay** — the app works fully offline; sync when the
   network is back.
 - **Lost the admin laptop** — on a new device: Devices → Set up sync →

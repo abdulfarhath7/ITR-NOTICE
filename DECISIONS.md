@@ -284,3 +284,15 @@ Decision: The setting is displayed with the reason and cannot be changed.
 If Q08 is answered "false", this becomes a control and the runner gains a
 pool.
 Reversible: easily.
+
+## D-026 — Litigation Command Center everywhere; identifier `in.lcc.app`
+Date: 2026-09-12
+Context: Q21 answered: the product is Litigation Command Center ("Center"),
+and `in.llc.app` was a typo for the LCC acronym. Supersedes D-012.
+Decision: Display name, window title, export header, installer name and
+the bundle extension (`.lcc`) all say LCC. The bundle identifier and the
+keychain service become `in.lcc.app`; the first run of the new build moves
+an archive found under the old folder and copies keychain entries forward
+from the old service name, so no installed archive is orphaned. Crate and
+npm package names stay `llc` (invisible to users; not worth a rename).
+Reversible: the identifier deliberately not, after the first installer.

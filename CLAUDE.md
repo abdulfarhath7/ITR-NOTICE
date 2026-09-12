@@ -7,7 +7,7 @@ Then read `docs/00-overview.md` and `TASKS.md`.
 
 ## 1. What you are doing
 
-You are building **Draftax / Notice Desk**: an income tax notice, demand and
+You are building **Litigation Command Center** (LCC; earlier working names Draftax / Notice Desk): an income tax notice, demand and
 compliance management tool for Indian chartered accountancy firms.
 
 The repository already contains partial work (a FastAPI + Playwright web tool

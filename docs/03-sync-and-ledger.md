@@ -70,9 +70,9 @@ Without this, onboarding a laptop gets slower every month forever.
 Two, same payload format, chosen by availability:
 
 1. **Relay** (default). Collector publishes sealed changesets; devices poll.
-2. **File bundle** (fallback). A `.draftax` file moved by email or USB.
+2. **File bundle** (fallback). A `.lcc` file moved by email or USB.
 
-### `.draftax` bundle layout
+### `.lcc` bundle layout
 
 ```
 manifest.json        schema version, firm id, created_at, cursor map, counts

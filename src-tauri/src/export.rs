@@ -117,7 +117,7 @@ fn write_cell(ws: &mut Worksheet, styles: &Styles, row: u32, col: u16, cell: &Ce
 /// Rows 1–3 of every sheet (docs/11 "Header block"): a stale export must be
 /// self-evident on its face.
 fn header_block(ws: &mut Worksheet, styles: &Styles, provenance: &Provenance, scope_label: &str, unverified: usize) -> AppResult<()> {
-    let line1 = format!("Draftax export · {scope_label} · generated {}", provenance.generated_ist);
+    let line1 = format!("Litigation Command Center export · {scope_label} · generated {}", provenance.generated_ist);
     let line2 = format!("Data as of: collector last run {}, this device cursor {}", provenance.collector_last_run, provenance.cursor_summary);
     let line3 = format!("Unverified fields in this export: {unverified}");
     ws.write_string_with_format(0, 0, &line1, &styles.title).map_err(|e| AppError::state(e.to_string()))?;
@@ -421,7 +421,7 @@ mod tests {
         let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
         let mut shared = String::new();
         std::io::Read::read_to_string(&mut zip.by_name("xl/sharedStrings.xml").unwrap(), &mut shared).unwrap();
-        assert!(shared.contains("Draftax export"));
+        assert!(shared.contains("Litigation Command Center export"));
         assert!(shared.contains("Unverified fields in this export"));
         assert!(shared.contains("Client File #"));
         assert!(!shared.contains("N/A"));

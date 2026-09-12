@@ -1,4 +1,4 @@
-//! The `.draftax` file bundle (docs/03, docs/07): the fallback transport
+//! The `.lcc` file bundle (docs/03, docs/07): the fallback transport
 //! when the relay is out of reach — email, USB.
 //!
 //! Layout inside: manifest.json, snapshot.json, ledger.jsonl,
@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 
-const MAGIC: &[u8; 8] = b"DRAFTAX1";
+const MAGIC: &[u8; 8] = b"LCC-BND1";
 const SIGNING_KEY: &str = "device-signing-key";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -136,7 +136,7 @@ fn seal(plain: &[u8], passphrase: &str) -> AppResult<Vec<u8>> {
 
 fn open(sealed: &[u8], passphrase: &str) -> AppResult<Vec<u8>> {
     if sealed.len() < 8 + 16 + 12 || &sealed[..8] != MAGIC {
-        return Err(AppError::invalid("this is not a .draftax bundle"));
+        return Err(AppError::invalid("this is not a .lcc bundle"));
     }
     let salt = &sealed[8..24];
     let nonce = &sealed[24..36];
@@ -201,7 +201,7 @@ pub fn export(con: &Connection, path: &str, passphrase: &str, opts: &ExportOptio
     }
 
     let manifest = Manifest {
-        format: 1, product: "draftax".into(), schema_version: crate::migrate::current_version(con)?,
+        format: 1, product: "lcc".into(), schema_version: crate::migrate::current_version(con)?,
         device_id: local::device_id(con)?, created_at: now(), cursor: snap.cursor.clone(), counts,
         includes_documents: opts.include_documents, includes_credentials: opts.include_credentials,
         signer_public_key: public_key_b64(&key),
@@ -340,7 +340,7 @@ mod tests {
         use crate::repo::{clients, documents, local};
         let dir = std::env::temp_dir().join(format!("draftax-bundle-{}", crate::ids::new_id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("test.draftax");
+        let path = dir.join("test.lcc");
 
         let mut a = Connection::open_in_memory().unwrap();
         crate::migrate::run(&mut a).unwrap();
