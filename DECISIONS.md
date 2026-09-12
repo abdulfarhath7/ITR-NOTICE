@@ -310,3 +310,32 @@ times out or fails for want of a person. Sequential ingestion stands
 until Q08 is tested (D-028).
 Rejected: A separate unattended code path (two runners to keep honest).
 Reversible: easily.
+
+## D-028 — Concurrency is one constant, default 1
+Date: 2026-09-12
+Context: Q08 is untested; the answer asked that raising concurrency not
+need a rewrite.
+Decision: `INGESTION_WORKERS` in `ingest/runner.rs`. The run is a pool of
+that many workers claiming jobs atomically; each job owns its sidecar and
+browser. The two live tests that would justify raising it are in NOTES.md.
+Reversible: easily — that is the point.
+
+## D-029 — A manual due date may override the portal's; both are shown
+Date: 2026-09-12
+Context: Q14 answered "allow override, show both". Supersedes the
+fill-a-blank-only rule.
+Decision: `manual_due_date` drives the Attention ranking, the overdue
+calculation and every due cell; the portal's `due_date` is shown beside it,
+labelled, and exported in its own column. A promoted suggestion writes
+`manual_due_date`, never `due_date`. The portal's field is never
+overwritten.
+Reversible: easily.
+
+## D-030 — The proceeding card's stepper date is not read
+Date: 2026-09-12
+Context: Q22 answered "ignore that date".
+Decision: The parser keeps the stepper's status word and drops its date;
+`initiated_on` and `closure_date` stay nullable and unpopulated by the
+portal engine. The export's Issued On comes from the earliest
+communication; with none it is blank and gap-flagged.
+Reversible: easily.

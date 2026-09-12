@@ -28,18 +28,20 @@ def test_proceeding_cards_anchor_every_field() -> None:
     assert first["pan"] == "ABCDE1234F"
     assert first["assessee_name"] == "EXAMPLE ASSESSEE LIMITED"
     assert first["status"] == "Open"
-    assert first["initiated_on"] == "18-Aug-2026"
+    assert first["initiated_on"] is None, "the stepper date is not read (Q22)"
+    assert first["closure_date"] is None
     assert first["financial_year"] is None
     assert first["applicable_act"] == "Income Tax Act 1961"
     assert first["notice_count"] == 1
-    for key in ("proceeding_name", "assessment_year", "pan", "assessee_name", "status", "initiated_on"):
+    for key in ("proceeding_name", "assessment_year", "pan", "assessee_name", "status"):
         assert conf[key] == "high", (key, conf)
+    assert conf["initiated_on"] == "missing"
 
     second, _ = parse_proceeding(raws[1], "self", "action")
     assert second["proceeding_name"] == "First Appeal Proceedings"
     assert second["assessment_year"] == "2023-24"
     assert second["financial_year"] == "2022-23"
-    assert second["initiated_on"] == "1-Apr-2026"
+    assert second["initiated_on"] is None
 
 
 def test_notice_card_anchors_reference_din_and_dates() -> None:

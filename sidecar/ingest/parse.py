@@ -109,23 +109,19 @@ def parse_proceeding(raw: dict[str, Any], tab: str, sub_tab: str) -> tuple[dict[
     conf: dict[str, str] = {}
     steps: list[list[str]] = raw.get("steps") or []
     status = None
+    # The stepper's status word is the proceeding's current state. The
+    # date printed beside it is NOT read (Q22): its meaning is unconfirmed,
+    # so initiated_on and closure_date stay unpopulated rather than guessed.
     initiated_on = None
     closure_date = None
     if steps:
         conf["status"] = "high"
-        # The stepper lists the proceeding's states in order with the date
-        # each was reached; the last one is the current state.
         status = _clean(steps[-1][1]) if steps[-1] else None
-        initiated_on = _clean(steps[0][0]) if steps[0] else None
-        conf["initiated_on"] = "high" if initiated_on else "missing"
-        if status and status.lower() == "closed":
-            closure_date = _clean(steps[-1][0])
-            conf["closure_date"] = "high" if closure_date else "missing"
     else:
         m = re.search(r"\b(Open|Closed|Submitted)\b", raw.get("text", ""))
         status = m.group(1) if m else None
         conf["status"] = "low" if status else "missing"
-        conf["initiated_on"] = "missing"
+    conf["initiated_on"] = "missing"
 
     pan = _pick(raw, conf, "pan", "PAN")
     if pan and not PAN_RE.fullmatch(pan):

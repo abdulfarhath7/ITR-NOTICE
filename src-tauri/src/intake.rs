@@ -28,8 +28,9 @@ pub struct ProceedingCard {
     pub financial_year: Option<String>,
     pub applicable_act: Option<String>,
     pub status: Option<String>,
-    /// The date on the stepper's first step: when the proceeding reached
-    /// its first state (read anchored from the card; see sidecar/ingest/parse.py).
+    /// Left unpopulated by the portal engine (Q22: the stepper date's meaning
+    /// is unconfirmed, so it is not read). Nullable for a source that does
+    /// state it.
     pub initiated_on: Option<String>,
     pub closure_date: Option<String>,
     pub closure_order: Option<String>,
