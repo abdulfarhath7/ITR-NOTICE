@@ -60,7 +60,7 @@ export default function ExportDialog({ choices, onClose }: { choices: ExportChoi
         </button>
       </>
     }>
-      <p className="muted">One workbook, one sheet per module. The proceedings sheet is the firm's 17-column format. Every status is exported; a field the portal did not state is an empty cell. Rows 1–3 stamp when and from what state it was made.</p>
+      <p className="muted">One workbook, one sheet per module. The proceedings sheet is the firm's 16-column format. Every status is exported; a field the portal did not state is an empty cell. Rows 1–3 stamp when and from what state it was made.</p>
       {error ? <div className="banner danger">{error}</div> : null}
       <div className="stack">
         {choices.view ? (

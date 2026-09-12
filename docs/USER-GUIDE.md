@@ -79,7 +79,7 @@ unless you ask twice.
 ## Exports
 
 Attention, Clients and a client's page each have **Export**. One workbook,
-one sheet per module. The Proceedings sheet is the firm's 17-column format.
+one sheet per module. The Proceedings sheet is the firm's 16-column format.
 Rows 1–3 of every sheet say when the workbook was made and how current the
 data was, so a stale export shows it on its face. A field the portal did not
 state is an empty cell.

@@ -24,11 +24,11 @@ machine and OS the firm uses. Tick what passed; note what did not in
    proceeding in the client's page (closed items are not on Attention).
    The status pill says Closed; the due reads "Closed · was due …", never
    overdue; View and Save present, Draft absent.
-6. **Export to Excel; the 17 columns are in the right order.** Attention →
+6. **Export to Excel; the 16 columns are in the right order.** Attention →
    Export → current view. Row 5 of the Proceedings sheet reads S.No, Client
    ID, Client Name, PAN, Self/Other, AY, Type, Assessee Name, Section,
    Proceeding Name, DIN, Issued On, Response Due Date, Manual Due Date,
-   Response Submitted On, Created Mode, Client File #. Rows 1–3 carry the
+   Response Submitted On, Client File #. Rows 1–3 carry the
    provenance block. Dates sort as dates; a missing date is an empty cell.
 7. **Sync on a second device; the behind-count drops to zero.** Devices →
    Set up sync → Create firm on device A (write the recovery code down),

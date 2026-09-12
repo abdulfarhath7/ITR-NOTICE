@@ -1,5 +1,5 @@
 //! Excel export (docs/11-exports.md). Built in the core, one tab per
-//! module; the proceedings sheet is the firm's own 17-column format, in
+//! module; the proceedings sheet is the firm's own 16-column format, in
 //! order. Dates are real Excel dates (`dd-mmm-yyyy`), amounts numeric with
 //! two decimals, identifiers text so Excel leaves leading zeros alone.
 //! Blank means blank: a gap-flagged field is an empty cell, never "N/A".
@@ -35,11 +35,13 @@ pub struct ExportReport {
     pub unverified_fields: usize,
 }
 
-/// The 17 columns, in the firm's order. Do not reorder.
-pub const PROCEEDING_COLUMNS: [&str; 17] = [
+/// The 16 columns, in the firm's order (Q01 dropped "Created Mode" from
+/// the sheet; `proceedings.created_mode` stays in the database). Do not
+/// reorder.
+pub const PROCEEDING_COLUMNS: [&str; 16] = [
     "S.No", "Client ID", "Client Name", "PAN", "Self/Other", "AY", "Type", "Assessee Name", "Section",
     "Proceeding Name", "DIN", "Issued On", "Response Due Date", "Manual Due Date", "Response Submitted On",
-    "Created Mode", "Client File #",
+    "Client File #",
 ];
 
 const DEMAND_COLUMNS: [&str; 15] = [
@@ -207,12 +209,12 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     let mut wb = Workbook::new();
     let mut report = ExportReport { path: path.into(), ..Default::default() };
 
-    // ---- Sheet 1: Proceedings, the 17 columns
+    // ---- Sheet 1: Proceedings, the 16 columns
     let (extra, binds) = scope_where(scope, "proceedings", "cl");
     let sql = format!(
         "SELECT cl.client_code, cl.name, cl.pan, x.source_panel, yc.assessment_year, t.label, x.assessee_name,
                 x.section_2025, x.section_1961, x.display_name, x.din_reference, x.initiated_on, x.due_date,
-                x.manual_due_date, x.created_mode, cl.client_file_no, x.gap_flags, x.id
+                x.manual_due_date, cl.client_file_no, x.gap_flags, x.id
          FROM proceedings x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
@@ -227,10 +229,10 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, Option<String>>(4)?, r.get::<_, String>(5)?, r.get::<_, Option<String>>(6)?,
         r.get::<_, Option<String>>(7)?, r.get::<_, Option<String>>(8)?, r.get::<_, Option<String>>(9)?,
         r.get::<_, Option<String>>(10)?, r.get::<_, Option<String>>(11)?, r.get::<_, Option<String>>(12)?,
-        r.get::<_, Option<String>>(13)?, r.get::<_, String>(14)?, r.get::<_, Option<String>>(15)?,
-        r.get::<_, Option<String>>(16)?, r.get::<_, String>(17)?)))?;
+        r.get::<_, Option<String>>(13)?, r.get::<_, Option<String>>(14)?,
+        r.get::<_, Option<String>>(15)?, r.get::<_, String>(16)?)))?;
     for (i, row) in q.enumerate() {
-        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, mode, file_no, gaps, id) = row?;
+        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id) = row?;
         // DIN and Issued On fall back to the communications when the
         // proceeding card did not carry them (docs/11 columns 11 and 12).
         let comm: Option<(Option<String>, Option<String>)> = con.query_row(
@@ -253,7 +255,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
             text(din.as_deref().or(comm.as_ref().and_then(|c| c.0.as_deref()))),
             date(initiated.as_deref().or(comm.as_ref().and_then(|c| c.1.as_deref()))),
             date(due.as_deref()), date(manual.as_deref()), date(submitted.as_deref()),
-            Cell::Text(mode), text(file_no.as_deref()),
+            text(file_no.as_deref()),
         ]);
     }
     report.proceedings = rows.len();
@@ -388,15 +390,18 @@ mod tests {
     use crate::intake::{self, NoticeCard, ProceedingCard};
     use crate::repo::local;
 
-    /// docs/11: the proceedings sheet has exactly the 17 columns in order,
-    /// a gap is an empty cell, and the three header rows carry provenance.
+    /// docs/11 (Q01): the proceedings sheet has exactly the 16 columns in
+    /// order, a gap is an empty cell, and the three header rows carry
+    /// provenance.
     #[test]
-    fn seventeen_columns_in_order_and_blank_means_blank() {
-        assert_eq!(PROCEEDING_COLUMNS.len(), 17);
+    fn sixteen_columns_in_order_and_blank_means_blank() {
+        assert_eq!(PROCEEDING_COLUMNS.len(), 16);
         assert_eq!(PROCEEDING_COLUMNS[0], "S.No");
         assert_eq!(PROCEEDING_COLUMNS[1], "Client ID");
+        assert_eq!(PROCEEDING_COLUMNS[12], "Response Due Date");
         assert_eq!(PROCEEDING_COLUMNS[13], "Manual Due Date");
-        assert_eq!(PROCEEDING_COLUMNS[16], "Client File #");
+        assert_eq!(PROCEEDING_COLUMNS[15], "Client File #");
+        assert!(!PROCEEDING_COLUMNS.contains(&"Created Mode"));
 
         let mut con = Connection::open_in_memory().unwrap();
         crate::migrate::run(&mut con).unwrap();
