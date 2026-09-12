@@ -176,3 +176,11 @@ in `Answer:`, then re-run Claude Code to apply any that differ.
 - **Blast radius:** One selector pair in `sidecar/ingest/session.py`.
 - **Answer:**
 - **Resolved:** no
+
+### Q24 — Windows release: updater, code signing, install mode
+- **Context:** Phase 10.1 reuses `.github/workflows/release.yml`. Three decisions from the previous generation are still open there (see `docs/legacy/QUESTIONS-2026-09-08.md` Q2, Q3, Q9): no updater, per-user NSIS install, unsigned unless `WINDOWS_CERT` is set. The workflow cannot be run from this Linux box.
+- **Options:** A) ship as is (manual installer, unsigned, per-user). B) add the Tauri updater before the first public installer. C) buy an Authenticode certificate and add the two secrets.
+- **Default used:** A. Tag `v0.2.0` runs the job; the sidecar path is `src-tauri/resources/sidecar/draftax_sidecar.exe`.
+- **Blast radius:** SmartScreen warnings on every install; no update path once installed.
+- **Answer:**
+- **Resolved:** no

@@ -45,3 +45,49 @@ pub fn get_settings(state: State<AppState>) -> AppResult<Settings> {
 pub fn save_settings(state: State<AppState>, settings: Settings) -> AppResult<()> {
     write_settings(&state, settings).map_err(|e| crate::error::AppError::Keychain { message: e })
 }
+
+#[derive(Debug, Serialize)]
+pub struct DataDirInfo {
+    pub path: String,
+    pub archive_bytes: u64,
+}
+
+#[tauri::command]
+pub fn get_data_dir(state: State<AppState>) -> AppResult<DataDirInfo> {
+    let dir = state.settings_path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let archive_bytes = std::fs::metadata(dir.join("archive.db")).map(|m| m.len()).unwrap_or(0);
+    Ok(DataDirInfo { path: dir.to_string_lossy().to_string(), archive_bytes })
+}
+
+#[tauri::command]
+pub fn open_data_dir(app: tauri::AppHandle, state: State<AppState>) -> AppResult<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = state.settings_path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    app.opener().open_path(dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| crate::error::AppError::Io { message: e.to_string() })
+}
+
+#[derive(Debug, Serialize)]
+pub struct SetupState {
+    pub done: bool,
+    pub relay_configured: bool,
+    pub permission: Option<String>,
+    pub client_count: i64,
+}
+
+/// The first-run wizard shows until it is finished once (or skipped).
+#[tauri::command]
+pub fn get_setup_state(state: State<AppState>) -> AppResult<SetupState> {
+    let con = crate::commands::lock_db(&state)?;
+    let done = crate::repo::local::get(&con, "setup_done")?.as_deref() == Some("1");
+    let relay_configured = crate::relay::config(&con)?.is_some();
+    let permission = crate::repo::local::get(&con, crate::relay::KEY_PERMISSION)?;
+    let client_count: i64 = con.query_row("SELECT count(*) FROM clients", [], |r| r.get(0))?;
+    Ok(SetupState { done, relay_configured, permission, client_count })
+}
+
+#[tauri::command]
+pub fn mark_setup_done(state: State<AppState>) -> AppResult<()> {
+    let con = crate::commands::lock_db(&state)?;
+    crate::repo::local::set(&con, "setup_done", "1")
+}

@@ -501,3 +501,6 @@ export type ExportScope =
   | { kind: "all" }
   | { kind: "client"; client_id: string };
 export interface ExportReport { path: string; proceedings: number; demands: number; returns: number; forms: number; unverified_fields: number }
+
+export interface DataDirInfo { path: string; archive_bytes: number }
+export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number }

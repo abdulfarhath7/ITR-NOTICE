@@ -1,6 +1,6 @@
 [package]
 name = "llc"
-version = "0.1.2"
+version = "0.2.0"
 description = "Litigation Command Center - income tax notice tracking for CA firms"
 edition = "2021"
 

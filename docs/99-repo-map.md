@@ -84,11 +84,20 @@ once the phase that replaces them is green.
   is configured.
 - Excel export from the browser side.
 
-## What does not exist yet
+## Added during the build (Phases 0–10)
 
-`relay/`, a client registry, year contexts, a type registry, a ledger, a job
-queue, per-client locks, captcha handling, migrations (before task 0.3), a CI
-check script, a pre-commit secret hook.
+`migrations/` (0001–0016), `scripts/check.sh` and `secret-scan.sh`,
+`relay/` (FastAPI relay with its tests), `sidecar/draftax_sidecar.py` and
+`sidecar/ingest/` (the v2 sidecar; `notice_scraper.py` is gone), the
+`src-tauri/src/{repo,ingest,commands}` trees plus `ledger`, `merge`,
+`snapshot`, `bundle`, `relay`, `sync`, `export`, `intake`, `intake_modules`,
+and the rebuilt `src/` frontend (screens, hooks, design tokens).
+`docs/USER-GUIDE.md`, `docs/SMOKE.md`. `test_app.py` was removed (it
+carried a real PAN).
+
+Still not here: a live-verified captcha path, parsers for the demand /
+return / form list pages (need DOM captures), the ERI engine (blocked on
+the ITD), and a Windows CI run of `v0.2.0`.
 
 ## Build and run on this machine (task 0.2)
 

@@ -1,13 +1,17 @@
 /** The shell: navigation on the left, one screen on the right (docs/09). */
 import { useEffect, useState } from "react";
 import { PRODUCT_NAME } from "./lib/product";
-import { href, useRoute, type Route } from "./lib/router";
+import { href, navigate, useRoute, type Route } from "./lib/router";
 import AttentionScreen from "./screens/attention";
 import ClientDetailScreen from "./screens/client-detail";
 import ClientsScreen from "./screens/clients";
 import DevicesScreen from "./screens/devices";
 import IngestionScreen from "./screens/ingestion";
 import SettingsScreen from "./screens/settings";
+import SetupScreen from "./screens/setup";
+import { api } from "./lib/api";
+import { useQuery } from "./lib/query";
+import type { SetupState } from "./lib/types";
 import WorkItemScreen from "./screens/work-item";
 import SyncButton from "./ui/sync-button";
 import Toasts from "./ui/toasts";
@@ -31,6 +35,11 @@ function current(route: Route, nav: Route): boolean {
 
 export default function App() {
   const route = useRoute();
+  // The first launch lands on the wizard until it is finished or skipped.
+  const setup = useQuery<SetupState>("setup:gate", () => api.setupState());
+  useEffect(() => {
+    if (setup.data && !setup.data.done && route.name !== "setup") navigate({ name: "setup" });
+  }, [setup.data, route.name]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; } catch { return "dark"; }
   });
@@ -48,7 +57,7 @@ export default function App() {
     case "ingestion": screen = <IngestionScreen />; break;
     case "devices": screen = <DevicesScreen />; break;
     case "settings": screen = <SettingsScreen theme={theme} onTheme={setTheme} />; break;
-    case "setup": screen = <SettingsScreen theme={theme} onTheme={setTheme} />; break;
+    case "setup": screen = <SetupScreen />; break;
   }
 
   return (

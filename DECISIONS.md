@@ -266,3 +266,21 @@ Context: The header block's third line needs a number.
 Decision: The sum of `gap_flags` entries across exported rows — the fields
 that export as blank because the portal did not state them.
 Reversible: easily.
+
+## D-024 — The first-run wizard gates on a local flag, not on the relay
+Date: 2026-09-12
+Context: The app must be fully usable without a relay (docs/01
+"local-first"), so "set up sync" cannot be mandatory.
+Decision: The wizard shows until `local_kv.setup_done` is set, which
+"Go to Clients" and "Skip for now" both set. Firm, collector and clients
+are each optional steps that can be done later from their screens.
+Reversible: easily.
+
+## D-025 — Settings shows "Workers: 1" as a fact, not a control
+Date: 2026-09-12
+Context: TASKS 10.3 lists a worker count; D-002 makes ingestion strictly
+sequential because the portal allows one session per taxpayer (Q08).
+Decision: The setting is displayed with the reason and cannot be changed.
+If Q08 is answered "false", this becomes a control and the runner gains a
+pool.
+Reversible: easily.

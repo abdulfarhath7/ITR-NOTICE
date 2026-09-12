@@ -79,6 +79,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings, commands::settings::save_settings,
+            commands::settings::get_data_dir, commands::settings::open_data_dir,
+            commands::settings::get_setup_state, commands::settings::mark_setup_done,
             list_notices, get_notice_pdf,
             commands::ai::get_draft, commands::ai::save_draft_text,
             commands::ai::suggest_due_date, commands::ai::create_draft, commands::ai::promote_suggested_due_date,

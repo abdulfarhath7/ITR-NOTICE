@@ -128,8 +128,8 @@ Read `docs/11-exports.md`.
 
 ## Phase 10 — Packaging and release
 
-- [ ] **10.1** Windows build via the existing CI workflow. Fix the sidecar target-triple packaging issue if it recurs.
-- [ ] **10.2** First-run wizard: firm setup, admin creation, recovery code, collector nomination.
-- [ ] **10.3** Settings screen: sweep cadence, worker count, data folder, about.
-- [ ] **10.4** Write `docs/USER-GUIDE.md` in plain language, no jargon.
-- [ ] **10.5** Final pass: update `TASKS.md`, `NOTES.md`, `QUESTIONS.md`, `DECISIONS.md`.
+- [~] **10.1** Windows build via the existing CI workflow. Fix the sidecar target-triple packaging issue if it recurs.
+- [x] **10.2** First-run wizard: firm setup, admin creation, recovery code, collector nomination.
+- [x] **10.3** Settings screen: sweep cadence, worker count, data folder, about.
+- [x] **10.4** Write `docs/USER-GUIDE.md` in plain language, no jargon.
+- [x] **10.5** Final pass: update `TASKS.md`, `NOTES.md`, `QUESTIONS.md`, `DECISIONS.md`.

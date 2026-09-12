@@ -147,3 +147,22 @@ Append as you go. This is where the next session picks up your thread.
   only; Promote copies it into the manual due date (a blank only, Q14) by
   an explicit click, never automatically. The review screen shows the
   notice PDF beside the draft. Draft stays behind the action matrix.
+- Phase 10: version 0.2.0 across `tauri.conf.json`, `Cargo.toml`,
+  `package.json`; the release workflow names the artefact
+  `draftax-windows` and checks `resources/sidecar/draftax_sidecar.exe`.
+  **10.1 is not runnable here** (Windows-only job); marked partial. The
+  first-run wizard gates on `local_kv.setup_done` (D-024). Settings gained
+  the data folder (with Open) and the fixed worker count (D-025).
+  `docs/USER-GUIDE.md` and `docs/SMOKE.md` written.
+- Ended at: Phase 10 complete except 10.1's CI run. The tree is green
+  (`./scripts/check.sh`), 30 Rust tests, 11 vitest cases, 2 parser
+  fixtures, 6 relay invariant tests.
+
+### For the next session
+- Run the Windows release job (tag `v0.2.0`) and fix whatever the frozen
+  sidecar does on Windows; the `CREATE_NO_WINDOW` flag and the sidecar
+  path search in `portal_source.rs` are the two places to look first.
+- The three blocked items above (ERI, captcha markup, module parsers) all
+  need something from a live portal session or the ITD.
+- Answer `QUESTIONS.md` and re-run with the follow-up prompt in
+  `PROMPT.md`.

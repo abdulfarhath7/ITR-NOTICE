@@ -5,7 +5,7 @@ import { api, describeError } from "../lib/api";
 import { PRODUCT_NAME } from "../lib/product";
 import { invalidate, useQuery } from "../lib/query";
 import { toast, toastError } from "../lib/toast";
-import type { Cadence, Cadences, Settings } from "../lib/types";
+import type { Cadence, Cadences, DataDirInfo, Settings } from "../lib/types";
 import Field from "../ui/field";
 
 const CADENCES: { key: Cadence; label: string }[] = [
@@ -42,6 +42,29 @@ function CadenceCard() {
   );
 }
 
+function DataCard() {
+  const q = useQuery<DataDirInfo>("settings:datadir", () => api.dataDir());
+  return (
+    <div className="card">
+      <div className="card-head"><h2>Data and workers</h2></div>
+      <div className="card-body stack">
+        <dl className="kv">
+          <dt>Data folder</dt>
+          <dd>
+            <span className="mono" style={{ overflowWrap: "anywhere" }}>{q.data?.path ?? "…"}</span>
+            <div className="row" style={{ marginTop: 6 }}>
+              <button className="btn small" onClick={() => { void api.openDataDir().catch((e) => toastError(describeError(e))); }}>Open folder</button>
+              <span className="meta">archive {q.data ? `${Math.round(q.data.archive_bytes / 1048576)} MB` : ""}, SQLCipher-encrypted; its key is in the OS keychain</span>
+            </div>
+          </dd>
+          <dt>Workers</dt>
+          <dd>1 <span className="muted">— the portal allows one live session per taxpayer and a second login evicts the first, so the sweep is strictly sequential (D-002).</span></dd>
+        </dl>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsScreen({ theme, onTheme }: { theme: "dark" | "light"; onTheme: (t: "dark" | "light") => void }) {
   const q = useQuery<Settings>("settings", () => api.settings());
   const [proxyUrl, setProxyUrl] = useState("");
@@ -72,6 +95,7 @@ export default function SettingsScreen({ theme, onTheme }: { theme: "dark" | "li
             </div>
           </div>
           <CadenceCard />
+          <DataCard />
           <div className="card">
             <div className="card-head"><h2>Appearance</h2></div>
             <div className="card-body stack">

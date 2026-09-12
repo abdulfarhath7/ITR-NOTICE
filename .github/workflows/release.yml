@@ -50,7 +50,7 @@ jobs:
       # ---------------------------------------------------------- sidecar
       # build.ps1 does the whole thing: venv, PLAYWRIGHT_BROWSERS_PATH=0 so
       # Chromium lands inside the playwright package, `playwright install`,
-      # PyInstaller, then a copy into src-tauri/resources/scraper. It prefers
+      # PyInstaller, then a copy into src-tauri/resources/sidecar. It prefers
       # sidecar/requirements.lock.txt and warns when there is none (Q8).
       - uses: actions/setup-python@v5
         with:
@@ -119,7 +119,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
-          releaseName: "Litigation Command Center ${{ github.event.inputs.tag || github.ref_name }}"
+          releaseName: "Draftax ${{ github.event.inputs.tag || github.ref_name }}"
           releaseBody: "Windows installer below. Run it on the CA's machine; the archive it creates is encrypted to that Windows profile."
           releaseDraft: true
           prerelease: false
@@ -128,6 +128,6 @@ jobs:
       - name: Upload the installer as a build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: llc-windows
+          name: draftax-windows
           path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
