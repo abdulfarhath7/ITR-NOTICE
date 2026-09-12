@@ -10,18 +10,16 @@ export const DATE_BTN = "✦ Date";
 /** Countdown chip: green with room, amber inside two weeks, red inside three
  *  days or already gone. */
 function DueChip({ n }: { n: NoticeRow }) {
-  if (!n.due_date) return <span className="chip none">no date</span>;
+  if (!n.due_date) {
+    // A suggestion is shown as one - muted, marked - never as a deadline.
+    return n.suggested_due_date
+      ? <span className="ai-chip" title="suggested by Claude, not stated by the portal">✦ suggested {n.suggested_due_date}</span>
+      : <span className="chip none">not stated</span>;
+  }
   const d = dueInDays(n.due_date);
   if (d === null) return <span className="chip none">{n.due_date}</span>;
   const cls = d < 3 ? "late" : d <= 14 ? "soon" : "ok";
-  return (
-    <>
-      <span className={`chip ${cls}`} title={n.due_date}>{dueLabel(d)}</span>
-      {n.due_date_source === "claude"
-        ? <span className="ai-chip" title={n.due_date_basis || "found by Claude"}>✦ by Claude</span>
-        : null}
-    </>
-  );
+  return <span className={`chip ${cls}`} title={n.due_date}>{dueLabel(d)}</span>;
 }
 
 /** Four dots per row, so the table reads as the checklist it is: do we hold

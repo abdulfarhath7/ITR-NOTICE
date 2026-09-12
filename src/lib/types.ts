@@ -1,10 +1,17 @@
 export interface NoticeRow {
   ref_id: string;
+  communication_id: string;
+  proceeding_id: string;
+  client_id: string;
   notice_us: string | null;
   description: string | null;
   issued_on: string | null;
   served_on: string | null;
+  /** Portal-stated only. Never an AI date. */
   due_date: string | null;
+  /** AI-suggested; rendered as a suggestion, never styled as confirmed. */
+  suggested_due_date: string | null;
+  manual_due_date: string | null;
   due_date_source: string | null;
   due_date_basis: string | null;
   responded: number | null;
@@ -12,9 +19,14 @@ export interface NoticeRow {
   has_draft: boolean;
   proceeding_name: string | null;
   pan: string | null;
+  client_name: string;
   assessee_name: string | null;
   assessment_year: string | null;
+  /** The proceeding's status: open | adjournment_sought | response_submitted | closed | unknown */
   status: string | null;
+  communication_status: string;
+  gap_flags: string | null;
+  verified_flag: number;
 }
 
 export interface Draft {

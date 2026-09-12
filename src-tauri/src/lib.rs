@@ -12,6 +12,7 @@ mod scraper;
 
 use claude::{DraftAnswer, DueDateAnswer, Proxy};
 use db::{Draft, NoticeRow};
+use error::AppError;
 use rusqlite::Connection;
 use scraper::Scraper;
 use serde::{Deserialize, Serialize};
@@ -85,28 +86,28 @@ fn proxy(state: &AppState) -> R<Proxy> {
 // ------------------------------------------------------------ archive
 
 #[tauri::command]
-fn list_notices(state: State<AppState>) -> R<Vec<NoticeRow>> {
+fn list_notices(state: State<AppState>) -> Result<Vec<NoticeRow>, AppError> {
     let con = lock_db(&state)?;
     db::list_notices(&con)
 }
 
 /// Base64 so the webview can build a blob: URL and show it in an <iframe>.
 #[tauri::command]
-fn get_notice_pdf(state: State<AppState>, ref_id: String) -> R<String> {
+fn get_notice_pdf(state: State<AppState>, ref_id: String) -> Result<String, AppError> {
     use base64::Engine;
     let con = lock_db(&state)?;
-    let pdf = db::get_pdf(&con, &ref_id)?.ok_or("no PDF stored for this notice")?;
+    let pdf = db::get_pdf(&con, &ref_id)?.ok_or_else(|| AppError::not_found("PDF for this notice"))?;
     Ok(base64::engine::general_purpose::STANDARD.encode(pdf))
 }
 
 #[tauri::command]
-fn get_draft(state: State<AppState>, ref_id: String) -> R<Option<Draft>> {
+fn get_draft(state: State<AppState>, ref_id: String) -> Result<Option<Draft>, AppError> {
     let con = lock_db(&state)?;
     db::get_draft(&con, &ref_id)
 }
 
 #[tauri::command]
-fn save_draft_text(state: State<AppState>, ref_id: String, draft_text: String) -> R<()> {
+fn save_draft_text(state: State<AppState>, ref_id: String, draft_text: String) -> Result<(), AppError> {
     let con = lock_db(&state)?;
     db::update_draft_text(&con, &ref_id, &draft_text)
 }
@@ -153,8 +154,9 @@ async fn portal_login(app: AppHandle, state: State<'_, AppState>, user_id: Strin
 
     ensure_scraper(&app, &state).await?;
     let mut guard = state.scraper.lock().await;
-    guard.as_mut().unwrap()
-        .send(json!({"cmd": "login", "user_id": user_id, "password": pw})).await
+    let scraper = guard.as_mut().ok_or("sidecar did not start")?;
+    scraper.set_login_pan(&user_id);
+    scraper.send(json!({"cmd": "login", "user_id": user_id, "password": pw})).await
 }
 
 #[tauri::command]
@@ -189,48 +191,52 @@ async fn portal_stop(state: State<'_, AppState>) -> R<()> {
 // ------------------------------------------------------------ Claude
 
 #[tauri::command]
-async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> R<DueDateAnswer> {
+async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> Result<DueDateAnswer, AppError> {
     let (row, pdf) = {
         let con = lock_db(&state)?;
-        let row = db::get_notice(&con, &ref_id)?.ok_or("no such notice")?;
+        let row = db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?;
         let pdf = db::get_pdf(&con, &ref_id)?;
         (row, pdf)
     };
-    // Cache rule from the web tool: a stored date is the truth. A portal
-    // date is never overwritten; a Claude date is never asked for twice.
+    // A portal-stated date is the truth and is never asked about. A
+    // suggestion already on file is returned as-is: never called twice.
     if let Some(d) = row.due_date.clone() {
-        return Ok(DueDateAnswer { due_date: Some(d), basis: row.due_date_basis });
+        return Ok(DueDateAnswer { due_date: Some(d), basis: Some("stated on the portal".into()) });
     }
-    let pdf = pdf.ok_or("no PDF stored yet - run a sync first")?;
+    if let Some(d) = row.suggested_due_date.clone() {
+        return Ok(DueDateAnswer { due_date: Some(d), basis: Some("suggested earlier".into()) });
+    }
+    let pdf = pdf.ok_or_else(|| AppError::state("no PDF stored yet - run a sync first"))?;
     let ans = proxy(&state)?
         .due_date(&ref_id, &pdf, row.issued_on.as_deref(), row.served_on.as_deref()).await?;
     if let Some(d) = ans.due_date.as_deref() {
         let con = lock_db(&state)?;
-        db::set_claude_due_date(&con, &ref_id, d, ans.basis.as_deref())?;
+        // Suggestion column only, never the stated one (docs/02, Phase 9).
+        db::set_suggested_due_date(&con, &ref_id, d)?;
     }
     Ok(ans)
 }
 
 #[tauri::command]
-async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: bool) -> R<Draft> {
+async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: bool) -> Result<Draft, AppError> {
     let (row, pdf, existing) = {
         let con = lock_db(&state)?;
-        (db::get_notice(&con, &ref_id)?.ok_or("no such notice")?,
+        (db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?,
          db::get_pdf(&con, &ref_id)?,
          db::get_draft(&con, &ref_id)?)
     };
     if let (Some(d), false) = (existing, regenerate) {
         return Ok(d);
     }
-    let pdf = pdf.ok_or("no PDF stored yet - run a sync first")?;
+    let pdf = pdf.ok_or_else(|| AppError::state("no PDF stored yet - run a sync first"))?;
     let a: DraftAnswer = proxy(&state)?
         .draft(&ref_id, &pdf, row.notice_us.as_deref(), row.assessee_name.as_deref(),
                row.assessment_year.as_deref()).await?;
     let d = Draft { ref_id: ref_id.clone(), generated_at: None,
                     summary: a.summary, checklist: a.checklist, draft_text: a.draft_reply };
     let con = lock_db(&state)?;
-    db::save_draft(&con, &d)?;
-    db::get_draft(&con, &ref_id)?.ok_or("draft vanished".into())
+    db::save_draft(&con, &d, None)?;
+    db::get_draft(&con, &ref_id)?.ok_or_else(|| AppError::not_found("draft"))
 }
 
 // ------------------------------------------------------------ setup

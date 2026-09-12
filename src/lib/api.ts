@@ -31,6 +31,16 @@ export function onScraper(handler: (ev: ScraperEvent) => void): Promise<Unlisten
   return listen<ScraperEvent>("scraper", (e) => handler(e.payload));
 }
 
+/** Commands reject with an `AppError` object ({ code, message, detail }) or,
+ *  from the older commands, a plain string. One reader for both. */
+export function describeError(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return String(e);
+}
+
 /** base64 PDF -> object URL for an <iframe>. Caller revokes it. */
 export function pdfUrl(b64: string): string {
   const bin = atob(b64);

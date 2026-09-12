@@ -1,11 +1,12 @@
 //! The sidecar bridge. Rust owns the child process; the webview never touches
-//! it. Every stdout line is JSON: "notice" events are written straight into
-//! the encrypted archive here, everything else is re-emitted to the UI as a
-//! Tauri event named `scraper`.
+//! it. Every stdout line is JSON: "notice" events are absorbed into the
+//! archive through `intake` here, everything else is re-emitted to the UI as
+//! a Tauri event named `scraper`.
 
-use crate::db::{self, IncomingNotice};
+use crate::intake::{self, NoticeCard, ProceedingCard};
 use base64::Engine;
 use rusqlite::Connection;
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -17,6 +18,38 @@ use tokio::process::{Child, ChildStdin, Command};
 pub struct Scraper {
     child: Child,
     stdin: ChildStdin,
+    /// The PAN this session logged in as. A "Self" card that prints no PAN
+    /// is attached to it (D-009).
+    login_pan: Arc<Mutex<Option<String>>>,
+}
+
+/// A notice as the sidecar reports it (one "notice" event = one of these).
+#[derive(Debug, Deserialize)]
+pub struct IncomingNotice {
+    pub ref_id: String,
+    pub notice_us: Option<String>,
+    pub doc_ref_id: Option<String>,
+    pub description: Option<String>,
+    pub issued_on: Option<String>,
+    pub served_on: Option<String>,
+    pub due_date: Option<String>,
+    pub due_date_source: Option<String>,
+    pub ao_viewed_on: Option<String>,
+    pub responded: Option<i64>,
+    pub downloaded_at: Option<String>,
+    pub pdf_b64: Option<String>,
+    // proceeding
+    pub tab: Option<String>,
+    pub sub_tab: Option<String>,
+    pub proceeding_name: Option<String>,
+    pub pan: Option<String>,
+    pub assessee_name: Option<String>,
+    pub assessment_year: Option<String>,
+    pub financial_year: Option<String>,
+    pub applicable_act: Option<String>,
+    pub proceeding_status: Option<String>,
+    pub closure_date: Option<String>,
+    pub closure_order: Option<String>,
 }
 
 fn exe_name() -> &'static str {
@@ -59,6 +92,7 @@ fn locate(app: &AppHandle) -> Result<PathBuf, String> {
 
 impl Scraper {
     pub async fn spawn(app: AppHandle, archive: Arc<Mutex<Connection>>) -> Result<Self, String> {
+        let login_pan: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let exe = locate(&app)?;
         let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
@@ -84,12 +118,12 @@ impl Scraper {
         let stderr = child.stderr.take().ok_or("no stderr")?;
 
         // stdout: the protocol
-        let (app2, archive2) = (app.clone(), archive.clone());
+        let (app2, archive2, pan2) = (app.clone(), archive.clone(), login_pan.clone());
         tauri::async_runtime::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 match serde_json::from_str::<Value>(&line) {
-                    Ok(ev) => handle_event(&app2, &archive2, ev),
+                    Ok(ev) => handle_event(&app2, &archive2, &pan2, ev),
                     Err(_) => {
                         let _ = app2.emit("scraper", json!({"ev": "log", "msg": line}));
                     }
@@ -107,7 +141,13 @@ impl Scraper {
             }
         });
 
-        Ok(Self { child, stdin })
+        Ok(Self { child, stdin, login_pan })
+    }
+
+    pub fn set_login_pan(&self, pan: &str) {
+        if let Ok(mut p) = self.login_pan.lock() {
+            *p = Some(pan.trim().to_ascii_uppercase());
+        }
     }
 
     pub async fn send(&mut self, cmd: Value) -> Result<(), String> {
@@ -124,17 +164,40 @@ impl Scraper {
     }
 }
 
-fn handle_event(app: &AppHandle, archive: &Arc<Mutex<Connection>>, ev: Value) {
+fn absorb(con: &mut Connection, login_pan: Option<&str>, n: IncomingNotice) -> Result<(), String> {
+    let pdf = n.pdf_b64.as_deref().and_then(|b| base64::engine::general_purpose::STANDARD.decode(b).ok());
+    let card = ProceedingCard {
+        tab: n.tab.unwrap_or_else(|| "self".into()),
+        sub_tab: n.sub_tab.unwrap_or_else(|| "action".into()),
+        proceeding_name: n.proceeding_name, pan: n.pan, assessee_name: n.assessee_name,
+        assessment_year: n.assessment_year, financial_year: n.financial_year,
+        applicable_act: n.applicable_act, status: n.proceeding_status,
+        closure_date: n.closure_date, closure_order: n.closure_order,
+    };
+    let notice = NoticeCard {
+        ref_id: n.ref_id, notice_us: n.notice_us, doc_ref_id: n.doc_ref_id,
+        description: n.description, issued_on: n.issued_on, served_on: n.served_on,
+        due_date: n.due_date, due_date_source: n.due_date_source, ao_viewed_on: n.ao_viewed_on,
+        responded: n.responded, downloaded_at: n.downloaded_at, pdf,
+    };
+    // One transaction per notice: the document, the rows and (later) the
+    // ledger entries land together or not at all.
+    let tx = con.transaction().map_err(|e| e.to_string())?;
+    intake::absorb(&tx, login_pan, &card, Some(&notice)).map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())
+}
+
+fn handle_event(app: &AppHandle, archive: &Arc<Mutex<Connection>>,
+                login_pan: &Arc<Mutex<Option<String>>>, ev: Value) {
     if ev.get("ev").and_then(Value::as_str) == Some("notice") {
         match serde_json::from_value::<IncomingNotice>(ev.clone()) {
             Ok(n) => {
-                let pdf = n.pdf_b64.as_deref().and_then(|b| {
-                    base64::engine::general_purpose::STANDARD.decode(b).ok()
-                });
+                let ref_id = n.ref_id.clone();
+                let pan = login_pan.lock().ok().and_then(|p| p.clone());
                 let result = archive.lock().map_err(|e| e.to_string())
-                    .and_then(|con| db::absorb_notice(&con, &n, pdf));
+                    .and_then(|mut con| absorb(&mut con, pan.as_deref(), n));
                 match result {
-                    Ok(()) => { let _ = app.emit("scraper", json!({"ev": "notice", "ref_id": n.ref_id})); }
+                    Ok(()) => { let _ = app.emit("scraper", json!({"ev": "notice", "ref_id": ref_id})); }
                     Err(e) => { let _ = app.emit("scraper", json!({"ev": "error", "kind": "db", "msg": e})); }
                 }
             }

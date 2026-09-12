@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api, onScraper } from "./lib/api";
+import { api, describeError, onScraper } from "./lib/api";
 import { classify } from "./lib/buckets";
 import { exportWorkbook } from "./lib/exportXlsx";
 import {
@@ -130,7 +130,7 @@ export default function App() {
       const next = await api.notices();
       setRows(next);
     } catch (e) {
-      push(`Error: ${String(e)}`);
+      push(`Error: ${describeError(e)}`);
     } finally {
       setLoading(false);
     }
@@ -349,7 +349,7 @@ export default function App() {
     setState("running");
     setMonitorOpen(true);
     push(lim ? `Sync started (at most ${lim} new PDFs)` : "Sync started (all notices)");
-    api.sync(lim).catch((e) => { toast(String(e)); setState("failed"); });
+    api.sync(lim).catch((e) => { toast(describeError(e)); setState("failed"); });
   }, [push, toast]);
   syncRef.current = startSync;
 
@@ -372,7 +372,7 @@ export default function App() {
       setCredsShow(false);       // the card goes as soon as the login is away
     } catch (e) {
       pendingSync.current = false;
-      setCredsErr(String(e));
+      setCredsErr(describeError(e));
       setCredsShow(true);
       setState("failed");
     }
@@ -382,7 +382,7 @@ export default function App() {
     setOtpShow(false);
     setState("running");
     setMonHint("signing in");
-    try { await api.otp(code); } catch (e) { toast(String(e)); }
+    try { await api.otp(code); } catch (e) { toast(describeError(e)); }
   };
 
   const changeSpeed = (mode: SpeedMode) => {
@@ -390,7 +390,7 @@ export default function App() {
     const seconds = SPEED_SECONDS[mode];
     api.speed(seconds)
       .then(() => toast(`Speed: ${mode} (${Math.round(seconds * 1000)}ms per action)`))
-      .catch((e) => toast(String(e)));
+      .catch((e) => toast(describeError(e)));
   };
 
   const signOut = async () => {
@@ -429,13 +429,13 @@ export default function App() {
   const viewPdf = async (refId: string) => {
     try {
       openViewer(refId, b64Blob(await api.pdf(refId), "application/pdf"), `${refId}.pdf`);
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
   };
 
   const savePdf = async (refId: string) => {
     try {
       saveBlob(b64Blob(await api.pdf(refId), "application/pdf"), `${refId}.pdf`);
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
   };
 
   const askClaude = async (refId: string) => {
@@ -453,7 +453,7 @@ export default function App() {
           ...m, [refId]: answer.basis || "Claude found no deadline in this notice",
         }));
       }
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
     finally { mark(refId, null); }
   };
 
@@ -468,7 +468,7 @@ export default function App() {
       setDraftSavedAt(null);
       // the row's draft tick, without a refetch
       if (!had) setRows((all) => all.map((r) => r.ref_id === refId ? { ...r, has_draft: true } : r));
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
     finally { mark(refId, null); setDraftBusy(false); }
   };
 
@@ -477,7 +477,7 @@ export default function App() {
       const d = await api.draft(refId);
       if (d) { setDraft(d); setDraftCached(true); setDraftSavedAt(null); }
       else await generateDraft(refId);
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
   };
 
   const saveDraftText = async (text: string) => {
@@ -488,7 +488,7 @@ export default function App() {
       setDraft({ ...draft, draft_text: text });
       setDraftSavedAt(stampNow());
       toast("Edits saved.");
-    } catch (e) { toast(String(e)); }
+    } catch (e) { toast(describeError(e)); }
     finally { setDraftBusy(false); }
   };
 
@@ -498,12 +498,12 @@ export default function App() {
   };
 
   const exportXlsx = () => {
-    try { exportWorkbook(items); } catch (e) { toast(String(e)); }
+    try { exportWorkbook(items); } catch (e) { toast(describeError(e)); }
   };
 
   const saveSettings = async (s: Settings) => {
     try { await api.saveSettings(s); setSettings(s); setSettingsShow(false); toast("Settings saved."); }
-    catch (e) { toast(String(e)); }
+    catch (e) { toast(describeError(e)); }
   };
 
   const clearFilters = () => { setAy(""); setNameQuery(""); setNoDue(false); setBucket(""); };
