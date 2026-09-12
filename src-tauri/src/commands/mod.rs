@@ -7,6 +7,7 @@ pub mod clients;
 pub mod documents;
 pub mod ingestion;
 pub mod settings;
+pub mod sync;
 pub mod work_items;
 
 use crate::error::{AppError, AppResult};

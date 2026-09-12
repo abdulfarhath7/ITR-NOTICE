@@ -90,10 +90,10 @@ Read `docs/03-sync-and-ledger.md`.
 - [x] **6.2** Every write to a synced table appends a ledger entry in the same transaction.
 - [x] **6.3** Device cursor as a map of `device_id` to last applied `seq`. Persist it.
 - [x] **6.4** Apply logic: idempotent, order-safe within a stream, resumable mid-changeset.
-- [ ] **6.5** Snapshot builder — compacted state plus the tail, per Q07 cadence.
-- [ ] **6.6** Encrypted `.draftax` bundle export: manifest, snapshot, ledger tail, content-addressed documents.
-- [ ] **6.7** Bundle import: merge, never overwrite. Match clients by PAN. Newest scraped-at wins per row. Documents deduplicated by hash.
-- [ ] **6.8** Export excludes credentials by default; including them requires a second confirmation and a strong passphrase.
+- [x] **6.5** Snapshot builder — compacted state plus the tail, per Q07 cadence.
+- [x] **6.6** Encrypted `.draftax` bundle export: manifest, snapshot, ledger tail, content-addressed documents.
+- [x] **6.7** Bundle import: merge, never overwrite. Match clients by PAN. Newest scraped-at wins per row. Documents deduplicated by hash.
+- [x] **6.8** Export excludes credentials by default; including them requires a second confirmation and a strong passphrase.
 
 ## Phase 7 — Relay, devices, roles
 

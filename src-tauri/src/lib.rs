@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 
 mod backfill;
+mod bundle;
 mod claude;
 mod commands;
 mod csv_import;
@@ -16,9 +17,11 @@ mod intake;
 mod intake_modules;
 mod keychain;
 mod ledger;
+mod merge;
 mod mask;
 mod migrate;
 mod repo;
+mod snapshot;
 
 use db::NoticeRow;
 use error::AppResult;
@@ -86,6 +89,8 @@ pub fn run() {
             commands::work_items::get_demand, commands::work_items::get_return, commands::work_items::get_filed_form,
             commands::ingestion::get_sweep_cadence, commands::ingestion::set_sweep_cadence,
             commands::ingestion::modules_due,
+            commands::sync::get_device_info, commands::sync::export_bundle, commands::sync::peek_bundle,
+            commands::sync::import_bundle, commands::sync::check_passphrase,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

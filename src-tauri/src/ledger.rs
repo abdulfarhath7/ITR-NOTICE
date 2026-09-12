@@ -145,6 +145,7 @@ pub fn apply(con: &mut Connection, entries: &[Entry]) -> AppResult<ApplyReport> 
     sorted.sort_by(|a, b| a.device_id.cmp(&b.device_id).then(a.seq.cmp(&b.seq)));
     let own = local::device_id(con)?;
     let mut report = ApplyReport::default();
+    let mut idmap = crate::merge::IdMap::new();
     for e in sorted {
         if e.device_id == own {
             // Our own stream comes back from the relay; it is already here.
@@ -158,7 +159,7 @@ pub fn apply(con: &mut Connection, entries: &[Entry]) -> AppResult<ApplyReport> 
             report.skipped_seen += 1;
             continue;
         }
-        match apply_one(&tx, e) {
+        match apply_one(&tx, e, &mut idmap) {
             Ok(true) => report.applied += 1,
             Ok(false) => report.skipped_lost += 1,
             Err(err) => {
@@ -171,21 +172,24 @@ pub fn apply(con: &mut Connection, entries: &[Entry]) -> AppResult<ApplyReport> 
     Ok(report)
 }
 
-fn apply_one(tx: &Transaction, e: &Entry) -> AppResult<bool> {
+fn apply_one(tx: &Transaction, e: &Entry, idmap: &mut crate::merge::IdMap) -> AppResult<bool> {
     if !SYNCED_TABLES.contains(&e.entity_type.as_str()) {
         return Err(AppError::invalid(format!("not a synced table: {}", e.entity_type)));
     }
     let updated_at = e.payload.get("updated_at").and_then(Value::as_str).unwrap_or(&e.created_at).to_string();
-    if !incoming_wins(tx, &e.entity_type, &e.entity_id, &updated_at, &e.device_id)? {
-        return Ok(false);
-    }
-    let origin = Origin::Replay { device_id: &e.device_id };
     match e.op.as_str() {
-        "upsert" => rows::write_value(tx, &e.entity_type, &e.payload, origin)?,
-        "delete" => rows::delete_with(tx, &e.entity_type, &e.entity_id, origin)?,
-        other => return Err(AppError::invalid(format!("unknown op {other}"))),
+        // Merge, never overwrite: natural keys settle duplicates, then LWW.
+        "upsert" => crate::merge::merge_row(tx, &e.entity_type, e.payload.clone(), (&updated_at, &e.device_id), idmap),
+        "delete" => {
+            let local_id = idmap.get(&(e.entity_type.clone(), e.entity_id.clone())).cloned().unwrap_or(e.entity_id.clone());
+            if !incoming_wins(tx, &e.entity_type, &local_id, &updated_at, &e.device_id)? {
+                return Ok(false);
+            }
+            rows::delete_with(tx, &e.entity_type, &local_id, Origin::Replay { device_id: &e.device_id })?;
+            Ok(true)
+        }
+        other => Err(AppError::invalid(format!("unknown op {other}"))),
     }
-    Ok(true)
 }
 
 /// Migration 0015: rows that existed before the ledger (seeds, the legacy

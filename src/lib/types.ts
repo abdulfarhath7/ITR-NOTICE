@@ -427,3 +427,32 @@ export type IngestionEvent =
   | { ev: "progress"; data: Record<string, unknown> }
   | { ev: "viewport"; img: string }
   | { ev: "challenge"; kind: string };
+
+export interface DeviceInfo {
+  device_id: string;
+  public_key: string;
+  cursor: Record<string, number>;
+  own_entries: number;
+  entries_by_device: Record<string, number>;
+  last_snapshot_at: string | null;
+  snapshot_due: boolean;
+}
+
+export interface BundleManifest {
+  format: number;
+  product: string;
+  schema_version: number;
+  device_id: string;
+  created_at: string;
+  cursor: Record<string, number>;
+  counts: Record<string, number>;
+  includes_documents: boolean;
+  includes_credentials: boolean;
+  signer_public_key: string;
+}
+
+export interface ExportSummary { path: string; rows: number; ledger_entries: number; documents: number; credentials: number; bytes: number }
+export interface ImportSummary {
+  device_id: string; created_at: string; signature_ok: boolean; rows_written: number; rows_kept_local: number;
+  ledger_applied: number; documents_added: number; documents_already_held: number; credentials_written: number; errors: string[];
+}

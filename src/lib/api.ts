@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
-  Cadences, ClientDetail, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
+  BundleManifest, Cadences, ClientDetail, DeviceInfo, ExportSummary, ImportSummary, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
   ProceedingDetail, ReturnDetail, Scope, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
@@ -56,6 +56,14 @@ export const api = {
   setPace: (seconds: number) => invoke<void>("set_ingestion_pace", { seconds }),
   ingestionJobs: (sweepId?: string) => invoke<IngestionJob[]>("list_ingestion_jobs", { sweepId: sweepId ?? null }),
   ingestionRuns: (limit?: number) => invoke<IngestionRun[]>("list_ingestion_runs", { limit: limit ?? null }),
+
+  deviceInfo: () => invoke<DeviceInfo>("get_device_info"),
+  exportBundle: (path: string, passphrase: string, includeCredentials: boolean, includeDocuments = true) =>
+    invoke<ExportSummary>("export_bundle", { path, passphrase, includeCredentials, includeDocuments }),
+  peekBundle: (path: string, passphrase: string) => invoke<BundleManifest>("peek_bundle", { path, passphrase }),
+  importBundle: (path: string, passphrase: string, writeCredentials: boolean) =>
+    invoke<ImportSummary>("import_bundle", { path, passphrase, writeCredentials }),
+  checkPassphrase: (passphrase: string) => invoke<void>("check_passphrase", { passphrase }),
 };
 
 export function onIngestion(handler: (ev: IngestionEvent) => void): Promise<UnlistenFn> {

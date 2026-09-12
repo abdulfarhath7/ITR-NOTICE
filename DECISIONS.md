@@ -184,3 +184,37 @@ the next verdict, so the browser simply waits on its list page.
 Rejected: Sending the known-hash set to the sidecar (two hash
 implementations to keep identical).
 Reversible: with a protocol change.
+
+## D-016 — Snapshots are JSON, not a second SQLite file
+Date: 2026-09-12
+Context: docs/03 sketches `snapshot.sqlite` inside a bundle.
+Decision: The snapshot is `snapshot.json`: every synced table's rows as the
+same JSON payloads the ledger carries, plus `entity_versions` and the cursor
+map. Loading one is the same merge as applying entries.
+Rejected: A compacted SQLite file — a second schema to keep in step with
+migrations, and a plaintext database inside an archive that would need its
+own SQLCipher key handling.
+Reversible: easily; the bundle is versioned (`format`).
+
+## D-017 — Duplicate identities converge on the smaller id
+Date: 2026-09-12
+Context: Two devices can create the same client (or year context, or
+proceeding) independently before they sync. "Clients match on PAN" needs a
+rule for which id survives, and every device must pick the same one.
+Decision: When a natural key (PAN; client + AY; natural_key; reference id;
+acknowledgement number; registry code) matches a local row under a different
+id, the lexicographically smaller id is canonical everywhere. The local row
+and its children are renamed and re-ledgered as local writes; the incoming
+row is written under the canonical id.
+Rejected: Keeping the local id (devices would disagree); a coordinator
+(the relay is zero-knowledge and cannot see PANs).
+Reversible: with care — the rule is baked into every device's merge.
+
+## D-018 — A ledger entry that cannot be applied is skipped, not retried
+Date: 2026-09-12
+Context: A malformed or constraint-violating entry from another device
+would otherwise block its whole stream forever.
+Decision: `ledger::apply` records the error in its report, advances the
+cursor past the entry, and continues. The error is surfaced in the import
+summary and, later, the sync state.
+Reversible: easily.
