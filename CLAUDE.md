@@ -1,91 +1,130 @@
-# Litigation Command Center — Desktop · Agent Control File
+# CLAUDE.md — root control file
 
-You are building the **Windows-first Tauri 2 desktop app**. The Rust core owns
-the data; a bundled Python child process drives the tax portal; a small hosted
-proxy holds the Anthropic key and the prompts. Dev on Linux; ship via GitHub
-Actions on `windows-latest`.
+Read this file first, in full, before touching any code.
+Then read `docs/00-overview.md` and `TASKS.md`.
 
-> **This file was rewritten on 2026-09-04 to match the code that is actually in
-> the tree.** The earlier version described a different design — the whole
-> FastAPI backend in `app/` shipped as a loopback HTTP sidecar. That design is
-> gone. See "What changed" below before trusting any older wording.
+---
 
-## The shape of the thing
+## 1. What you are doing
+
+You are building **Draftax / Notice Desk**: an income tax notice, demand and
+compliance management tool for Indian chartered accountancy firms.
+
+The repository already contains partial work (a FastAPI + Playwright web tool
+and a Tauri 2 desktop shell). You are extending it, not starting over.
+Inspect what exists before you write anything new.
+
+---
+
+## 2. Operating mode — AUTONOMOUS
+
+This is an unattended build. The user is asleep. There is no one to ask.
+
+**Hard rules:**
+
+1. **Never stop to ask a question.** Not once. Not for anything.
+2. When you hit a genuine unknown, do all three of these and continue:
+   - pick the most defensible option,
+   - append an entry to `QUESTIONS.md` using the template in that file,
+   - record the decision in `DECISIONS.md`.
+3. **Never leave the tree broken.** If a change does not compile or the app
+   does not start, fix it or revert it before moving on. A working subset
+   beats a broken superset.
+4. Work `TASKS.md` top to bottom. Tick each checkbox the moment the task's
+   acceptance criteria pass. Do not reorder phases.
+5. Commit after each completed task. Conventional commits
+   (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`).
+6. Log every error you hit and how you resolved it in `NOTES.md`.
+   If you cannot resolve one, leave a `TODO(blocked):` comment at the call
+   site, write it in `NOTES.md`, and move to the next task.
+7. Do not write tests the user did not ask for beyond what
+   `docs/12-testing.md` specifies. The user tests manually.
+8. Do not refactor code outside the current task's scope.
+
+**If you run low on context:** update `TASKS.md` and `NOTES.md` first so the
+next session can resume cleanly. That is the highest-value thing you can do
+with your last tokens.
+
+---
+
+## 3. Decision defaults
+
+When a choice is not specified anywhere in `docs/`, apply these in order:
+
+1. Follow the existing pattern in the repository.
+2. Prefer the simpler option that can be extended later.
+3. Prefer boring, well-supported libraries over clever ones.
+4. Prefer explicit over implicit. No magic.
+5. If still undecided, choose the option that is easiest to reverse, and
+   file it in `QUESTIONS.md`.
+
+---
+
+## 4. Absolute constraints — never violate
+
+These are not preferences. Breaking one is a build failure.
+
+- **Read-only against the portal.** The scraper never clicks Submit, Respond,
+  Appeal, Upload, or Pay. Never. Any code path that could write to the portal
+  must not exist yet.
+- **Never invent a date.** If the portal does not state a due date or a
+  limitation date, store `NULL` and set the gap flag. Never infer, estimate,
+  or carry forward. AI-suggested dates go in a separate column and can never
+  be promoted without a human action.
+- **No credentials in files.** Never write a password, cookie, token, API key
+  or certificate into source, config, logs, fixtures, or test data. Not even
+  a placeholder that looks real.
+- **No secrets in the repo.** If you find one already committed, write it in
+  `NOTES.md` under "ROTATE IMMEDIATELY" and do not print its value.
+- **Never log PII.** PAN, phone numbers and client names are masked in logs.
+- **Child of one parent.** Every document row has exactly one parent object.
+- **One writer per stream.** Only the collector lease holder publishes sweep
+  changesets. See `docs/04-roles-and-devices.md`.
+
+---
+
+## 5. Repository map
 
 ```
-Litigation Command Center.exe
-  React UI (WebView2)            src/
-    | invoke() + a "scraper" event channel
-  Rust core                      src-tauri/src/
-    ├── db.rs        SQLCipher archive.db in %APPDATA%\in.llc.app\
-    ├── keychain.rs  Windows Credential Manager (archive key, portal password, firm token)
-    ├── scraper.rs   spawns the sidecar, JSON lines over stdin/stdout
-    └── claude.rs    HTTPS to the firm's proxy, bearer token
-  notice_scraper.exe             sidecar/     (Python + Playwright + Chromium)
-                                              bundled as bundle.resources
-        |  https
-  proxy/main.py                  YOUR server  (ANTHROPIC_API_KEY + the prompts)
+app/                  existing FastAPI web tool (kept, becomes dev harness)
+src-tauri/            Rust core for the desktop app
+src/                  React + TypeScript frontend
+sidecar/              Python Playwright ingestion sidecar
+relay/                NEW: FastAPI relay service (zero-knowledge sync)
+migrations/           NEW: SQL migrations, numbered, forward-only
+docs/                 the specification you are building from
 ```
 
-Everything except the proxy runs on the user's PC. No loopback HTTP server, no
-websocket, no shared launch token — those all belonged to the old design.
+---
 
-## Prime directives (never violate)
-1. **Never regenerate portal selectors.** `sidecar/app/portal/session.py` and
-   `sidecar/app/portal/scraper.py` are byte-for-byte the web tool's
-   `app/portal/*`. They are battle-tested against incometax.gov.in. Fix them
-   only from a real failure, and keep both copies in step.
-2. **Prompts and the Anthropic key live in `proxy/` and nowhere else.** The
-   desktop app must never contain either. It knows only a base URL and a firm
-   bearer token.
-3. **The encrypted archive is the record.** Every notice, PDF and draft goes
-   into `archive.db` through `db.rs`. The sidecar's own SQLite is a staging
-   cache only, and its PDF blobs are scrubbed to a 1-byte marker after handoff.
-4. **Windows is the only shipping target.** Tauri bundle = NSIS. Never try to
-   cross-compile from Linux: the sidecar is a PyInstaller binary and can only be
-   frozen on the OS it runs on.
-5. **Secrets go to the OS keychain, never to a file.** `settings.json` holds the
-   proxy URL, the last user id and the remember flag — nothing secret.
+## 6. Reading order for `docs/`
 
-## What changed (2026-09-04)
-| Was | Is |
-|---|---|
-| `app/` FastAPI service frozen as a loopback sidecar | Rust core; only `app/portal/*` survives, inside `sidecar/` |
-| HTTP + WebSocket API on 127.0.0.1 with a launch token | `invoke()` commands + one `scraper` Tauri event |
-| Anthropic key on the user's machine | `proxy/` on your server holds the key and the prompts |
-| Plain SQLite, `TODO(sqlcipher)` | SQLCipher via `rusqlite` (`bundled-sqlcipher-vendored-openssl`) |
-| Tauri updater plugin + signed manifest | No updater. Ship an installer per release (see Q2) |
-| pnpm, Tailwind, shadcn/ui | npm, hand-written CSS in `src/styles.css` |
-| `externalBin` single-file sidecar | `bundle.resources` folder — PyInstaller `COLLECT`, not `--onefile` |
-
-The legacy web tool (`app/`, `run.sh`, `test_app.py`, `Dockerfile`) is still in
-the repo as the reference implementation. It is not built, shipped or imported
-by the desktop app.
-
-## Operating mode (AUTONOMOUS)
-- **Take no input.** Never ask a question mid-build; pick the sensible default,
-  build with it, and record it in `QUESTIONS.md` with a blank `Your answer:`.
-- **Never stop mid-pass.** On failure: `TODO` at the site, one line in
-  `NOTES.md`, keep going.
-- **Do not test.** The human runs the app and does all verification. Letting the
-  compiler/bundler finish is building, not testing, and is allowed.
-
-## Worklog (three living files at the repo root)
-- **`TASKS.md`** — what exists. Tick `[x]` the moment the artifact exists.
-- **`QUESTIONS.md`** — decisions that are the human's to make. Default used,
-  options, blank answer line. Pass 2 applies the answers and marks `[RESOLVED]`.
-- **`NOTES.md`** — technical log: defaults, gaps, TODOs, what will break first.
-
-## Doc index
 | File | Read when |
 |---|---|
-| `docs/00-overview.md` | Always first. |
-| `docs/01-existing-backend.md` | Touching the portal automation. |
-| `docs/02-architecture.md` | Wiring UI <-> Rust <-> sidecar <-> proxy. |
-| `docs/03-api-contract.md` | Any UI data call, sidecar event, or proxy route. |
-| `docs/04-build-plan.md` | What is built and what is left. |
-| `docs/05-conventions.md` | Writing any new code. |
-| `docs/06-security.md` | Secrets, keychain, encryption, the proxy boundary. |
-| `docs/07-ci-release.md` | Packaging, signing, the Windows job. |
-| `docs/08-glossary.md` | Domain terms. |
-| `docs/09-worklog.md` | TASKS / QUESTIONS / NOTES formats + the two-pass loop. |
+| `00-overview.md` | first, always |
+| `01-architecture.md` | before any structural work |
+| `02-data-model.md` | before any schema or migration work |
+| `03-sync-and-ledger.md` | Phase 6 and 7 |
+| `04-roles-and-devices.md` | Phase 7 |
+| `05-ingestion.md` | Phase 4 and 5 |
+| `06-source-interface.md` | Phase 4, and before any ERI work |
+| `07-security.md` | any time you touch keys, credentials or the relay |
+| `08-api-contract.md` | before adding a command or endpoint |
+| `09-ui-spec.md` | any frontend work |
+| `10-design-system.md` | any frontend work |
+| `11-exports.md` | Phase 8 |
+| `12-testing.md` | when a task's acceptance criteria mention tests |
+| `13-conventions.md` | before your first commit |
+| `14-glossary.md` | whenever a tax term is unfamiliar |
+| `15-known-bugs.md` | Phase 2 |
+
+---
+
+## 7. Definition of done for any task
+
+- Acceptance criteria in `TASKS.md` are met.
+- The app builds and starts.
+- No new compiler or type errors.
+- No secret, PAN or phone number added to any tracked file.
+- `TASKS.md` checkbox ticked, commit made.
+- Any new unknown filed in `QUESTIONS.md`.

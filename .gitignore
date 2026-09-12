@@ -27,3 +27,4 @@ build-fix-prompt.md
 Screenshot*.png
 # leftover from the old loopback-sidecar design (Linux binary, 89 MB)
 src-tauri/binaries/
+.npmrc

@@ -1,119 +1,135 @@
-# TASKS — what exists today (the human verifies; nothing here was tested)
+# TASKS.md
 
-Rewritten 2026-09-04 against the code in the tree. The old board tracked the
-FastAPI-sidecar design, which no longer exists — see "What changed" in
-`CLAUDE.md`.
+Work top to bottom. Do not reorder phases. Tick a box only when the
+acceptance criteria pass and the app still builds.
 
-## Phase 0 · Shell
-- [x] Tauri 2 + Vite + React 18 + TS scaffold (`npm`, no Tailwind — plain CSS)
-- [x] Window config, CSP that allows `blob:` frames for the PDF viewer
-- [x] Capabilities locked to `core:default` — no plugin surface in the webview
-- [x] App icons (`app-icon.png` → `src-tauri/icons/*`)
-- [ ] Auto-update — deliberately not built (Q2)
+Legend: `[ ]` todo · `[x]` done · `[~]` partially done, see NOTES.md
 
-## Phase 1 · Sidecar (portal automation as a child process)
-- [x] `sidecar/app/portal/*` copied byte-for-byte from the web tool
-- [x] `sidecar/notice_scraper.py` — JSON-lines protocol over stdin/stdout
-- [x] Staging-cache handoff: push the row + PDF to Rust, scrub the blob to a
-      1-byte marker so the "already fetched" rule still works
-- [x] `notice_scraper.spec` — PyInstaller `COLLECT` with `collect_all("playwright")`
-- [x] `sidecar/build.sh` / `build.ps1` — `PLAYWRIGHT_BROWSERS_PATH=0` then freeze
-      into `src-tauri/resources/scraper/`
-- [x] `scraper.rs` — spawn, locate (bundle dir, then `sidecar/dist` for dev),
-      stdout protocol, stderr to the log pane, `kill_on_drop`, `stop`
+---
 
-## Phase 2 · Rust core
-- [x] `db.rs` — SQLCipher archive, schema mirroring the web tool's `app/db.py`
-- [x] `absorb_notice` upsert: portal dates never overwrite a Claude date
-- [x] `keychain.rs` — archive key (32 random bytes, generated once), portal
-      password per user id, firm token
-- [x] `claude.rs` — proxy client, bearer auth, 300 s timeout
-- [x] `lib.rs` — settings file, 15 commands, `scraper` event channel
+## Phase 0 — Groundwork
 
-## Phase 3 · UI  (rebuilt 2026-09-07 as the old static dashboard)
+- [ ] **0.1** Inspect the repository. Produce `docs/99-repo-map.md`: what exists, what runs, what is dead code. Do not delete anything yet.
+  - *Done when:* the map lists every top-level directory with a one-line purpose and a live/dead verdict.
+- [ ] **0.2** Get the existing desktop app building and starting on this machine. Record the exact commands in `docs/99-repo-map.md`.
+  - *Done when:* a documented command sequence produces a running window.
+- [ ] **0.3** Introduce `migrations/` with a forward-only numbered runner. Baseline the current schema as `0001_baseline.sql`.
+  - *Done when:* a fresh database can be built from migrations alone.
+- [ ] **0.4** Add `NOTES.md` session 1 entry and commit the docs bundle.
+- [ ] **0.5** Set up a `scripts/check.sh` that runs build, typecheck and lint for every workspace. Wire it into CI.
+  - *Done when:* `./scripts/check.sh` exits 0.
 
-The Tailwind/shadcn rail-and-drawer UI is gone. `src/` now holds a faithful
-React port of `app/static/{index.html,style.css,app.js}` wired to the Tauri
-command layer instead of the FastAPI routes. `src/styles.css` is byte-for-byte
-`app/static/style.css`; the two Geist woff2 faces are served from `public/fonts`
-so its `url('/fonts/…')` rules did not have to change.
+## Phase 1 — Data model: the work-item spine
 
-- [x] `lib/api.ts` typed `invoke` wrapper + `onScraper` event subscription
-- [x] `styles.css` copied verbatim; Geist + Geist Mono self-hosted; dark-first
-      with the `data-theme` toggle
-- [x] Header — brand, status dot + label, download limit, Slow/Fast/Extreme,
-      theme, ⌘K, Log out, Export, Sync
-- [x] Gates — portal login card (`portal_login`) and OTP card (`portal_otp`),
-      shown by phase
-- [x] Overview — five metric cards + the last-sync line
-- [x] Live viewport — REC light, lock/phase animation, phase steps; run log
-      card beside it, both fed by the `scraper` channel
-- [x] Report "Position at a glance" — run line, bucket chips that filter the
-      table, Attention table (`lib/summary.ts`, counting exactly as `report.py`)
-- [x] Filters + notices table — AY, proceeding-contains, missing-due toggle,
-      count; Notice / Proceeding / Issued / Due chip / Status ticks / Actions
-- [x] Row actions — View, Save, "✦ Date" (`ask_due_date`), Draft
-      (`draft_response`); all four only when a PDF is held
-- [x] PDF viewer modal (blob URL from `get_notice_pdf`)
-- [x] Draft drawer — summary, checklist, editable text, Save edits
-      (`save_draft_text`), View, Save, Copy, Regenerate
-- [x] ⌘K command palette + the `s` / `/` / Escape shortcuts
-- [x] Toast
-- [x] Speed control — the segment calls `portal_speed`, and re-sends the chosen
-      pace on `login_ok` so a sidecar spawned later still gets it
-- [x] Excel export (`lib/exportXlsx.ts`, three sheets)
-- [x] Live viewport **frames** — `_viewport_loop` in the sidecar screenshots the
-      page every 1.5s at JPEG q45 and emits `{"ev":"viewport","img":…}`;
-      `scraper.rs` already passed unknown events through untouched. Withheld for
-      the whole of login and the OTP wait (`safe_to_capture()`), so a credential
-      is never photographed. REC lights only while frames arrive
-- [ ] Draft PDF — the web tool rendered one server-side (`app/response_pdf.py`);
-      the drawer's View/Save hand over the draft text instead
-- [ ] `runs` table — nothing writes it, so the last-sync line is remembered from
-      the sidecar's own `sync_done` stats in `localStorage`
+Read `docs/02-data-model.md` in full first.
 
-## Phase 4 · Encryption
-- [x] SQLCipher via `rusqlite` `bundled-sqlcipher-vendored-openssl`
-- [x] Raw-key `PRAGMA key = "x'<hex>'"`, key from the keychain
-- [x] Schema touched on open so a wrong key fails loudly at open time
+- [ ] **1.1** Migration: `clients`, `year_contexts`. Move assessment year off proceedings and onto `year_contexts`.
+- [ ] **1.2** Migration: `type_registry` plus seed rows for proceeding types, communication types, form types, demand reason codes.
+  - *Done when:* adding a new proceeding type requires only an INSERT.
+- [ ] **1.3** Migration: `proceedings` with `section_2025`, `section_1961`, `limitation_date`, `authority`, `source_panel`, `created_mode`, `status`, `verified_flag`, `gap_flags`.
+- [ ] **1.4** Migration: `communications` (direction inbound) and `responses` (direction outbound, nullable `in_reply_to`, `response_mode`).
+- [ ] **1.5** Migration: `adjournment_requests`.
+- [ ] **1.6** Migration: `documents` — one polymorphic store, `doc_kind`, `parent_type`, `parent_id`, `file_hash`, `source_url`, `fetched_at`, `page_count`, `verified_flag`.
+- [ ] **1.7** Migration: `ingestion_runs` — `run_at`, `panel_swept`, `records_found`, `gaps`, `operator`, `status`.
+- [ ] **1.8** Backfill existing notice rows into the new shape. No data loss.
+  - *Done when:* row counts before and after reconcile, and a spot check of ten notices matches.
+- [ ] **1.9** Update all read paths to the new schema. Delete the old tables in a separate migration only after the app runs green.
 
-## Phase 5 · Proxy
-- [x] `proxy/main.py` — `/v1/due-date`, `/v1/draft`, `/healthz`
-- [x] Per-firm bearer tokens (`FIRM_TOKENS`), constant-time compare
-- [x] Stateless, nothing logged, nothing stored
-- [ ] Deployed anywhere (Q11)
-- [ ] Model id confirmed against the current Anthropic model list (NOTES.md)
+## Phase 2 — Known bugs and the status state machine
 
-## Phase 6 · CI / release
-- [x] `.github/workflows/release.yml` — `windows-latest`, tag-triggered
-- [x] Tag/version agreement check
-- [x] Sidecar frozen on the runner via `sidecar/build.ps1`
-- [x] `tauri-action` → NSIS installer, draft release
-- [x] Optional Authenticode signing from `WINDOWS_CERT`
-- [x] `cargo check` passes on Linux (5 MutexGuard/`?` errors fixed; see NOTES)
-- [x] A green Windows CI run — v0.1.1, run 34102102136, 24 min, 246 MB NSIS installer
-- [ ] `requirements.lock.txt` for the sidecar (Q8)
-- [ ] Code-signing certificate (Q9)
+Read `docs/15-known-bugs.md`.
 
-## Phase 7 · Brand + UI (2026-09-08)
-- [x] Renamed to Litigation Command Center / LLC across app, docs and CI
-- [x] `identifier`, keychain service, npm/Cargo package names, storage keys
-- [x] `src/styles.css` rewritten as the command-centre design system
-- [x] Header, Overview, Watch, Report, Notices, Gates re-marked up for it
-- [x] Colour-graded run log (`lineTone`)
-- [x] New app icon — plasma hexagon in viewport brackets (`make_icons.py`)
-- [x] `tsc && vite build` clean; dark + light verified under Playwright
-- [ ] Real artwork for the icon, not the generated placeholder
-- [ ] Decide "LLC" vs a name that does not collide with "limited liability
-      company" (Q16), and whether the old `%APPDATA%` needs a migration
+- [ ] **2.1** Replace the open/closed boolean with the status state machine from `docs/02-data-model.md`.
+- [ ] **2.2** Implement the action matrix. Closed and submitted items keep View and Save; only Draft is withheld.
+  - *Done when:* a closed proceeding shows View and Save, and no Draft button.
+- [ ] **2.3** Fix negative due dates. Store dates as date-only, compute in IST, render sign-aware strings.
+  - *Done when:* no view can ever render a raw negative number of days.
+- [ ] **2.4** Add a date-parsing test fixture with a day-of-month above 12 to catch DD/MM versus MM/DD inversion.
+- [ ] **2.5** Status must win over dates: a closed item never renders as overdue.
+- [ ] **2.6** Render `NULL` due dates as "not stated" everywhere, never as a blank cell or an epoch date.
 
-## Housekeeping
-- [x] README rewritten for the current architecture
-- [x] `docs/` rewritten for the current architecture
-- [x] CLAUDE.md / TASKS.md / QUESTIONS.md / NOTES.md rewritten
-- [x] `postcss.config.js` deleted; `tailwind.config.js` and `components.json`
-      deleted with the shadcn UI
-- [x] `tsconfig.json` rewritten — the `@/*` alias is back, and only the three
-      lib files that cannot compile are excluded (see NOTES.md)
-- [ ] Delete the rest of the dead files from the old design (listed in NOTES.md)
-- [ ] Commit the working tree (nothing since `01d21f8` has been committed)
+## Phase 3 — Clients and credentials
+
+- [ ] **3.1** Client registry screen per `docs/09-ui-spec.md`.
+- [ ] **3.2** Add-client form. GSTIN input derives PAN from characters 3 to 12 and state from characters 1 to 2. Both stay editable.
+- [ ] **3.3** Credential handling per `docs/07-security.md`. Passwords go to the OS keychain, never the database, never a log.
+  - *Done when:* grepping the repo and the database file for a test password returns nothing.
+- [ ] **3.4** `clients.portal_login_ref` — a client may be reachable through an AR login rather than its own credentials.
+- [ ] **3.5** Client import from CSV, with a dry-run preview and a per-row error list.
+- [ ] **3.6** Client detail view: year contexts down the side, modules across.
+
+## Phase 4 — Ingestion service, e-Proceedings
+
+Read `docs/05-ingestion.md` and `docs/06-source-interface.md`.
+
+- [ ] **4.1** Define the `NoticeSource` trait/interface: `login`, `list_work_items`, `fetch_item`, `health`. Playwright is one implementation.
+- [ ] **4.2** Job queue in SQLite: one job per client per module, with attempts, backoff, and a resume cursor.
+- [ ] **4.3** Attended login flow. The queue pauses for captcha and OTP and waits without failing or timing out the job.
+- [ ] **4.4** Sweep all six panels. Record zero counts explicitly as an `ingestion_runs` row, never skip.
+- [ ] **4.5** Per-client lock, five minutes, renewable, so no two devices open one taxpayer's session.
+- [ ] **4.6** Anchored selectors plus a per-field confidence flag. Low confidence sets `verified_flag = false`.
+- [ ] **4.7** Document-first storage: fetch the PDF, hash it, store it, then write the index row referencing it.
+- [ ] **4.8** Early-stop delta walk — stop a client after ten consecutive rows whose hash is already stored and unchanged.
+- [ ] **4.9** Resumability: kill the process mid-run and restart; it must continue from the last completed client, not the beginning.
+- [ ] **4.10** Ingestion monitor screen: current client, queue position, panel being swept, pause and resume.
+
+## Phase 5 — Modules 2, 3 and 4
+
+- [ ] **5.1** Migration and ingestion for `demands`, `demand_responses`, `payments` per `docs/02-data-model.md`.
+- [ ] **5.2** Migration and ingestion for `returns`, including `supersedes_id` chaining of revised and updated returns.
+- [ ] **5.3** Migration and ingestion for `filed_forms`, grouped for display by form type from the registry.
+- [ ] **5.4** Form-and-receipt pair rule: both nodes always exist; an awaited receipt is a pending node, never an absent one.
+- [ ] **5.5** Per-module sweep cadence, configurable, defaults in `QUESTIONS.md` Q12.
+- [ ] **5.6** Unified attention list across all four modules, ranked per `docs/09-ui-spec.md`.
+
+## Phase 6 — Change ledger, snapshots, file transfer
+
+Read `docs/03-sync-and-ledger.md`.
+
+- [ ] **6.1** `ledger` table: `device_id`, `seq`, `op`, `entity_type`, `entity_id`, `payload`, `created_at`.
+- [ ] **6.2** Every write to a synced table appends a ledger entry in the same transaction.
+- [ ] **6.3** Device cursor as a map of `device_id` to last applied `seq`. Persist it.
+- [ ] **6.4** Apply logic: idempotent, order-safe within a stream, resumable mid-changeset.
+- [ ] **6.5** Snapshot builder — compacted state plus the tail, per Q07 cadence.
+- [ ] **6.6** Encrypted `.draftax` bundle export: manifest, snapshot, ledger tail, content-addressed documents.
+- [ ] **6.7** Bundle import: merge, never overwrite. Match clients by PAN. Newest scraped-at wins per row. Documents deduplicated by hash.
+- [ ] **6.8** Export excludes credentials by default; including them requires a second confirmation and a strong passphrase.
+
+## Phase 7 — Relay, devices, roles
+
+Read `docs/04-roles-and-devices.md`.
+
+- [ ] **7.1** `relay/` FastAPI service: firm registration, device enrolment, blob put and get by cursor, lease endpoints.
+- [ ] **7.2** Firm bootstrap: the first user to activate becomes admin, recorded server-side. The server refuses a second admin.
+- [ ] **7.3** Admin recovery code, shown once at setup, with a confirm-you-saved-it step.
+- [ ] **7.4** Collector lease: issue, renew, revoke, expire. Only the holder may publish sweep changesets.
+- [ ] **7.5** Device roster screen. Admin sees the radio control; everyone else sees the same list read-only.
+- [ ] **7.6** Collector handoff: drain the current client, revoke, reissue, new device catches up before it runs.
+- [ ] **7.7** Sync button with the three states in `docs/09-ui-spec.md`, including collector-silent detection separate from cursor freshness.
+- [ ] **7.8** "Changes behind" indicator, broken down by originating device.
+- [ ] **7.9** On-demand single-client refresh, routed locally for scraper clients.
+
+## Phase 8 — Exports and reports
+
+Read `docs/11-exports.md`.
+
+- [ ] **8.1** Excel export, proceedings sheet, exactly the 17 columns in the given order.
+- [ ] **8.2** Multi-sheet workbook: one tab per module.
+- [ ] **8.3** Export scope selector: current filtered view, all clients, single client.
+- [ ] **8.4** Export header block stamping device cursor and collector last-run time.
+- [ ] **8.5** User-entered columns (`client_code`, `manual_due_date`, `client_file_no`) are editable in-app and sync upward.
+
+## Phase 9 — AI drafting
+
+- [ ] **9.1** Draft generation through the server-side proxy. Cache per notice. Never call twice for the same notice.
+- [ ] **9.2** Suggested due date writes only to `suggested_due_date` with `verified_flag = false`. Promotion requires an explicit user action.
+- [ ] **9.3** Draft review screen: source notice on one side, draft on the other, edit before use.
+- [ ] **9.4** No draft button on submitted or closed items.
+
+## Phase 10 — Packaging and release
+
+- [ ] **10.1** Windows build via the existing CI workflow. Fix the sidecar target-triple packaging issue if it recurs.
+- [ ] **10.2** First-run wizard: firm setup, admin creation, recovery code, collector nomination.
+- [ ] **10.3** Settings screen: sweep cadence, worker count, data folder, about.
+- [ ] **10.4** Write `docs/USER-GUIDE.md` in plain language, no jargon.
+- [ ] **10.5** Final pass: update `TASKS.md`, `NOTES.md`, `QUESTIONS.md`, `DECISIONS.md`.
