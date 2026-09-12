@@ -86,10 +86,10 @@ Read `docs/05-ingestion.md` and `docs/06-source-interface.md`.
 
 Read `docs/03-sync-and-ledger.md`.
 
-- [ ] **6.1** `ledger` table: `device_id`, `seq`, `op`, `entity_type`, `entity_id`, `payload`, `created_at`.
-- [ ] **6.2** Every write to a synced table appends a ledger entry in the same transaction.
-- [ ] **6.3** Device cursor as a map of `device_id` to last applied `seq`. Persist it.
-- [ ] **6.4** Apply logic: idempotent, order-safe within a stream, resumable mid-changeset.
+- [x] **6.1** `ledger` table: `device_id`, `seq`, `op`, `entity_type`, `entity_id`, `payload`, `created_at`.
+- [x] **6.2** Every write to a synced table appends a ledger entry in the same transaction.
+- [x] **6.3** Device cursor as a map of `device_id` to last applied `seq`. Persist it.
+- [x] **6.4** Apply logic: idempotent, order-safe within a stream, resumable mid-changeset.
 - [ ] **6.5** Snapshot builder — compacted state plus the tail, per Q07 cadence.
 - [ ] **6.6** Encrypted `.draftax` bundle export: manifest, snapshot, ledger tail, content-addressed documents.
 - [ ] **6.7** Bundle import: merge, never overwrite. Match clients by PAN. Newest scraped-at wins per row. Documents deduplicated by hash.

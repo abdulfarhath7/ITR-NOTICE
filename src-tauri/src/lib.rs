@@ -15,6 +15,7 @@ mod ingest;
 mod intake;
 mod intake_modules;
 mod keychain;
+mod ledger;
 mod mask;
 mod migrate;
 mod repo;

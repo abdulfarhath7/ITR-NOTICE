@@ -49,6 +49,8 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(11, "ingestion_queue", "0011_ingestion_queue.sql"),
     sql!(12, "responses_mode_nullable", "0012_responses_mode_nullable.sql"),
     sql!(13, "demands_returns_forms", "0013_demands_returns_forms.sql"),
+    sql!(14, "ledger", "0014_ledger.sql"),
+    code!(15, "ledger_backfill", crate::ledger::backfill_existing_rows),
 ];
 
 #[derive(Debug, Error)]
