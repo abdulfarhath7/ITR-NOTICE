@@ -160,6 +160,33 @@ async fn run(relay: &Relay, db: &Arc<Mutex<Connection>>, device_id: &str, result
     Ok(())
 }
 
+/// The push half alone — what a removed device is still allowed to do.
+pub async fn push_only(db: &Arc<Mutex<Connection>>) -> AppResult<i64> {
+    let (cfg, device_id) = {
+        let con = db.lock().map_err(|e| AppError::state(e.to_string()))?;
+        (relay::require_config(&con)?, local::device_id(&con)?)
+    };
+    let relay = Relay::new(cfg);
+    let mut pushed = 0i64;
+    loop {
+        let (published, entries) = {
+            let con = db.lock().map_err(|e| AppError::state(e.to_string()))?;
+            let published: i64 = local::get(&con, relay::KEY_PUBLISHED)?.and_then(|s| s.parse().ok()).unwrap_or(0);
+            (published, ledger::entries_after(&con, device_id.as_str(), published)?)
+        };
+        let Some(first) = entries.first() else { break; };
+        let kind = first.source.clone();
+        let run: Vec<_> = entries.iter().take_while(|e| e.source == kind).take(500).cloned().collect();
+        if kind == "sweep" { break; }     // never publishable without the lease
+        relay.publish(&run, "user").await?;
+        let last = run.last().map(|e| e.seq).unwrap_or(published);
+        let con = db.lock().map_err(|e| AppError::state(e.to_string()))?;
+        local::set(&con, relay::KEY_PUBLISHED, &last.to_string())?;
+        pushed += run.len() as i64;
+    }
+    Ok(pushed)
+}
+
 /// First sync of a freshly enrolled device: the latest snapshot, then the
 /// tail. Without this, onboarding replays the whole history.
 pub async fn bootstrap_from_snapshot(db: &Arc<Mutex<Connection>>) -> AppResult<bool> {

@@ -339,3 +339,16 @@ Decision: The parser keeps the stepper's status word and drops its date;
 portal engine. The export's Issued On comes from the earliest
 communication; with none it is blank and gap-flagged.
 Reversible: easily.
+
+## D-031 — Remote wipe is best-effort and says so
+Date: 2026-09-12
+Context: Q16 answered "wipe the local copy as well as revoking access".
+Decision: A removed device, on its next relay contact (every sync and a
+ten-minute tick), pushes its pending user entries (the relay accepts a
+removed device's final push and nothing else), then deletes the archive,
+viewer scratch, settings and every keychain entry, writes `removed.flag`,
+and shows a plain removed screen on every launch. The admin dialog states
+that this happens only if the device comes online and the app is opened.
+Rejected: Promising a wipe (a disk image is unreachable); refusing the
+final push (would lose the firm's own edits made on that device).
+Reversible: easily.

@@ -190,7 +190,7 @@ export default function DevicesScreen() {
       ) : null}
       {confirm?.kind === "remove" && confirm.device ? (
         <Confirm title={`Remove ${confirm.device.name}?`} danger confirmLabel="Remove"
-                 body="Its relay access is revoked; the archive on that machine is not wiped (Q16). It can be re-enrolled with a new invite."
+                 body="Its relay access is revoked now. The book, documents and keys on that machine are deleted best-effort: only if the device comes online and the app is opened, after it has handed over any pending changes. A disk image or a machine that never reconnects is out of reach. It can be re-enrolled with a new invite."
                  onConfirm={() => { if (confirm.device) void act(() => api.removeDevice(confirm.device!.id), "Device removed."); }} onClose={() => setConfirm(null)} />
       ) : null}
       {confirm?.kind === "transfer" && confirm.device ? (

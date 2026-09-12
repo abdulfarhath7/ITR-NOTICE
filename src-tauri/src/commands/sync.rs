@@ -178,7 +178,15 @@ pub fn get_sync_state(state: State<AppState>) -> AppResult<SyncState> {
 
 #[tauri::command]
 pub async fn sync_now(state: State<'_, AppState>) -> AppResult<SyncResult> {
-    let mut result = sync::sync_now(&state.db).await?;
+    let mut result = match sync::sync_now(&state.db).await {
+        Ok(r) => r,
+        Err(e) if crate::wipe::is_removed_error(&e) => {
+            // Removed by the admin: hand over, wipe, and say so (Q16).
+            crate::wipe::perform(&state).await?;
+            return Err(AppError::state("this device was removed from the firm; the local book has been wiped"));
+        }
+        Err(e) => return Err(e),
+    };
     // The collector also keeps the snapshot fresh (Q07).
     if let Ok(true) = sync::publish_snapshot_if_due(&state.db).await { result.snapshot_published = true; }
     Ok(result)

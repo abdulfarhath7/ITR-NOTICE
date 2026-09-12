@@ -505,6 +505,6 @@ export type ExportScope =
 export interface ExportReport { path: string; proceedings: number; demands: number; returns: number; forms: number; unverified_fields: number }
 
 export interface DataDirInfo { path: string; archive_bytes: number }
-export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number }
+export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number; removed: boolean }
 
 export interface SweepSchedule { enabled: boolean; time: string; days: number[]; scope: "due" | "all" }

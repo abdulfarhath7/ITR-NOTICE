@@ -25,6 +25,7 @@ mod relay;
 mod repo;
 mod snapshot;
 mod sync;
+mod wipe;
 
 use db::NoticeRow;
 use error::AppResult;
@@ -80,8 +81,14 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             carry_over_old_data_dir(&data_dir);
-            let key = keychain::db_key()?;
-            let con = db::open(&data_dir.join("archive.db"), &key)?;
+            // A removed device opens an empty in-memory book and shows the
+            // removed screen; it never recreates the archive on its own.
+            let con = if wipe::removed_flag(&data_dir) {
+                rusqlite::Connection::open_in_memory()?
+            } else {
+                let key = keychain::db_key()?;
+                db::open(&data_dir.join("archive.db"), &key)?
+            };
             let temp_dir = data_dir.join("viewer-temp");
             commands::documents::clear_temp(&temp_dir);
             app.manage(AppState {

@@ -48,6 +48,23 @@ export default function App() {
     try { localStorage.setItem(THEME_KEY, theme); } catch { /* a private window is fine */ }
   }, [theme]);
 
+  // Removed by the admin (Q16): the book and keys are gone; say so plainly.
+  if (setup.data?.removed) {
+    return (
+      <div className="shell">
+        <nav className="nav" aria-label="Main"><div className="brand"><span className="mark">{PRODUCT_SHORT}</span>{PRODUCT_NAME}</div></nav>
+        <div className="page"><div className="page-body" style={{ maxWidth: 560 }}>
+          <div className="card"><div className="card-body stack">
+            <h2>This device was removed from the firm</h2>
+            <p className="muted">The firm's admin removed it. The local book, its documents and the keys on this machine have been deleted. Nothing on the relay or on the firm's other devices was touched.</p>
+            <p className="muted">To use it again, an admin has to invite it afresh (Devices → Invite a device on their machine), then this app can be reinstalled or its data folder emptied and the invite entered on first run.</p>
+          </div></div>
+        </div></div>
+        <Toasts />
+      </div>
+    );
+  }
+
   let screen: React.ReactNode;
   switch (route.name) {
     case "attention": screen = <AttentionScreen />; break;

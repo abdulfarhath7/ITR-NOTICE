@@ -73,17 +73,22 @@ pub struct SetupState {
     pub relay_configured: bool,
     pub permission: Option<String>,
     pub client_count: i64,
+    /// The admin removed this device; the local book was wiped (Q16).
+    pub removed: bool,
 }
 
 /// The first-run wizard shows until it is finished once (or skipped).
 #[tauri::command]
 pub fn get_setup_state(state: State<AppState>) -> AppResult<SetupState> {
     let con = crate::commands::lock_db(&state)?;
-    let done = crate::repo::local::get(&con, "setup_done")?.as_deref() == Some("1");
-    let relay_configured = crate::relay::config(&con)?.is_some();
-    let permission = crate::repo::local::get(&con, crate::relay::KEY_PERMISSION)?;
-    let client_count: i64 = con.query_row("SELECT count(*) FROM clients", [], |r| r.get(0))?;
-    Ok(SetupState { done, relay_configured, permission, client_count })
+    // After a wipe the connection is an empty in-memory database; every
+    // read below tolerates that.
+    let done = crate::repo::local::get(&con, "setup_done").unwrap_or(None).as_deref() == Some("1");
+    let relay_configured = crate::relay::config(&con).unwrap_or(None).is_some();
+    let permission = crate::repo::local::get(&con, crate::relay::KEY_PERMISSION).unwrap_or(None);
+    let client_count: i64 = con.query_row("SELECT count(*) FROM clients", [], |r| r.get(0)).unwrap_or(0);
+    let data_dir = state.settings_path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    Ok(SetupState { done, relay_configured, permission, client_count, removed: crate::wipe::removed_flag(&data_dir) })
 }
 
 #[tauri::command]

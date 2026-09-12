@@ -59,9 +59,21 @@ pub fn due_now(s: &Schedule, now: chrono::NaiveDateTime, last_date: Option<Naive
 /// The background tick, started once at setup.
 pub fn spawn(app: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
+        let mut tick: u64 = 0;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            tick += 1;
             let state = app.state::<crate::AppState>();
+            // Every ten minutes: are we still a device of the firm? (Q16)
+            if tick.is_multiple_of(10) {
+                if let Ok(true) = crate::wipe::check(&state).await {
+                    let _ = crate::wipe::perform(&state).await;
+                    crate::commands::ingestion::notify(&app, "This device was removed from the firm",
+                        "Its local book and keys have been deleted. Close and reopen the app.");
+                    let _ = tauri::Emitter::emit(&app, "ingestion", serde_json::json!({"ev": "state"}));
+                    continue;
+                }
+            }
             let decision = (|| -> AppResult<Option<String>> {
                 let con = crate::commands::lock_db(&state)?;
                 let s = get(&con)?;

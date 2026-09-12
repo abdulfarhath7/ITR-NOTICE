@@ -123,13 +123,22 @@ def test_lock_is_refused_while_held(firm: tuple[TestClient, Device, Device]) -> 
     assert member.call("POST", f"/v1/firms/{admin.firm_id}/locks/{key}").status_code == 200
 
 
-def test_removed_device_gets_nothing(firm: tuple[TestClient, Device, Device]) -> None:
+def test_removed_device_gets_nothing_but_may_hand_over_its_pending_entries(firm: tuple[TestClient, Device, Device]) -> None:
     _, admin, member = firm
     assert member.call("GET", f"/v1/firms/{admin.firm_id}/devices").status_code == 200
     assert admin.call("DELETE", f"/v1/firms/{admin.firm_id}/devices/{member.id}").status_code == 200
-    assert member.call("GET", f"/v1/firms/{admin.firm_id}/devices").status_code == 403
+    r = member.call("GET", f"/v1/firms/{admin.firm_id}/devices")
+    assert r.status_code == 403 and "removed" in r.json()["detail"]
     assert member.call("GET", f"/v1/firms/{admin.firm_id}/changesets").status_code == 403
     assert member.call("POST", f"/v1/firms/{admin.firm_id}/lease").status_code == 403
+    # Q16: the final push of what it wrote before removal is accepted
+    r = member.call("POST", f"/v1/firms/{admin.firm_id}/changesets", raw=b"sealed",
+                    extra={"X-Seq-From": "1", "X-Seq-To": "2", "X-Kind": "user"})
+    assert r.status_code == 200
+    # ...but a sweep publish still needs a lease it cannot hold
+    r = member.call("POST", f"/v1/firms/{admin.firm_id}/changesets", raw=b"sealed",
+                    extra={"X-Seq-From": "3", "X-Seq-To": "3", "X-Kind": "sweep"})
+    assert r.status_code == 403
 
 
 def test_recovery_code_makes_a_new_admin_once(firm: tuple[TestClient, Device, Device]) -> None:

@@ -97,6 +97,13 @@ class Caller:
         self.permission: str = row["permission"]
         self.role: str = row["role"]
         self.name: str = row["name"]
+        self.removed: bool = bool(row["removed_at"])
+
+
+def _is_final_push(request: Request) -> bool:
+    """A removed device may still hand over the entries it wrote before it
+    was removed (Q16: push pending, then wipe). Nothing else."""
+    return request.method == "POST" and request.url.path.endswith("/changesets")
 
 
 async def caller(request: Request,
@@ -113,12 +120,14 @@ async def caller(request: Request,
         row = con.execute("SELECT * FROM devices WHERE id = ?", (x_device_id,)).fetchone()
         if row is None:
             raise HTTPException(401, "unknown device")
-        if row["removed_at"]:
-            raise HTTPException(403, "this device was removed from the firm")
         if not verify_signature(row["public_key"], x_signature,
                                 canonical(request.method, request.url.path, x_timestamp, body)):
             raise HTTPException(401, "bad signature")
-        con.execute("UPDATE devices SET last_seen = ? WHERE id = ?", (now(), x_device_id))
+        if row["removed_at"] and not _is_final_push(request):
+            # The word "removed" is what the device keys its wipe on.
+            raise HTTPException(403, "removed: this device was removed from the firm")
+        if not row["removed_at"]:
+            con.execute("UPDATE devices SET last_seen = ? WHERE id = ?", (now(), x_device_id))
         return Caller(row)
 
 
