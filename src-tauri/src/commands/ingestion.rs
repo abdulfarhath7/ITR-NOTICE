@@ -61,19 +61,34 @@ fn launch(app: AppHandle, state: &AppState, sweep: Sweep, whole_book: bool) -> A
     Ok(sweep.id)
 }
 
+/// OS notification for the moments a run needs a person or has finished;
+/// the screen shows the same thing. Never carries a PAN or a name.
+pub fn notify<R: tauri::Runtime>(app: &AppHandle<R>, title: &str, body: &str) {
+    use tauri::Manager;
+    use tauri_plugin_notification::NotificationExt;
+    // Absent under the test runtime (no plugin managed); never a reason to fail a run.
+    if app.try_state::<tauri_plugin_notification::Notification<R>>().is_none() { return; }
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
 /// `all` sweeps the modules whose cadence is due (Q12); `all_now` sweeps
 /// every module regardless; `module` one module; `client` every module for
 /// one client.
 #[tauri::command]
 pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope, all_now: Option<bool>) -> AppResult<String> {
+    launch_scope(app, &state, scope, all_now.unwrap_or(false))
+}
+
+/// The same entry point the scheduler uses.
+pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: bool) -> AppResult<String> {
     let sweep = {
-        let con = lock_db(&state)?;
+        let con = lock_db(state)?;
         let device_id = local::device_id(&con)?;
         let every: Vec<String> = queue::MODULES.iter().map(|m| m.to_string()).collect();
         let modules: Vec<String> = match &scope {
             Scope::Module { module } => vec![module.clone()],
             Scope::Client { .. } => every,
-            Scope::All => if all_now.unwrap_or(false) { every } else {
+            Scope::All => if all_now { every } else {
                 let due = cadence::modules_due(&con)?;
                 if due.is_empty() { return Err(AppError::state("nothing is due yet by cadence; use Sweep everything now")); }
                 due
@@ -83,7 +98,19 @@ pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope,
         queue::create_sweep(&con, &device_id, &scope, &refs)?
     };
     let whole_book = !matches!(scope, Scope::Client { .. });
-    launch(app, &state, sweep, whole_book)
+    launch(app, state, sweep, whole_book)
+}
+
+#[tauri::command]
+pub fn get_sweep_schedule(state: State<AppState>) -> AppResult<crate::ingest::scheduler::Schedule> {
+    let con = lock_db(&state)?;
+    crate::ingest::scheduler::get(&con)
+}
+
+#[tauri::command]
+pub fn set_sweep_schedule(state: State<AppState>, schedule: crate::ingest::scheduler::Schedule) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    crate::ingest::scheduler::set(&con, &schedule)
 }
 
 #[tauri::command]
@@ -133,7 +160,7 @@ pub async fn refresh_client(app: AppHandle, state: State<'_, AppState>, client_i
         crate::relay::Relay::new(cfg).request_refresh(&login_ref).await?;
         return Ok("queued-to-collector".into());
     }
-    start_ingestion_run(app, state, Scope::Client { client_id }, Some(true))
+    launch_scope(app, &state, Scope::Client { client_id }, true)
 }
 
 #[tauri::command]

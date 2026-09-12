@@ -45,11 +45,17 @@ struct MockSource {
     headers: HashMap<String, Vec<WorkItemHeader>>,
     fail_on: Option<String>,
     listed: Arc<Mutex<Vec<String>>>,
+    /// Raise an OTP challenge at login (task 12.4: pauses, never fails).
+    challenge: bool,
 }
 
 impl NoticeSource for MockSource {
-    fn login<'a>(&'a mut self, _l: &'a LoginRef, _p: &'a str, _s: &'a mut dyn PanelSink) -> BoxFuture<'a, Result<(), SourceError>> {
-        Box::pin(async { Ok(()) })
+    fn login<'a>(&'a mut self, _l: &'a LoginRef, _p: &'a str, sink: &'a mut dyn PanelSink) -> BoxFuture<'a, Result<(), SourceError>> {
+        let challenge = self.challenge;
+        Box::pin(async move {
+            if challenge { sink.on_challenge(&Challenge { kind: "otp".into(), image_b64: None }); }
+            Ok(())
+        })
     }
     fn list_work_items<'a>(&'a mut self, _m: Module, panel: &'a str, sink: &'a mut dyn PanelSink)
         -> BoxFuture<'a, Result<PanelResult, SourceError>> {
@@ -111,7 +117,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     let mut headers = HashMap::new();
     headers.insert("self:action".to_string(), twelve.clone());
     let listed = Arc::new(Mutex::new(Vec::new()));
-    let mut src = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone() };
+    let mut src = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await.unwrap();
     assert_eq!(count(&db, "SELECT count(*) FROM communications"), 12);
@@ -120,7 +126,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     // Second pass, nothing changed: ten known rows in a row stop the panel.
     let sweep2 = sweep(&db);
     let job2 = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep2).unwrap().unwrap() };
-    let mut src2 = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone() };
+    let mut src2 = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false };
     runner(&db, &sweep2).drive_for_test(&mut src2, &job2, "pw").await.unwrap();
     let run_gaps: String = db.lock().unwrap().query_row(
         "SELECT gaps FROM ingestion_runs WHERE panel_swept='self:action' ORDER BY run_at DESC LIMIT 1", [], |r| r.get(0)).unwrap();
@@ -137,7 +143,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     headers3.insert("self:action".to_string(), changed);
     let sweep3 = sweep(&db);
     let job3 = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep3).unwrap().unwrap() };
-    let mut src3 = MockSource { headers: headers3, fail_on: None, listed: listed.clone() };
+    let mut src3 = MockSource { headers: headers3, fail_on: None, listed: listed.clone(), challenge: false };
     runner(&db, &sweep3).drive_for_test(&mut src3, &job3, "pw").await.unwrap();
     let run_gaps: String = db.lock().unwrap().query_row(
         "SELECT gaps FROM ingestion_runs WHERE panel_swept='self:action' ORDER BY run_at DESC LIMIT 1", [], |r| r.get(0)).unwrap();
@@ -152,7 +158,7 @@ async fn zero_result_panels_write_rows_and_gaps_stay_null() {
     let sweep_id = sweep(&db);
     let mut headers = HashMap::new();
     headers.insert("self:action".to_string(), vec![header("self:action", "Issue Letter", "100000000001", None, 0)]);
-    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())) };
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: false };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await.unwrap();
     // Six panels, six rows; five of them found nothing and say so.
@@ -175,7 +181,7 @@ async fn killed_mid_run_resumes_at_the_next_panel_without_duplicates() {
     headers.insert("other_pan:action".to_string(), vec![header("other_pan:action", "Recovery Process", "100000000002", None, 0)]);
     let listed = Arc::new(Mutex::new(Vec::new()));
     // Dies on the third panel.
-    let mut src = MockSource { headers: headers.clone(), fail_on: Some("other_pan:action".into()), listed: listed.clone() };
+    let mut src = MockSource { headers: headers.clone(), fail_on: Some("other_pan:action".into()), listed: listed.clone(), challenge: false };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     let err = runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await;
     assert!(err.is_err());
@@ -185,7 +191,7 @@ async fn killed_mid_run_resumes_at_the_next_panel_without_duplicates() {
 
     // Restart: continues at the third panel, lists only the remaining four.
     listed.lock().unwrap().clear();
-    let mut src2 = MockSource { headers, fail_on: None, listed: listed.clone() };
+    let mut src2 = MockSource { headers, fail_on: None, listed: listed.clone(), challenge: false };
     runner(&db, &sweep_id).drive_for_test(&mut src2, &job_after, "pw").await.unwrap();
     assert_eq!(*listed.lock().unwrap(), vec!["other_pan:action", "other_pan:information", "auth_rep:action", "auth_rep:information"]);
     assert_eq!(count(&db, "SELECT count(*) FROM communications"), 2);
@@ -236,4 +242,24 @@ async fn run_parks_a_login_without_a_password() {
     assert_eq!(jobs_parked, 1);
     assert_eq!(runs_parked, 1);
     assert_eq!(locks, 0, "the lock is released");
+}
+
+/// Task 12.4: a challenge pauses the job (status awaiting_operator, state
+/// shows the challenge) and the run carries on once answered — it does not
+/// fail the job.
+#[tokio::test]
+async fn a_challenge_pauses_rather_than_fails() {
+    let db = db();
+    let sweep_id = sweep(&db);
+    let mut headers = HashMap::new();
+    headers.insert("self:action".to_string(), vec![header("self:action", "Penalty Proceeding", "100000000001", None, 0)]);
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: true };
+    let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
+    let r = runner(&db, &sweep_id);
+    { let con = db.lock().unwrap(); queue::set_job_status(&con, &job.id, "running", None).unwrap(); }
+    crate::ingest::state::update(&r.shared, |st| st.job_id = Some(job.id.clone()));
+    r.drive_for_test(&mut src, &job, "pw").await.unwrap();
+    let status: String = db.lock().unwrap().query_row("SELECT status FROM ingestion_jobs WHERE id = ?1", [&job.id], |x| x.get(0)).unwrap();
+    assert_eq!(status, "awaiting_operator", "paused for a person, not failed");
+    assert_eq!(count(&db, "SELECT count(*) FROM communications"), 1, "and the sweep went on after the answer");
 }

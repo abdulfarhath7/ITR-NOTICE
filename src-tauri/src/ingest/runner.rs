@@ -318,7 +318,15 @@ impl<'a, R: tauri::Runtime> crate::ingest::source::PanelSink for PanelSink<'a, R
     fn on_challenge(&mut self, challenge: &Challenge) {
         let c = challenge.clone();
         state::update(self.shared, |st| { st.awaiting_operator = Some(c); st.phase = Some("awaiting_operator".into()); });
+        // The job is paused, not failed: the queue waits for a person.
+        if let Ok(con) = self.db.lock() {
+            if let Some(job_id) = state::snapshot(self.shared).job_id {
+                let _ = queue::set_job_status(&con, &job_id, "awaiting_operator", None);
+            }
+        }
         let _ = self.app.emit("ingestion", json!({"ev": "challenge", "kind": challenge.kind}));
+        crate::commands::ingestion::notify(self.app, "The portal needs you",
+            &format!("A {} is waiting on the Ingestion screen. The run pauses until it is entered.", challenge.kind));
     }
 
     fn on_log(&mut self, level: &str, msg: &str) {
@@ -461,6 +469,9 @@ impl<R: tauri::Runtime> Runner<R> {
         });
         self.log("info", &format!("run {status}"));
         self.publish();
+        let counts = state::snapshot(&self.shared).counts;
+        crate::commands::ingestion::notify(&self.app, &format!("Sweep {status}"),
+            &format!("{} notices seen, {} fetched, {} changed.", counts.notices, counts.fetched, counts.changed));
     }
 
     async fn run_job(&self, job: &Job) {

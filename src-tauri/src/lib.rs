@@ -75,6 +75,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
@@ -89,6 +90,7 @@ pub fn run() {
                 temp_dir,
                 ingestion: commands::ingestion::IngestionService::default(),
             });
+            ingest::scheduler::spawn(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -108,6 +110,7 @@ pub fn run() {
             commands::work_items::get_demand, commands::work_items::get_return, commands::work_items::get_filed_form,
             commands::ingestion::get_sweep_cadence, commands::ingestion::set_sweep_cadence,
             commands::ingestion::modules_due,
+            commands::ingestion::get_sweep_schedule, commands::ingestion::set_sweep_schedule,
             commands::sync::get_device_info, commands::sync::export_bundle, commands::sync::peek_bundle,
             commands::sync::import_bundle, commands::sync::check_passphrase,
             commands::sync::register_firm, commands::sync::enrol_device, commands::sync::recover_admin,

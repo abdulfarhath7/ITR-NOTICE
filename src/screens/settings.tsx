@@ -5,7 +5,48 @@ import { api, describeError } from "../lib/api";
 import { PRODUCT_NAME } from "../lib/product";
 import { invalidate, useQuery } from "../lib/query";
 import { toast, toastError } from "../lib/toast";
-import type { Cadence, Cadences, DataDirInfo, Settings } from "../lib/types";
+import type { Cadence, Cadences, DataDirInfo, Settings, SweepSchedule } from "../lib/types";
+
+const DAY_LABEL = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function ScheduleCard() {
+  const q = useQuery<SweepSchedule>("schedule", () => api.sweepSchedule());
+  const [draft, setDraft] = useState<SweepSchedule | null>(null);
+  const value = draft ?? q.data;
+  const save = async () => {
+    if (!draft) return;
+    try { await api.setSweepSchedule(draft); invalidate("schedule"); setDraft(null); toast("Schedule saved."); }
+    catch (e) { toastError(describeError(e)); }
+  };
+  if (!value) return null;
+  return (
+    <div className="card">
+      <div className="card-head"><h2>Unattended sweep</h2>{value.enabled ? <span className="pill success">on</span> : <span className="pill">off</span>}</div>
+      <div className="card-body stack">
+        <p className="muted">At this time (IST) on these days the collector starts a sweep by itself. If the portal asks for an OTP or a captcha, the run pauses and the app alerts — it never fails for want of a person. Under a relay only the nominated collector runs it.</p>
+        <label className="check"><input type="checkbox" checked={value.enabled} onChange={(e) => setDraft({ ...value, enabled: e.target.checked })} /> Enabled</label>
+        <div className="row">
+          <Field label="Time (IST)"><input className="input mono" type="time" value={value.time} onChange={(e) => setDraft({ ...value, time: e.target.value })} /></Field>
+          <Field label="Sweep">
+            <select className="select" value={value.scope} onChange={(e) => setDraft({ ...value, scope: e.target.value as "due" | "all" })}>
+              <option value="due">What is due by cadence</option><option value="all">Every module</option>
+            </select>
+          </Field>
+        </div>
+        <div className="row">
+          {DAY_LABEL.map((d, i) => (
+            <label key={d} className="check">
+              <input type="checkbox" checked={value.days.includes(i + 1)}
+                     onChange={(e) => setDraft({ ...value, days: e.target.checked ? [...value.days, i + 1].sort() : value.days.filter((x) => x !== i + 1) })} />
+              {d}
+            </label>
+          ))}
+        </div>
+        <div className="row"><button className="btn accent" disabled={!draft} onClick={() => { void save(); }}>Save</button></div>
+      </div>
+    </div>
+  );
+}
 import Field from "../ui/field";
 
 const CADENCES: { key: Cadence; label: string }[] = [
@@ -95,6 +136,7 @@ export default function SettingsScreen({ theme, onTheme }: { theme: "dark" | "li
             </div>
           </div>
           <CadenceCard />
+          <ScheduleCard />
           <DataCard />
           <div className="card">
             <div className="card-head"><h2>Appearance</h2></div>

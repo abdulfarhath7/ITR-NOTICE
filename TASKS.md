@@ -155,7 +155,7 @@ Read the updated `QUESTIONS.md` first. Each task below corresponds to an answer 
   - *Done when:* `app/` is gone, `./scripts/check.sh` exits 0, the desktop app still starts, and `relay/` still runs.
 - [x] **12.2** (Q21) Rename to **Litigation Command Center**: `productName` in `tauri.conf.json`, window title, frontend constant, export header, installer filename. Change the bundle extension `.draftax` to `.lcc` including the importer's accepted extensions.
 - [x] **12.3** (Q21) Fix the bundle identifier typo `in.llc.app` → `in.lcc.app`. Do this before any installer ships. Pick "Center" or "Centre" and apply it in every string.
-- [ ] **12.4** (Q09) Add a scheduler. An unattended run starts at a configured time, works the queue by itself, and only pauses if a login challenge actually appears. Keep the entire attended flow as the fallback path — do not delete it.
+- [x] **12.4** (Q09) Add a scheduler. An unattended run starts at a configured time, works the queue by itself, and only pauses if a login challenge actually appears. Keep the entire attended flow as the fallback path — do not delete it.
   - *Done when:* a scheduled run completes end to end with nobody present, and a forced challenge pauses it rather than failing it.
 - [ ] **12.5** (Q08) Move ingestion concurrency to a single config constant, default 1. No other code should assume sequentiality. Document in `NOTES.md` the two tests that would justify raising it.
 - [ ] **12.6** (Q14) Manual due date may override a portal date. Both are stored and both are displayed, clearly labelled. The manual date drives the Attention ranking and the overdue calculation; export column 13 still carries the portal date. A promoted AI suggestion writes `manual_due_date`, never `due_date`.

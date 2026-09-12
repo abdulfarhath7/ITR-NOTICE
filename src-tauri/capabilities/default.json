@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Main window: our own Rust commands, plus the file dialog (pick a CSV, choose where to save) and the opener (show a PDF in the OS viewer). No fs access from the webview.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:default", "opener:default"]
+  "permissions": ["core:default", "dialog:default", "opener:default", "notification:default"]
 }

@@ -296,3 +296,17 @@ an archive found under the old folder and copies keychain entries forward
 from the old service name, so no installed archive is orphaned. Crate and
 npm package names stay `llc` (invisible to users; not worth a rename).
 Reversible: the identifier deliberately not, after the first installer.
+
+## D-027 — Unattended by schedule, attended as the fallback (supersedes D-002)
+Date: 2026-09-12
+Context: Q09 answered: OTP is rare or never in practice. D-002 built the
+whole run around a human at the machine.
+Decision: A scheduler (`ingest/scheduler.rs`, Settings → Unattended sweep)
+starts a sweep at a configured IST time on configured days, once per day,
+on the collector only when a relay is configured. The run is the same
+attended runner: a captcha or OTP pauses the job (`awaiting_operator`)
+and the app alerts with an OS notification and a sidebar pill; nothing
+times out or fails for want of a person. Sequential ingestion stands
+until Q08 is tested (D-028).
+Rejected: A separate unattended code path (two runners to keep honest).
+Reversible: easily.

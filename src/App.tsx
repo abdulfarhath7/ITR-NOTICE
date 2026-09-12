@@ -13,7 +13,7 @@ import { api } from "./lib/api";
 import { useQuery } from "./lib/query";
 import type { SetupState } from "./lib/types";
 import WorkItemScreen from "./screens/work-item";
-import SyncButton from "./ui/sync-button";
+import SyncButton, { RunIndicator } from "./ui/sync-button";
 import Toasts from "./ui/toasts";
 
 const THEME_KEY = "lcc.theme";
@@ -68,6 +68,7 @@ export default function App() {
           <a key={n.label} href={href(n.route)} aria-current={current(route, n.route) ? "page" : undefined}>{n.label}</a>
         ))}
         <span className="spacer" />
+        <div className="footer"><RunIndicator /></div>
         <div className="footer"><SyncButton /></div>
         <div className="footer">Read-only against the portal.</div>
       </nav>

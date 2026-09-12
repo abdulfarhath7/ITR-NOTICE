@@ -506,3 +506,5 @@ export interface ExportReport { path: string; proceedings: number; demands: numb
 
 export interface DataDirInfo { path: string; archive_bytes: number }
 export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number }
+
+export interface SweepSchedule { enabled: boolean; time: string; days: number[]; scope: "due" | "all" }

@@ -6,6 +6,7 @@
 pub mod eri_source;
 pub mod portal_source;
 pub mod runner;
+pub mod scheduler;
 pub mod source;
 pub mod state;
 

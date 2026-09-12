@@ -5,7 +5,7 @@ import type {
   BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
   RelayConfig, Roster, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
-  ProceedingDetail, ReturnDetail, Scope, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
+  ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
 
 export const api = {
@@ -48,6 +48,8 @@ export const api = {
   sweepCadence: () => invoke<Cadences>("get_sweep_cadence"),
   setSweepCadence: (cadences: Cadences) => invoke<void>("set_sweep_cadence", { cadences }),
   modulesDue: () => invoke<string[]>("modules_due"),
+  sweepSchedule: () => invoke<SweepSchedule>("get_sweep_schedule"),
+  setSweepSchedule: (schedule: SweepSchedule) => invoke<void>("set_sweep_schedule", { schedule }),
   resumeSweep: (sweepId: string) => invoke<string>("resume_ingestion_sweep", { sweepId }),
   refreshClient: (clientId: string) => invoke<string>("refresh_client", { clientId }),
   pauseIngestion: () => invoke<void>("pause_ingestion_run"),
