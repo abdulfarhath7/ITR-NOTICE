@@ -1,0 +1,238 @@
+//! Row structs, one per table, every column present. Serialising one of
+//! these is the ledger payload ("JSON of the full row after the change"),
+//! so nothing may be skipped or renamed here.
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Client {
+    pub id: String,
+    pub client_code: Option<String>,
+    pub name: String,
+    pub pan: String,
+    pub gstin: Option<String>,
+    pub entity_type: String,
+    pub client_group: Option<String>,
+    pub phone_cc: String,
+    pub phone: Option<String>,
+    pub email: Option<String>,
+    pub portal_login_ref: Option<String>,
+    pub source: String,
+    pub client_file_no: Option<String>,
+    pub tags: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct YearContext {
+    pub id: String,
+    pub client_id: String,
+    pub assessment_year: Option<String>,
+    pub financial_year: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Proceeding {
+    pub id: String,
+    pub year_context_id: String,
+    pub proceeding_type_id: String,
+    pub natural_key: String,
+    pub display_name: Option<String>,
+    pub assessee_name: Option<String>,
+    pub section_2025: Option<String>,
+    pub section_1961: Option<String>,
+    pub din_reference: Option<String>,
+    pub authority: Option<String>,
+    pub initiated_on: Option<String>,
+    pub due_date: Option<String>,
+    pub manual_due_date: Option<String>,
+    pub suggested_due_date: Option<String>,
+    pub limitation_date: Option<String>,
+    pub hearing_date: Option<String>,
+    pub status: String,
+    pub portal_status: Option<String>,
+    pub closure_date: Option<String>,
+    pub closure_order: Option<String>,
+    pub source_panel: String,
+    pub created_mode: String,
+    pub appeal_number: Option<String>,
+    pub order_appealed_against: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Communication {
+    pub id: String,
+    pub proceeding_id: String,
+    pub communication_type_id: String,
+    pub reference_id: String,
+    pub din: Option<String>,
+    pub section_2025: Option<String>,
+    pub section_1961: Option<String>,
+    pub description: Option<String>,
+    pub issued_on: Option<String>,
+    pub served_on: Option<String>,
+    pub response_due_date: Option<String>,
+    pub ao_viewed_on: Option<String>,
+    pub status: String,
+    pub direction: String,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Response {
+    pub id: String,
+    pub proceeding_id: String,
+    pub in_reply_to: Option<String>,
+    pub response_mode: String,
+    pub filed_on: Option<String>,
+    pub filed_by: Option<String>,
+    pub remarks: Option<String>,
+    pub transaction_id: Option<String>,
+    pub direction: String,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdjournmentRequest {
+    pub id: String,
+    pub proceeding_id: String,
+    pub sought_date: Option<String>,
+    pub reason: Option<String>,
+    pub outcome: Option<String>,
+    pub filed_on: Option<String>,
+    pub verified_flag: i64,
+    pub gap_flags: Option<String>,
+    pub row_hash: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Document {
+    pub id: String,
+    pub parent_type: String,
+    pub parent_id: String,
+    pub doc_kind: String,
+    pub filename: Option<String>,
+    pub file_hash: Option<String>,
+    pub source_url: Option<String>,
+    pub fetched_at: Option<String>,
+    pub page_count: Option<i64>,
+    pub byte_size: Option<i64>,
+    pub state: String,
+    pub storage_path: Option<String>,
+    pub verified_flag: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Draft {
+    pub id: String,
+    pub communication_id: String,
+    pub generated_at: Option<String>,
+    pub model: Option<String>,
+    pub summary: Option<String>,
+    pub checklist_json: Option<String>,
+    pub draft_text: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeEntry {
+    pub id: String,
+    pub registry_name: String,
+    pub code: String,
+    pub label: String,
+    pub category: Option<String>,
+    pub statute: Option<String>,
+    pub field_template: Option<String>,
+    pub status_set: Option<String>,
+    pub sort_order: i64,
+    pub active: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngestionRun {
+    pub id: String,
+    pub run_at: String,
+    pub device_id: String,
+    pub client_id: Option<String>,
+    pub module: String,
+    pub panel_swept: Option<String>,
+    pub records_found: i64,
+    pub gaps: Option<String>,
+    pub operator: Option<String>,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: String,
+}
+
+/// The status state machine (docs/02-data-model.md). Stored as text; this
+/// enum is the one place the allowed set is spelled out in Rust.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Status {
+    Open,
+    AdjournmentSought,
+    ResponseSubmitted,
+    Closed,
+    Unknown,
+}
+
+impl Status {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Status::Open => "open",
+            Status::AdjournmentSought => "adjournment_sought",
+            Status::ResponseSubmitted => "response_submitted",
+            Status::Closed => "closed",
+            Status::Unknown => "unknown",
+        }
+    }
+
+    pub fn parse(s: &str) -> Status {
+        match s {
+            "open" => Status::Open,
+            "adjournment_sought" => Status::AdjournmentSought,
+            "response_submitted" => Status::ResponseSubmitted,
+            "closed" => Status::Closed,
+            _ => Status::Unknown,
+        }
+    }
+
+    /// The portal's own words. Anything unrecognised is `unknown`, never a
+    /// guess.
+    pub fn from_portal(word: Option<&str>) -> Status {
+        match word.map(|w| w.trim().to_ascii_lowercase()).as_deref() {
+            Some("open") => Status::Open,
+            Some("closed") => Status::Closed,
+            Some("submitted") | Some("response submitted") => Status::ResponseSubmitted,
+            Some("adjournment sought") => Status::AdjournmentSought,
+            _ => Status::Unknown,
+        }
+    }
+}

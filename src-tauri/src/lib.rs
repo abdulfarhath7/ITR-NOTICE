@@ -1,7 +1,11 @@
 mod claude;
+mod dates;
 mod db;
+mod error;
+mod ids;
 mod keychain;
 mod migrate;
+mod repo;
 mod scraper;
 
 use claude::{DraftAnswer, DueDateAnswer, Proxy};

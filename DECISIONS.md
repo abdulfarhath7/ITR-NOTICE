@@ -73,3 +73,64 @@ Rejected: Deleting them — task 0.1 says delete nothing yet, and the legacy
 questions (updater, code signing, NSIS mode) are still unanswered and still
 matter for Phase 10.
 Reversible: easily.
+
+## D-007 — "Year not stated" is a year context with a NULL assessment year
+Date: 2026-09-12
+Context: The portal issues letters (Issue Letter, Recovery Process, some DRP
+rows) that carry no assessment year. The spine requires every proceeding to
+hang off a year context, and inventing a year is forbidden.
+Decision: `year_contexts.assessment_year` is nullable; each client may have
+exactly one such context (partial unique index). It renders as "Year not
+stated". The proceeding carries `assessment_year` in `gap_flags`.
+Rejected: A sentinel string like `unknown` (pollutes exports and sorts
+oddly); a nullable `year_context_id` (breaks "child of one parent").
+Reversible: with migration.
+
+## D-008 — Documents are content-addressed blobs inside the encrypted archive
+Date: 2026-09-12
+Context: `docs/07` wants an encrypted document store; `docs/03` wants
+documents deduplicated by hash; the previous build already kept PDFs in the
+SQLCipher file.
+Decision: `document_blobs(file_hash PK, bytes)` in the same SQLCipher
+database; `documents.storage_path` is the locator `blob:<sha256>`. One copy
+per hash, encryption inherited, one file to back up.
+Rejected: Files on disk under a `documents/<hash>` folder — would need a
+second encryption layer and a second backup story.
+Reversible: with migration (the locator string is designed for it).
+
+## D-009 — Backfill attaches PAN-less "Self" cards to the login PAN
+Date: 2026-09-12
+Context: 2 of 28 legacy proceedings printed no PAN. They sit on the "Self"
+tab, which by the portal's definition is the logged-in taxpayer's own book.
+Decision: The migration uses the PAN most seen on the Self tab, records
+`pan` in `gap_flags`, and leaves `verified_flag = 0`. Live ingestion does the
+same with the login PAN of the session.
+Rejected: Refusing those rows (data loss); a placeholder client (invents an
+entity).
+Reversible: easily — the gap flag marks every affected row.
+
+## D-010 — A proceeding's due_date is a roll-up of its notices' stated dates
+Date: 2026-09-12
+Context: The portal prints "Response Due Date" on the notice card, not on the
+proceeding card. `proceedings.due_date` in the spec is the portal-stated
+response due date.
+Decision: `proceedings.due_date` = the earliest `response_due_date` among the
+proceeding's still-open communications, recomputed by
+`repo::proceedings::refresh_due_date` after every write. NULL, with a gap
+flag, when no open communication states one. Never computed from anything
+else.
+Rejected: Leaving it NULL always (the attention list ranks on it); copying
+the latest notice's date regardless of status (a closed notice would keep an
+open proceeding "overdue").
+Reversible: easily.
+
+## D-011 — A legacy Claude-sourced due date becomes a suggestion
+Date: 2026-09-12
+Context: The previous build wrote Claude's due date into `notices.due_date`
+with `due_date_source = 'claude'`. The spec forbids an AI date in the stated
+column.
+Decision: The backfill and live intake move such a date to
+`proceedings.suggested_due_date` and record `response_due_date` as a gap.
+The legacy archive on this machine has no such rows; the rule exists for the
+ones that do.
+Reversible: yes.

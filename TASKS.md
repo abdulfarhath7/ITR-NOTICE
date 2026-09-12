@@ -23,14 +23,14 @@ Legend: `[ ]` todo · `[x]` done · `[~]` partially done, see NOTES.md
 
 Read `docs/02-data-model.md` in full first.
 
-- [ ] **1.1** Migration: `clients`, `year_contexts`. Move assessment year off proceedings and onto `year_contexts`.
-- [ ] **1.2** Migration: `type_registry` plus seed rows for proceeding types, communication types, form types, demand reason codes.
+- [x] **1.1** Migration: `clients`, `year_contexts`. Move assessment year off proceedings and onto `year_contexts`.
+- [x] **1.2** Migration: `type_registry` plus seed rows for proceeding types, communication types, form types, demand reason codes.
   - *Done when:* adding a new proceeding type requires only an INSERT.
-- [ ] **1.3** Migration: `proceedings` with `section_2025`, `section_1961`, `limitation_date`, `authority`, `source_panel`, `created_mode`, `status`, `verified_flag`, `gap_flags`.
-- [ ] **1.4** Migration: `communications` (direction inbound) and `responses` (direction outbound, nullable `in_reply_to`, `response_mode`).
-- [ ] **1.5** Migration: `adjournment_requests`.
-- [ ] **1.6** Migration: `documents` — one polymorphic store, `doc_kind`, `parent_type`, `parent_id`, `file_hash`, `source_url`, `fetched_at`, `page_count`, `verified_flag`.
-- [ ] **1.7** Migration: `ingestion_runs` — `run_at`, `panel_swept`, `records_found`, `gaps`, `operator`, `status`.
+- [x] **1.3** Migration: `proceedings` with `section_2025`, `section_1961`, `limitation_date`, `authority`, `source_panel`, `created_mode`, `status`, `verified_flag`, `gap_flags`.
+- [x] **1.4** Migration: `communications` (direction inbound) and `responses` (direction outbound, nullable `in_reply_to`, `response_mode`).
+- [x] **1.5** Migration: `adjournment_requests`.
+- [x] **1.6** Migration: `documents` — one polymorphic store, `doc_kind`, `parent_type`, `parent_id`, `file_hash`, `source_url`, `fetched_at`, `page_count`, `verified_flag`.
+- [x] **1.7** Migration: `ingestion_runs` — `run_at`, `panel_swept`, `records_found`, `gaps`, `operator`, `status`.
 - [ ] **1.8** Backfill existing notice rows into the new shape. No data loss.
   - *Done when:* row counts before and after reconcile, and a spot check of ten notices matches.
 - [ ] **1.9** Update all read paths to the new schema. Delete the old tables in a separate migration only after the app runs green.

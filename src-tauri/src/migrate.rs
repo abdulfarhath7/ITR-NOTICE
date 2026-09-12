@@ -12,17 +12,38 @@ use thiserror::Error;
 pub struct Migration {
     pub version: u32,
     pub name: &'static str,
-    pub sql: &'static str,
+    pub step: Step,
 }
 
-macro_rules! migration {
+/// A migration is either a SQL file or, when the shape change needs ids,
+/// hashes or parsing SQL cannot do, a Rust function run inside the same
+/// transaction.
+pub enum Step {
+    Sql(&'static str),
+    Code(fn(&rusqlite::Transaction) -> Result<(), MigrateError>),
+}
+
+macro_rules! sql {
     ($version:expr, $name:literal, $file:literal) => {
-        Migration { version: $version, name: $name, sql: include_str!(concat!("../../migrations/", $file)) }
+        Migration { version: $version, name: $name,
+                    step: Step::Sql(include_str!(concat!("../../migrations/", $file))) }
+    };
+}
+macro_rules! code {
+    ($version:expr, $name:literal, $f:path) => {
+        Migration { version: $version, name: $name, step: Step::Code($f) }
     };
 }
 
 pub const MIGRATIONS: &[Migration] = &[
-    migration!(1, "baseline", "0001_baseline.sql"),
+    sql!(1, "baseline", "0001_baseline.sql"),
+    sql!(2, "clients_year_contexts", "0002_clients_year_contexts.sql"),
+    sql!(3, "type_registry", "0003_type_registry.sql"),
+    sql!(4, "proceedings", "0004_proceedings.sql"),
+    sql!(5, "communications_responses", "0005_communications_responses.sql"),
+    sql!(6, "adjournment_requests", "0006_adjournment_requests.sql"),
+    sql!(7, "documents", "0007_documents.sql"),
+    sql!(8, "ingestion_runs_drafts", "0008_ingestion_runs_drafts.sql"),
 ];
 
 #[derive(Debug, Error)]
@@ -37,6 +58,9 @@ pub enum MigrateError {
     /// programming error caught at startup, not a runtime condition.
     #[error("migration list is not contiguous at version {0}")]
     NotContiguous(u32),
+    /// A code migration found data it cannot carry across without loss.
+    #[error("migration {version} refused: {reason}")]
+    Refused { version: u32, reason: String },
 }
 
 /// Bring `con` up to the latest version this build knows. Safe to call on
@@ -63,7 +87,10 @@ pub fn run(con: &mut Connection) -> Result<u32, MigrateError> {
 
     for m in MIGRATIONS.iter().filter(|m| m.version > current) {
         let tx = con.transaction()?;
-        tx.execute_batch(m.sql)?;
+        match m.step {
+            Step::Sql(sql) => tx.execute_batch(sql)?,
+            Step::Code(f) => f(&tx)?,
+        }
         tx.execute(
             "INSERT INTO schema_migrations (version, name, applied_at)
              VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
@@ -97,7 +124,9 @@ mod tests {
             .unwrap()
             .collect::<Result<_, _>>()
             .unwrap();
-        for required in ["proceedings", "notices", "drafts", "runs", "schema_migrations"] {
+        for required in ["clients", "year_contexts", "type_registry", "proceedings", "communications",
+                         "responses", "adjournment_requests", "documents", "document_blobs",
+                         "ingestion_runs", "drafts", "local_kv", "schema_migrations"] {
             assert!(tables.iter().any(|t| t == required), "missing table {required}");
         }
         // idempotent
@@ -109,7 +138,8 @@ mod tests {
     #[test]
     fn legacy_archive_adopts_baseline() {
         let mut con = Connection::open_in_memory().unwrap();
-        con.execute_batch(MIGRATIONS[0].sql).unwrap();
+        let Step::Sql(baseline) = MIGRATIONS[0].step else { panic!("baseline is SQL") };
+        con.execute_batch(baseline).unwrap();
         assert_eq!(run(&mut con).unwrap(), MIGRATIONS.last().unwrap().version);
     }
 }

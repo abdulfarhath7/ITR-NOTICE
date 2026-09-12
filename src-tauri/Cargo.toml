@@ -26,6 +26,9 @@ chrono = "0.4"
 rand = "0.8"
 hex = "0.4"
 thiserror = "2"
+uuid = { version = "1", features = ["v7"] }
+sha2 = "0.10"
+chrono-tz = "0.10"
 
 [profile.release]
 codegen-units = 1

@@ -67,7 +67,7 @@ pub fn absorb_notice(con: &Connection, n: &IncomingNotice, pdf: Option<Vec<u8>>)
     let tab = n.tab.clone().unwrap_or_else(|| "self".into());
     let sub = n.sub_tab.clone().unwrap_or_else(|| "action".into());
     con.execute(
-        r#"INSERT INTO proceedings (tab, sub_tab, proceeding_name, pan, assessee_name,
+        r#"INSERT INTO legacy_proceedings (tab, sub_tab, proceeding_name, pan, assessee_name,
               assessment_year, financial_year, applicable_act, status, closure_date, closure_order)
            VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
            ON CONFLICT(tab, sub_tab, proceeding_name, pan, assessment_year) DO UPDATE SET
@@ -79,7 +79,7 @@ pub fn absorb_notice(con: &Connection, n: &IncomingNotice, pdf: Option<Vec<u8>>)
                 n.closure_date, n.closure_order],
     ).map_err(e)?;
     let pid: i64 = con.query_row(
-        "SELECT id FROM proceedings WHERE tab=?1 AND sub_tab=?2 AND proceeding_name IS ?3
+        "SELECT id FROM legacy_proceedings WHERE tab=?1 AND sub_tab=?2 AND proceeding_name IS ?3
            AND pan IS ?4 AND assessment_year IS ?5",
         params![tab, sub, n.proceeding_name, n.pan, n.assessment_year],
         |r| r.get(0),
@@ -88,7 +88,7 @@ pub fn absorb_notice(con: &Connection, n: &IncomingNotice, pdf: Option<Vec<u8>>)
     // Keep an existing PDF if this event carries none (the staging cache
     // replays a row without the blob after the first time).
     con.execute(
-        r#"INSERT INTO notices (proceeding_id, ref_id, notice_us, doc_ref_id, description,
+        r#"INSERT INTO legacy_notices (proceeding_id, ref_id, notice_us, doc_ref_id, description,
               issued_on, served_on, due_date, due_date_source, ao_viewed_on, responded,
               pdf_blob, downloaded_at)
            VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
@@ -97,10 +97,10 @@ pub fn absorb_notice(con: &Connection, n: &IncomingNotice, pdf: Option<Vec<u8>>)
               description=excluded.description, issued_on=excluded.issued_on,
               served_on=excluded.served_on, ao_viewed_on=excluded.ao_viewed_on,
               responded=excluded.responded,
-              due_date=CASE WHEN notices.due_date_source='claude' THEN notices.due_date ELSE excluded.due_date END,
-              due_date_source=CASE WHEN notices.due_date_source='claude' THEN 'claude' ELSE excluded.due_date_source END,
-              pdf_blob=COALESCE(excluded.pdf_blob, notices.pdf_blob),
-              downloaded_at=COALESCE(excluded.downloaded_at, notices.downloaded_at)"#,
+              due_date=CASE WHEN legacy_notices.due_date_source='claude' THEN legacy_notices.due_date ELSE excluded.due_date END,
+              due_date_source=CASE WHEN legacy_notices.due_date_source='claude' THEN 'claude' ELSE excluded.due_date_source END,
+              pdf_blob=COALESCE(excluded.pdf_blob, legacy_notices.pdf_blob),
+              downloaded_at=COALESCE(excluded.downloaded_at, legacy_notices.downloaded_at)"#,
         params![pid, n.ref_id, n.notice_us, n.doc_ref_id, n.description, n.issued_on,
                 n.served_on, n.due_date, n.due_date_source.clone().or(Some("portal".into())),
                 n.ao_viewed_on, n.responded, pdf, n.downloaded_at],
@@ -136,9 +136,9 @@ pub fn list_notices(con: &Connection) -> DbResult<Vec<NoticeRow>> {
         r#"SELECT n.ref_id, n.notice_us, n.description, n.issued_on, n.served_on,
                   n.due_date, n.due_date_source, n.due_date_basis, n.responded,
                   n.pdf_blob IS NOT NULL,
-                  EXISTS(SELECT 1 FROM drafts d WHERE d.ref_id = n.ref_id),
+                  EXISTS(SELECT 1 FROM legacy_drafts d WHERE d.ref_id = n.ref_id),
                   p.proceeding_name, p.pan, p.assessee_name, p.assessment_year, p.status
-           FROM notices n LEFT JOIN proceedings p ON p.id = n.proceeding_id
+           FROM legacy_notices n LEFT JOIN legacy_proceedings p ON p.id = n.proceeding_id
            ORDER BY n.due_date IS NULL, n.due_date"#,
     ).map_err(e)?;
     let rows = st.query_map([], |r| {
@@ -155,7 +155,7 @@ pub fn list_notices(con: &Connection) -> DbResult<Vec<NoticeRow>> {
 }
 
 pub fn get_pdf(con: &Connection, ref_id: &str) -> DbResult<Option<Vec<u8>>> {
-    con.query_row("SELECT pdf_blob FROM notices WHERE ref_id=?1", [ref_id], |r| r.get(0))
+    con.query_row("SELECT pdf_blob FROM legacy_notices WHERE ref_id=?1", [ref_id], |r| r.get(0))
         .optional().map_err(e).map(|o: Option<Option<Vec<u8>>>| o.flatten())
 }
 
@@ -165,7 +165,7 @@ pub fn get_notice(con: &Connection, ref_id: &str) -> DbResult<Option<NoticeRow>>
 
 pub fn set_claude_due_date(con: &Connection, ref_id: &str, due: &str, basis: Option<&str>) -> DbResult<()> {
     con.execute(
-        "UPDATE notices SET due_date=?1, due_date_source='claude', due_date_basis=?2 WHERE ref_id=?3",
+        "UPDATE legacy_notices SET due_date=?1, due_date_source='claude', due_date_basis=?2 WHERE ref_id=?3",
         params![due, basis, ref_id],
     ).map_err(e)?;
     Ok(())
@@ -182,7 +182,7 @@ pub struct Draft {
 
 pub fn get_draft(con: &Connection, ref_id: &str) -> DbResult<Option<Draft>> {
     con.query_row(
-        "SELECT ref_id, generated_at, summary, checklist_json, draft_text FROM drafts WHERE ref_id=?1",
+        "SELECT ref_id, generated_at, summary, checklist_json, draft_text FROM legacy_drafts WHERE ref_id=?1",
         [ref_id],
         |r| {
             let cj: Option<String> = r.get(3)?;
@@ -198,7 +198,7 @@ pub fn get_draft(con: &Connection, ref_id: &str) -> DbResult<Option<Draft>> {
 
 pub fn save_draft(con: &Connection, d: &Draft) -> DbResult<()> {
     con.execute(
-        r#"INSERT INTO drafts (ref_id, generated_at, summary, checklist_json, draft_text)
+        r#"INSERT INTO legacy_drafts (ref_id, generated_at, summary, checklist_json, draft_text)
            VALUES (?1, datetime('now'), ?2, ?3, ?4)
            ON CONFLICT(ref_id) DO UPDATE SET generated_at=datetime('now'),
               summary=excluded.summary, checklist_json=excluded.checklist_json,
@@ -209,6 +209,6 @@ pub fn save_draft(con: &Connection, d: &Draft) -> DbResult<()> {
 }
 
 pub fn update_draft_text(con: &Connection, ref_id: &str, text: &str) -> DbResult<()> {
-    con.execute("UPDATE drafts SET draft_text=?1 WHERE ref_id=?2", params![text, ref_id]).map_err(e)?;
+    con.execute("UPDATE legacy_drafts SET draft_text=?1 WHERE ref_id=?2", params![text, ref_id]).map_err(e)?;
     Ok(())
 }
