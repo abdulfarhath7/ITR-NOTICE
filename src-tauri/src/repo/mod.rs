@@ -14,3 +14,4 @@ pub mod proceedings;
 pub mod registry;
 pub mod rows;
 pub mod runs;
+pub mod work_items;

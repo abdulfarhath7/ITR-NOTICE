@@ -1,276 +1,94 @@
+// Repository functions are written ahead of the phases that call them
+// (TASKS.md); the dead-code lint is re-enabled once Phase 7 lands.
+#![allow(dead_code)]
+
 mod backfill;
 mod claude;
+mod commands;
+mod csv_import;
 mod dates;
 mod db;
 mod error;
+mod gstin;
 mod ids;
 mod intake;
 mod keychain;
+mod mask;
 mod migrate;
 mod repo;
 mod scraper;
 
-use claude::{DraftAnswer, DueDateAnswer, Proxy};
-use db::{Draft, NoticeRow};
-use error::AppError;
+use db::NoticeRow;
+use error::AppResult;
 use rusqlite::Connection;
 use scraper::Scraper;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager, State};
+use tauri::{Manager, State};
 use tokio::sync::Mutex as AsyncMutex;
 
 pub struct AppState {
-    db: Arc<Mutex<Connection>>,
-    scraper: AsyncMutex<Option<Scraper>>,
-    settings_path: std::path::PathBuf,
+    pub db: Arc<Mutex<Connection>>,
+    pub scraper: AsyncMutex<Option<Scraper>>,
+    pub settings_path: std::path::PathBuf,
+    /// Unencrypted scratch for documents handed to the OS viewer; cleared
+    /// on every launch.
+    pub temp_dir: std::path::PathBuf,
 }
 
-type R<T> = Result<T, String>;
-
-fn lock_db(state: &AppState) -> R<std::sync::MutexGuard<'_, Connection>> {
-    state.db.lock().map_err(|e| e.to_string())
-}
-
-// ------------------------------------------------------------ settings
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct Settings {
-    pub proxy_url: String,
-    /// Not persisted here - lives in the keychain. Present in the struct so
-    /// the settings form is one object in and out.
-    #[serde(default)]
-    pub firm_token: String,
-    pub remember_password: bool,
-    pub last_user_id: String,
-}
-
-fn read_settings(state: &AppState) -> Settings {
-    let mut s: Settings = std::fs::read_to_string(&state.settings_path)
-        .ok()
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default();
-    if s.proxy_url.is_empty() {
-        s.proxy_url = "http://localhost:8787".into();
-    }
-    s.firm_token = keychain::load_secret(keychain::FIRM_TOKEN).ok().flatten().unwrap_or_default();
-    s
-}
-
-fn write_settings(state: &AppState, settings: Settings) -> R<()> {
-    keychain::save_secret(keychain::FIRM_TOKEN, &settings.firm_token)?;
-    let on_disk = Settings { firm_token: String::new(), ..settings };
-    std::fs::write(&state.settings_path, serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())
-}
-
+/// The legacy notice list the current dashboard reads. Replaced screen by
+/// screen by `list_work_items`.
 #[tauri::command]
-fn get_settings(state: State<AppState>) -> R<Settings> {
-    Ok(read_settings(&state))
-}
-
-#[tauri::command]
-fn save_settings(state: State<AppState>, settings: Settings) -> R<()> {
-    write_settings(&state, settings)
-}
-
-fn proxy(state: &AppState) -> R<Proxy> {
-    let s = read_settings(state);
-    if s.firm_token.is_empty() {
-        return Err("add your firm token in Settings first".into());
-    }
-    Ok(Proxy { base_url: s.proxy_url, firm_token: s.firm_token })
-}
-
-// ------------------------------------------------------------ archive
-
-#[tauri::command]
-fn list_notices(state: State<AppState>) -> Result<Vec<NoticeRow>, AppError> {
-    let con = lock_db(&state)?;
+fn list_notices(state: State<AppState>) -> AppResult<Vec<NoticeRow>> {
+    let con = commands::lock_db(&state)?;
     db::list_notices(&con)
 }
 
 /// Base64 so the webview can build a blob: URL and show it in an <iframe>.
 #[tauri::command]
-fn get_notice_pdf(state: State<AppState>, ref_id: String) -> Result<String, AppError> {
+fn get_notice_pdf(state: State<AppState>, ref_id: String) -> AppResult<String> {
     use base64::Engine;
-    let con = lock_db(&state)?;
-    let pdf = db::get_pdf(&con, &ref_id)?.ok_or_else(|| AppError::not_found("PDF for this notice"))?;
+    let con = commands::lock_db(&state)?;
+    let pdf = db::get_pdf(&con, &ref_id)?.ok_or_else(|| error::AppError::not_found("PDF for this notice"))?;
     Ok(base64::engine::general_purpose::STANDARD.encode(pdf))
 }
 
-#[tauri::command]
-fn get_draft(state: State<AppState>, ref_id: String) -> Result<Option<Draft>, AppError> {
-    let con = lock_db(&state)?;
-    db::get_draft(&con, &ref_id)
-}
-
-#[tauri::command]
-fn save_draft_text(state: State<AppState>, ref_id: String, draft_text: String) -> Result<(), AppError> {
-    let con = lock_db(&state)?;
-    db::update_draft_text(&con, &ref_id, &draft_text)
-}
-
-// ------------------------------------------------------------ credentials
-
-#[tauri::command]
-fn has_saved_password(user_id: String) -> R<bool> {
-    Ok(keychain::load_portal_password(&user_id)?.is_some())
-}
-
-#[tauri::command]
-fn forget_password(user_id: String) -> R<()> {
-    keychain::forget_portal_password(&user_id)
-}
-
-// ------------------------------------------------------------ portal
-
-async fn ensure_scraper(app: &AppHandle, state: &AppState) -> R<()> {
-    let mut guard = state.scraper.lock().await;
-    if guard.is_none() {
-        *guard = Some(Scraper::spawn(app.clone(), state.db.clone()).await?);
-    }
-    Ok(())
-}
-
-/// password = None means "use the one in the keychain".
-#[tauri::command]
-async fn portal_login(app: AppHandle, state: State<'_, AppState>, user_id: String,
-                      password: Option<String>, remember: bool) -> R<()> {
-    let pw = match password {
-        Some(p) if !p.is_empty() => {
-            if remember { keychain::save_portal_password(&user_id, &p)?; }
-            p
-        }
-        _ => keychain::load_portal_password(&user_id)?
-            .ok_or("no saved password for this user id - type it in")?,
-    };
-    // remember the user id (not secret) for next launch
-    let mut s = read_settings(&state);
-    s.last_user_id = user_id.clone();
-    s.remember_password = remember;
-    let _ = write_settings(&state, s);
-
-    ensure_scraper(&app, &state).await?;
-    let mut guard = state.scraper.lock().await;
-    let scraper = guard.as_mut().ok_or("sidecar did not start")?;
-    scraper.set_login_pan(&user_id);
-    scraper.send(json!({"cmd": "login", "user_id": user_id, "password": pw})).await
-}
-
-#[tauri::command]
-async fn portal_otp(state: State<'_, AppState>, code: String) -> R<()> {
-    let mut guard = state.scraper.lock().await;
-    guard.as_mut().ok_or("not logged in")?.send(json!({"cmd": "otp", "code": code})).await
-}
-
-#[tauri::command]
-async fn portal_sync(state: State<'_, AppState>, limit: Option<u32>) -> R<()> {
-    let mut guard = state.scraper.lock().await;
-    guard.as_mut().ok_or("log in first")?.send(json!({"cmd": "sync", "limit": limit})).await
-}
-
-#[tauri::command]
-async fn portal_speed(state: State<'_, AppState>, seconds: f64) -> R<()> {
-    let mut guard = state.scraper.lock().await;
-    if let Some(s) = guard.as_mut() {
-        s.send(json!({"cmd": "speed", "seconds": seconds})).await?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn portal_stop(state: State<'_, AppState>) -> R<()> {
-    if let Some(s) = state.scraper.lock().await.take() {
-        s.stop().await;
-    }
-    Ok(())
-}
-
-// ------------------------------------------------------------ Claude
-
-#[tauri::command]
-async fn ask_due_date(state: State<'_, AppState>, ref_id: String) -> Result<DueDateAnswer, AppError> {
-    let (row, pdf) = {
-        let con = lock_db(&state)?;
-        let row = db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?;
-        let pdf = db::get_pdf(&con, &ref_id)?;
-        (row, pdf)
-    };
-    // A portal-stated date is the truth and is never asked about. A
-    // suggestion already on file is returned as-is: never called twice.
-    if let Some(d) = row.due_date.clone() {
-        return Ok(DueDateAnswer { due_date: Some(d), basis: Some("stated on the portal".into()) });
-    }
-    if let Some(d) = row.suggested_due_date.clone() {
-        return Ok(DueDateAnswer { due_date: Some(d), basis: Some("suggested earlier".into()) });
-    }
-    let pdf = pdf.ok_or_else(|| AppError::state("no PDF stored yet - run a sync first"))?;
-    let ans = proxy(&state)?
-        .due_date(&ref_id, &pdf, row.issued_on.as_deref(), row.served_on.as_deref()).await?;
-    if let Some(d) = ans.due_date.as_deref() {
-        let con = lock_db(&state)?;
-        // Suggestion column only, never the stated one (docs/02, Phase 9).
-        db::set_suggested_due_date(&con, &ref_id, d)?;
-    }
-    Ok(ans)
-}
-
-#[tauri::command]
-async fn draft_response(state: State<'_, AppState>, ref_id: String, regenerate: bool) -> Result<Draft, AppError> {
-    let (row, pdf, existing) = {
-        let con = lock_db(&state)?;
-        (db::get_notice(&con, &ref_id)?.ok_or_else(|| AppError::not_found("notice"))?,
-         db::get_pdf(&con, &ref_id)?,
-         db::get_draft(&con, &ref_id)?)
-    };
-    if let (Some(d), false) = (existing, regenerate) {
-        return Ok(d);
-    }
-    // The action matrix: no draft on a submitted or closed item.
-    let status = if row.communication_status == "response_submitted" {
-        repo::model::Status::ResponseSubmitted
-    } else {
-        repo::model::Status::parse(row.status.as_deref().unwrap_or("unknown"))
-    };
-    if !status.allows_draft() {
-        return Err(AppError::state(format!("no draft for a {} item", status.as_str().replace('_', " "))));
-    }
-    let pdf = pdf.ok_or_else(|| AppError::state("no PDF stored yet - run a sync first"))?;
-    let a: DraftAnswer = proxy(&state)?
-        .draft(&ref_id, &pdf, row.notice_us.as_deref(), row.assessee_name.as_deref(),
-               row.assessment_year.as_deref()).await?;
-    let d = Draft { ref_id: ref_id.clone(), generated_at: None,
-                    summary: a.summary, checklist: a.checklist, draft_text: a.draft_reply };
-    let con = lock_db(&state)?;
-    db::save_draft(&con, &d, None)?;
-    db::get_draft(&con, &ref_id)?.ok_or_else(|| AppError::not_found("draft"))
-}
-
-// ------------------------------------------------------------ setup
-
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let key = keychain::db_key()?;
             let con = db::open(&data_dir.join("archive.db"), &key)?;
+            let temp_dir = data_dir.join("viewer-temp");
+            commands::documents::clear_temp(&temp_dir);
             app.manage(AppState {
                 db: Arc::new(Mutex::new(con)),
                 scraper: AsyncMutex::new(None),
                 settings_path: data_dir.join("settings.json"),
+                temp_dir,
             });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_settings, save_settings,
-            list_notices, get_notice_pdf, get_draft, save_draft_text,
-            has_saved_password, forget_password,
-            portal_login, portal_otp, portal_sync, portal_speed, portal_stop,
-            ask_due_date, draft_response,
+            commands::settings::get_settings, commands::settings::save_settings,
+            list_notices, get_notice_pdf,
+            commands::ai::get_draft, commands::ai::save_draft_text,
+            commands::ai::ask_due_date, commands::ai::draft_response,
+            commands::portal::has_saved_password, commands::portal::forget_password,
+            commands::portal::portal_login, commands::portal::portal_otp, commands::portal::portal_sync,
+            commands::portal::portal_speed, commands::portal::portal_stop,
+            commands::clients::list_clients, commands::clients::get_client,
+            commands::clients::create_client, commands::clients::update_client,
+            commands::clients::derive_from_gstin, commands::clients::set_client_file_no,
+            commands::clients::import_clients_csv,
+            commands::clients::set_client_credential, commands::clients::forget_client_credential,
+            commands::work_items::list_work_items, commands::work_items::get_proceeding,
+            commands::work_items::set_manual_due_date, commands::work_items::list_registry,
+            commands::documents::open_document, commands::documents::save_document_as,
+            commands::documents::get_document_base64,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Litigation Command Center");
+        .expect("error while running the desktop app");
 }

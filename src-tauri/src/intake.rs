@@ -334,11 +334,11 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
     }
 
     if let Some(bytes) = n.pdf.as_deref().filter(|b| !b.is_empty()) {
-        documents::attach_stored(
-            con, "communication", &comm.id, "communication",
-            Some(&format!("{reference_id}.pdf")), bytes, None,
-            n.downloaded_at.as_deref().and_then(|d| sqlite_stamp_to_iso(d)).as_deref(),
-        )?;
+        documents::attach_stored(con, &documents::Attach {
+            parent_type: "communication", parent_id: &comm.id, doc_kind: "communication",
+            filename: Some(&format!("{reference_id}.pdf")), bytes, source_url: None,
+            fetched_at: n.downloaded_at.as_deref().and_then(sqlite_stamp_to_iso).as_deref(),
+        })?;
     }
     Ok(comm.id)
 }

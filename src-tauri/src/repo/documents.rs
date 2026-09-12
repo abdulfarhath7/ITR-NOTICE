@@ -58,12 +58,22 @@ pub fn find(con: &Connection, parent_type: &str, parent_id: &str, doc_kind: &str
         params![parent_type, parent_id, doc_kind], from_row).optional()?)
 }
 
+/// What `attach_stored` needs to know about the bytes it is given.
+pub struct Attach<'a> {
+    pub parent_type: &'a str,
+    pub parent_id: &'a str,
+    pub doc_kind: &'a str,
+    pub filename: Option<&'a str>,
+    pub bytes: &'a [u8],
+    pub source_url: Option<&'a str>,
+    pub fetched_at: Option<&'a str>,
+}
+
 /// Attach stored bytes to a parent. Idempotent for the same bytes; a
 /// different PDF for the same slot replaces the pointer (the old blob stays
 /// content-addressed and unreferenced — never deleted here).
-pub fn attach_stored(con: &Connection, parent_type: &str, parent_id: &str, doc_kind: &str,
-                     filename: Option<&str>, bytes: &[u8], source_url: Option<&str>,
-                     fetched_at: Option<&str>) -> AppResult<Document> {
+pub fn attach_stored(con: &Connection, a: &Attach) -> AppResult<Document> {
+    let Attach { parent_type, parent_id, doc_kind, filename, bytes, source_url, fetched_at } = *a;
     let hash = store_blob(con, bytes)?;
     let ts = now();
     let existing = find(con, parent_type, parent_id, doc_kind)?;
