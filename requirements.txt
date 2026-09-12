@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-playwright
-python-dotenv
-anthropic
-openpyxl
-fpdf2

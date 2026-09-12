@@ -10,9 +10,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from playwright.async_api import Page
-from playwright.async_api import TimeoutError as PWTimeout
-
 from app.portal.scraper import (  # the verified selectors, reused verbatim
     NOTICE_CARD,
     PROCEEDING_CARD,
@@ -29,6 +26,8 @@ from app.portal.scraper import (  # the verified selectors, reused verbatim
     _visible_button_names,
     _wait_for_list,
 )
+from playwright.async_api import Page
+from playwright.async_api import TimeoutError as PWTimeout
 
 from .parse import CARD_JS, parse_notice, parse_proceeding
 from .protocol import emit, log

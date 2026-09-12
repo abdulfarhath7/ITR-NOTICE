@@ -17,8 +17,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from playwright.async_api import TimeoutError as PWTimeout
-
 from app.portal.scraper import (
     _discard,
     _next_page,
@@ -27,6 +25,7 @@ from app.portal.scraper import (
     _visible_button_names,
 )
 from app.portal.session import dismiss_security_popup, first_visible
+from playwright.async_api import TimeoutError as PWTimeout
 
 from .parse import CARD_JS, _clean
 from .protocol import emit, log
