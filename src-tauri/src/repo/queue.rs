@@ -151,12 +151,15 @@ pub fn jobs(con: &Connection, sweep_id: &str) -> AppResult<Vec<Job>> {
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
-/// The next job to run: queued (or interrupted while running), in order,
-/// whose backoff has elapsed.
+/// The next job to run: queued, or left running / awaiting by a killed
+/// process (nothing else holds `running` across restarts), in order,
+/// whose backoff has elapsed. A live run claims a job by setting it
+/// `running` under the archive lock, so workers never share one.
 pub fn next_job(con: &Connection, sweep_id: &str) -> AppResult<Option<Job>> {
     Ok(con.query_row(
         "SELECT * FROM ingestion_jobs WHERE sweep_id = ?1
-           AND status IN ('queued','running','awaiting_operator')
+           AND (status = 'queued'
+                OR (status IN ('running','awaiting_operator') AND started_at IS NULL))
            AND (next_attempt_at IS NULL OR next_attempt_at <= ?2)
          ORDER BY position LIMIT 1",
         params![sweep_id, now()], job_row).optional()?)
@@ -171,7 +174,8 @@ pub fn pending_count(con: &Connection, sweep_id: &str) -> AppResult<(i64, i64)> 
 
 pub fn set_job_status(con: &Connection, id: &str, status: &str, error: Option<&str>) -> AppResult<()> {
     let ts = now();
-    let started = (status == "running").then(|| ts.clone());
+    let started = (status == "started").then(|| ts.clone());
+    let status = if status == "started" { "running" } else { status };
     let finished = matches!(status, "done" | "incomplete" | "failed" | "parked" | "cancelled").then(|| ts.clone());
     con.execute(
         "UPDATE ingestion_jobs SET status = ?1, last_error = COALESCE(?2, last_error),
@@ -287,5 +291,16 @@ pub fn prepend_jobs(con: &Connection, sweep_id: &str, logins: &[(String, Option<
             n += 1;
         }
     }
+    Ok(n)
+}
+
+/// At launch, any job a previous process left `running` or awaiting is
+/// stale (one runner per sweep): back to `queued`, cursor intact, so the
+/// run continues at that job's next panel (task 4.9).
+pub fn requeue_interrupted(con: &Connection, sweep_id: &str) -> AppResult<usize> {
+    let n = con.execute(
+        "UPDATE ingestion_jobs SET status = 'queued', started_at = NULL, updated_at = ?1
+         WHERE sweep_id = ?2 AND status IN ('running','awaiting_operator')",
+        params![now(), sweep_id])?;
     Ok(n)
 }

@@ -44,7 +44,7 @@ fn launch(app: AppHandle, state: &AppState, sweep: Sweep, whole_book: bool) -> A
             return Err(AppError::state("a run is already in progress"));
         }
     }
-    let device_id = { let con = lock_db(state)?; local::device_id(&con)? };
+    let device_id = { let con = lock_db(state)?; queue::requeue_interrupted(&con, &sweep.id)?; local::device_id(&con)? };
     let controls = Controls::default();
     let sidecar: Arc<Mutex<Option<SidecarHandle>>> = Arc::new(Mutex::new(None));
     state::update(&svc.shared, |st| {

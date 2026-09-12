@@ -32,6 +32,13 @@ use tauri::{AppHandle, Emitter};
 /// Ten consecutive known-and-unchanged rows end a panel (docs/05).
 pub const EARLY_STOP_STREAK: u32 = 10;
 
+/// How many logins a sweep works at once (task 12.5, Q08). One, until the
+/// two tests in NOTES.md ("Q08") show the portal tolerates parallel
+/// sessions for different taxpayers. Nothing else in the runner assumes
+/// sequentiality: raising this runs that many jobs side by side, each with
+/// its own sidecar and browser.
+pub const INGESTION_WORKERS: usize = 1;
+
 fn s(v: Option<&Value>) -> Option<String> {
     v.and_then(Value::as_str).map(str::trim).filter(|x| !x.is_empty()).map(str::to_string)
 }
@@ -441,17 +448,9 @@ impl<R: tauri::Runtime> Runner<R> {
                 return;
             }
         };
-        loop {
-            if self.controls.stopping() { break; }
-            let job = {
-                let con = match self.db.lock() { Ok(c) => c, Err(_) => break };
-                match queue::next_job(&con, &self.sweep_id) { Ok(j) => j, Err(e) => { self.log("error", &e.to_string()); break; } }
-            };
-            let Some(job) = job else { break; };
-            self.run_job(&job).await;
-            // A stop request during a job ends the run after that job.
-            if self.controls.stopping() { break; }
-        }
+        // Workers pull jobs until the queue is empty or a stop is requested.
+        let workers: Vec<_> = (0..INGESTION_WORKERS.max(1)).map(|_| self.worker()).collect();
+        futures_join_all(workers).await;
         let status = if self.controls.stopping() { "stopped" } else { "done" };
         if let Ok(con) = self.db.lock() {
             if status == "stopped" { let _ = queue::cancel_open_jobs(&con, &self.sweep_id); }
@@ -474,6 +473,26 @@ impl<R: tauri::Runtime> Runner<R> {
             &format!("{} notices seen, {} fetched, {} changed.", counts.notices, counts.fetched, counts.changed));
     }
 
+    /// Claim the next job atomically (so two workers never take the same
+    /// one), run it, repeat.
+    async fn worker(&self) {
+        loop {
+            if self.controls.stopping() { break; }
+            let job = {
+                let con = match self.db.lock() { Ok(c) => c, Err(_) => break };
+                match queue::next_job(&con, &self.sweep_id) {
+                    Ok(Some(j)) => { let _ = queue::set_job_status(&con, &j.id, "running", None); Some(j) }
+                    Ok(None) => None,
+                    Err(e) => { self.log("error", &e.to_string()); break; }
+                }
+            };
+            let Some(job) = job else { break; };
+            self.run_job(&job).await;
+            // A stop request during a job ends the run after that job.
+            if self.controls.stopping() { break; }
+        }
+    }
+
     async fn run_job(&self, job: &Job) {
         let (position, total, client_name) = {
             let con = match self.db.lock() { Ok(c) => c, Err(_) => return };
@@ -491,7 +510,7 @@ impl<R: tauri::Runtime> Runner<R> {
             st.counts = Counts::default(); st.last_error = None; st.awaiting_operator = None;
         });
         self.publish();
-        if let Ok(con) = self.db.lock() { let _ = queue::set_job_status(&con, &job.id, "running", None); }
+        if let Ok(con) = self.db.lock() { let _ = queue::set_job_status(&con, &job.id, "started", None); }
 
         // The per-login lock: one live session per taxpayer, ever. The relay
         // arbitrates it across devices; without a relay it is local.
@@ -648,6 +667,16 @@ impl<R: tauri::Runtime> Runner<R> {
         };
         let _ = runs::record(con, &run);
     }
+}
+
+/// Run the workers together without another dependency; each is a future
+/// on this task, so a single worker is exactly the old sequential loop.
+async fn futures_join_all<F: std::future::Future<Output = ()>>(futures: Vec<F>) {
+    let mut futures: Vec<std::pin::Pin<Box<F>>> = futures.into_iter().map(Box::pin).collect();
+    std::future::poll_fn(|cx| {
+        futures.retain_mut(|f| f.as_mut().poll(cx).is_pending());
+        if futures.is_empty() { std::task::Poll::Ready(()) } else { std::task::Poll::Pending }
+    }).await;
 }
 
 fn rollup_due_dates(con: &Connection) -> crate::error::AppResult<()> {

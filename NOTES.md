@@ -174,6 +174,15 @@ Append as you go. This is where the next session picks up your thread.
   there was nothing to move out of `app/` for Q04. If they live outside
   this repository, bring them into `sidecar/eri/` when ERI work resumes.
 
+- Q08 (concurrency): `INGESTION_WORKERS` in `src-tauri/src/ingest/runner.rs`
+  is the one constant; the run is a pool of that many workers claiming jobs
+  atomically, each with its own sidecar. Two tests would justify raising
+  it, both by hand on the live portal: (1) the same client in two browsers
+  — does the first session die? (2) two *different* clients in two browsers
+  — do both survive? Only (2) matters for throughput. Before raising it,
+  also give each job its own challenge slot (today `RunHandle.sidecar` is
+  one handle) and make the monitor show one row per worker.
+
 ### For the next session
 - Run the Windows release job (tag `v0.2.0`) and fix whatever the frozen
   sidecar does on Windows; the `CREATE_NO_WINDOW` flag and the sidecar
