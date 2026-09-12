@@ -25,7 +25,11 @@ pub struct Entry {
     pub entity_id: String,
     pub payload: Value,
     pub created_at: String,
+    #[serde(default = "default_source")]
+    pub source: String,
 }
+
+fn default_source() -> String { "user".into() }
 
 /// `{ "dev_a": 41880, "dev_b": 19 }` — last applied seq per device.
 pub type CursorMap = BTreeMap<String, i64>;
@@ -41,10 +45,11 @@ pub fn after_write(con: &Connection, table: &str, id: &str, op: &str, payload: &
         Origin::Local => {
             let device_id = local::device_id(con)?;
             let seq = next_seq(con, &device_id)?;
+            let source = if rows::in_sweep_context() { "sweep" } else { "user" };
             con.execute(
-                "INSERT INTO ledger (device_id, seq, op, entity_type, entity_id, payload, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![device_id, seq, op, table, id, payload.to_string(), now()])?;
+                "INSERT INTO ledger (device_id, seq, op, entity_type, entity_id, payload, created_at, source)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![device_id, seq, op, table, id, payload.to_string(), now(), source])?;
             device_id
         }
         Origin::Replay { device_id } => device_id.to_string(),
@@ -87,7 +92,7 @@ pub fn set_cursor(con: &Connection, device_id: &str, seq: i64) -> AppResult<()> 
 /// Entries this device has written after `after` (for publishing).
 pub fn entries_after(con: &Connection, device_id: &str, after: i64) -> AppResult<Vec<Entry>> {
     let mut st = con.prepare(
-        "SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger
+        "SELECT device_id, seq, op, entity_type, entity_id, payload, created_at, source FROM ledger
          WHERE device_id = ?1 AND seq > ?2 ORDER BY seq")?;
     let rows = st.query_map(params![device_id, after], entry_row)?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -96,7 +101,7 @@ pub fn entries_after(con: &Connection, device_id: &str, after: i64) -> AppResult
 /// Every entry on this device, from every stream, after the cursor map.
 pub fn tail(con: &Connection, after: &CursorMap) -> AppResult<Vec<Entry>> {
     let mut st = con.prepare(
-        "SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger ORDER BY device_id, seq")?;
+        "SELECT device_id, seq, op, entity_type, entity_id, payload, created_at, source FROM ledger ORDER BY device_id, seq")?;
     let rows = st.query_map([], entry_row)?;
     let mut out = Vec::new();
     for row in rows {
@@ -111,6 +116,7 @@ fn entry_row(r: &rusqlite::Row) -> rusqlite::Result<Entry> {
     Ok(Entry {
         device_id: r.get(0)?, seq: r.get(1)?, op: r.get(2)?, entity_type: r.get(3)?, entity_id: r.get(4)?,
         payload: serde_json::from_str(&payload).unwrap_or(Value::Null), created_at: r.get(6)?,
+        source: r.get::<_, Option<String>>(7)?.unwrap_or_else(|| "user".into()),
     })
 }
 

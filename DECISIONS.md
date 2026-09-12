@@ -218,3 +218,31 @@ Decision: `ledger::apply` records the error in its report, advances the
 cursor past the entry, and continues. The error is surfaced in the import
 summary and, later, the sync state.
 Reversible: easily.
+
+## D-019 — Device ids are minted locally and accepted by the relay
+Date: 2026-09-12
+Context: The ledger keys streams by a device id minted on first open; the
+relay needs the same id or every stream would have to be renamed at
+enrolment.
+Decision: Registration, enrolment and recovery send the device's own id;
+the relay checks uniqueness and refuses collisions.
+Rejected: Relay-assigned ids with a local rename (a one-time rewrite of
+ledger, cursors and entity_versions — fragile for no gain).
+Reversible: easily.
+
+## D-020 — Invites carry the firm key; the relay sees only the code
+Date: 2026-09-12
+Context: The firm key must reach every firm device and never the relay.
+Decision: An invite is `firm_id.code.firm_key_hex`, produced on the admin's
+device and typed on the new one. The client sends the relay only the code.
+The admin is told to treat the invite like a password.
+Rejected: A key-exchange protocol over the relay (more machinery than a
+CA firm's two to five laptops warrant, and a bigger surface to get wrong).
+Reversible: with a protocol change.
+
+## D-021 — "Collector silent" means no report for 26 hours
+Date: 2026-09-12
+Context: Q17 defaults to a warning after one missed scheduled run; the
+default cadence is daily (Q12).
+Decision: A constant, `COLLECTOR_SILENT_HOURS = 26`, in `src-tauri/src/sync.rs`.
+Reversible: easily.

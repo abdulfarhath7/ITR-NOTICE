@@ -456,3 +456,42 @@ export interface ImportSummary {
   device_id: string; created_at: string; signature_ok: boolean; rows_written: number; rows_kept_local: number;
   ledger_applied: number; documents_added: number; documents_already_held: number; credentials_written: number; errors: string[];
 }
+
+export interface RelayConfig { url: string; firm_id: string; firm_name: string | null; device_id: string }
+export interface FirmCreated { config: RelayConfig; recovery_code: string }
+
+export interface RosterDevice {
+  id: string; name: string; permission: "admin" | "member"; role: "collector" | "normal";
+  ram_mb: number | null; enrolled_at: string; last_seen: string | null; removed_at: string | null; head: number;
+}
+export interface Roster {
+  firm: { id: string; name: string; admin_device_id: string | null };
+  devices: RosterDevice[];
+  lease: { device_id: string; expires_at: string; issued_at: string } | null;
+  nominee_id: string | null;
+  you: { device_id: string; permission: "admin" | "member" };
+}
+
+export interface SyncState {
+  configured: boolean;
+  firm_id: string | null;
+  firm_name: string | null;
+  device_id: string;
+  permission: string | null;
+  cursor: Record<string, number>;
+  heads: Record<string, number>;
+  behind_by_device: Record<string, number>;
+  behind_total: number;
+  unpublished: number;
+  unpublished_sweep_waiting: boolean;
+  collector_device_id: string | null;
+  collector_last_seen: string | null;
+  collector_silent: boolean;
+  last_sync_at: string | null;
+  last_error: string | null;
+  status: "up_to_date" | "behind" | "unreachable" | "not_configured";
+}
+
+export interface SyncResult {
+  pushed: number; pulled: number; applied: number; snapshot_published: boolean; sweep_waiting_for_lease: boolean; errors: string[];
+}

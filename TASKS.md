@@ -99,15 +99,15 @@ Read `docs/03-sync-and-ledger.md`.
 
 Read `docs/04-roles-and-devices.md`.
 
-- [ ] **7.1** `relay/` FastAPI service: firm registration, device enrolment, blob put and get by cursor, lease endpoints.
-- [ ] **7.2** Firm bootstrap: the first user to activate becomes admin, recorded server-side. The server refuses a second admin.
-- [ ] **7.3** Admin recovery code, shown once at setup, with a confirm-you-saved-it step.
-- [ ] **7.4** Collector lease: issue, renew, revoke, expire. Only the holder may publish sweep changesets.
-- [ ] **7.5** Device roster screen. Admin sees the radio control; everyone else sees the same list read-only.
-- [ ] **7.6** Collector handoff: drain the current client, revoke, reissue, new device catches up before it runs.
-- [ ] **7.7** Sync button with the three states in `docs/09-ui-spec.md`, including collector-silent detection separate from cursor freshness.
-- [ ] **7.8** "Changes behind" indicator, broken down by originating device.
-- [ ] **7.9** On-demand single-client refresh, routed locally for scraper clients.
+- [x] **7.1** `relay/` FastAPI service: firm registration, device enrolment, blob put and get by cursor, lease endpoints.
+- [x] **7.2** Firm bootstrap: the first user to activate becomes admin, recorded server-side. The server refuses a second admin.
+- [x] **7.3** Admin recovery code, shown once at setup, with a confirm-you-saved-it step.
+- [x] **7.4** Collector lease: issue, renew, revoke, expire. Only the holder may publish sweep changesets.
+- [x] **7.5** Device roster screen. Admin sees the radio control; everyone else sees the same list read-only.
+- [x] **7.6** Collector handoff: drain the current client, revoke, reissue, new device catches up before it runs.
+- [x] **7.7** Sync button with the three states in `docs/09-ui-spec.md`, including collector-silent detection separate from cursor freshness.
+- [x] **7.8** "Changes behind" indicator, broken down by originating device.
+- [x] **7.9** On-demand single-client refresh, routed locally for scraper clients.
 
 ## Phase 8 — Exports and reports
 

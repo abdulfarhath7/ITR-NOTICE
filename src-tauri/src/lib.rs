@@ -20,8 +20,10 @@ mod ledger;
 mod merge;
 mod mask;
 mod migrate;
+mod relay;
 mod repo;
 mod snapshot;
+mod sync;
 
 use db::NoticeRow;
 use error::AppResult;
@@ -91,6 +93,10 @@ pub fn run() {
             commands::ingestion::modules_due,
             commands::sync::get_device_info, commands::sync::export_bundle, commands::sync::peek_bundle,
             commands::sync::import_bundle, commands::sync::check_passphrase,
+            commands::sync::register_firm, commands::sync::enrol_device, commands::sync::recover_admin,
+            commands::sync::list_devices, commands::sync::create_invite, commands::sync::set_collector,
+            commands::sync::remove_device, commands::sync::transfer_admin, commands::sync::get_sync_state,
+            commands::sync::sync_now, commands::sync::leave_firm,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

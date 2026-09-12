@@ -36,7 +36,7 @@ pub struct StateView {
     pub last_run_at: Option<String>,
 }
 
-fn launch(app: AppHandle, state: &AppState, sweep: Sweep) -> AppResult<String> {
+fn launch(app: AppHandle, state: &AppState, sweep: Sweep, whole_book: bool) -> AppResult<String> {
     let svc = &state.ingestion;
     {
         let cur = svc.current.lock().map_err(|e| AppError::state(e.to_string()))?;
@@ -55,7 +55,7 @@ fn launch(app: AppHandle, state: &AppState, sweep: Sweep) -> AppResult<String> {
     }
     let runner = Runner {
         app, db: state.db.clone(), shared: svc.shared.clone(), controls, sidecar,
-        sweep_id: sweep.id.clone(), device_id,
+        sweep_id: sweep.id.clone(), device_id, whole_book,
     };
     tauri::async_runtime::spawn(runner.run());
     Ok(sweep.id)
@@ -82,7 +82,8 @@ pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope,
         let refs: Vec<&str> = modules.iter().map(String::as_str).collect();
         queue::create_sweep(&con, &device_id, &scope, &refs)?
     };
-    launch(app, &state, sweep)
+    let whole_book = !matches!(scope, Scope::Client { .. });
+    launch(app, &state, sweep, whole_book)
 }
 
 #[tauri::command]
@@ -112,11 +113,26 @@ pub fn resume_ingestion_sweep(app: AppHandle, state: State<AppState>, sweep_id: 
         queue::set_sweep_status(&con, &sweep_id, "running")?;
         s
     };
-    launch(app, &state, sweep)
+    let whole_book = !sweep.scope.contains("\"client\"");
+    launch(app, &state, sweep, whole_book)
 }
 
+/// A portal client refreshes locally on any device. An ERI client's signing
+/// key never leaves the collector, so a laptop queues the request to it
+/// through the relay (docs/06).
 #[tauri::command]
-pub fn refresh_client(app: AppHandle, state: State<AppState>, client_id: String) -> AppResult<String> {
+pub async fn refresh_client(app: AppHandle, state: State<'_, AppState>, client_id: String) -> AppResult<String> {
+    let (source, login_ref, relay_cfg, collector_id, device_id) = {
+        let con = lock_db(&state)?;
+        let c = crate::repo::clients::get(&con, &client_id)?.ok_or_else(|| AppError::not_found("client"))?;
+        (c.source, c.portal_login_ref.unwrap_or(c.pan), crate::relay::config(&con)?,
+         local::get(&con, crate::relay::KEY_COLLECTOR_ID)?, local::device_id(&con)?)
+    };
+    if source == "eri" && collector_id.as_deref() != Some(device_id.as_str()) {
+        let cfg = relay_cfg.ok_or_else(|| AppError::state("an ERI client refreshes on the collector; this device has no relay to reach it"))?;
+        crate::relay::Relay::new(cfg).request_refresh(&login_ref).await?;
+        return Ok("queued-to-collector".into());
+    }
     start_ingestion_run(app, state, Scope::Client { client_id }, Some(true))
 }
 

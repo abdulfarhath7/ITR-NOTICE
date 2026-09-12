@@ -59,6 +59,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav a .count { margin-left: auto; font: 400 11px var(--font-mono); color: var(--text-faint); }
 .nav .spacer { flex: 1; }
 .nav .footer { padding: 8px; font: 400 11px/16px var(--font-ui); color: var(--text-faint); }
+.nav .footer .row { flex-direction: column; align-items: stretch; gap: 4px; }
+.nav .footer .btn { justify-content: flex-start; font-size: 12px; height: 28px; }
 
 .page { overflow: auto; height: 100%; display: flex; flex-direction: column; }
 .page-head {

@@ -2,7 +2,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
-  BundleManifest, Cadences, ClientDetail, DeviceInfo, ExportSummary, ImportSummary, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
+  BundleManifest, Cadences, ClientDetail, DeviceInfo, ExportSummary, FirmCreated, ImportSummary,
+  RelayConfig, Roster, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
   ProceedingDetail, ReturnDetail, Scope, Settings, TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
@@ -64,6 +65,21 @@ export const api = {
   importBundle: (path: string, passphrase: string, writeCredentials: boolean) =>
     invoke<ImportSummary>("import_bundle", { path, passphrase, writeCredentials }),
   checkPassphrase: (passphrase: string) => invoke<void>("check_passphrase", { passphrase }),
+
+  registerFirm: (relayUrl: string, firmName: string, deviceName: string) =>
+    invoke<FirmCreated>("register_firm", { relayUrl, firmName, deviceName }),
+  enrolDevice: (relayUrl: string, invite: string, deviceName: string) =>
+    invoke<RelayConfig>("enrol_device", { relayUrl, invite, deviceName }),
+  recoverAdmin: (relayUrl: string, firmId: string, recoveryCode: string, firmKeyHex: string, deviceName: string) =>
+    invoke<FirmCreated>("recover_admin", { relayUrl, firmId, recoveryCode, firmKeyHex, deviceName }),
+  roster: () => invoke<Roster>("list_devices"),
+  createInvite: () => invoke<string>("create_invite"),
+  setCollector: (deviceId: string) => invoke<void>("set_collector", { deviceId }),
+  removeDevice: (deviceId: string) => invoke<void>("remove_device", { deviceId }),
+  transferAdmin: (deviceId: string) => invoke<void>("transfer_admin", { deviceId }),
+  syncState: () => invoke<SyncState>("get_sync_state"),
+  syncNow: () => invoke<SyncResult>("sync_now"),
+  leaveFirm: () => invoke<void>("leave_firm"),
 };
 
 export function onIngestion(handler: (ev: IngestionEvent) => void): Promise<UnlistenFn> {

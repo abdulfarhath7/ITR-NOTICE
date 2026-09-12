@@ -265,3 +265,27 @@ mod tests {
         assert!(acquire_lock(&con, "ABCDE1234F", "dev_b").unwrap());
     }
 }
+
+/// Put jobs for these logins at the front of a sweep (refresh requests the
+/// collector picked up from the relay).
+pub fn prepend_jobs(con: &Connection, sweep_id: &str, logins: &[(String, Option<String>)], modules: &[&str]) -> AppResult<usize> {
+    if logins.is_empty() { return Ok(0); }
+    let ts = now();
+    let mut position: i64 = con.query_row("SELECT COALESCE(MIN(position), 1) FROM ingestion_jobs WHERE sweep_id = ?1", [sweep_id], |r| r.get(0))?;
+    let mut n = 0;
+    for (login, client_id) in logins {
+        let exists: i64 = con.query_row(
+            "SELECT count(*) FROM ingestion_jobs WHERE sweep_id = ?1 AND login_ref = ?2 AND status IN ('queued','running')",
+            params![sweep_id, login], |r| r.get(0))?;
+        if exists > 0 { continue; }
+        for module in modules {
+            position -= 1;
+            con.execute(
+                "INSERT INTO ingestion_jobs (id, sweep_id, login_ref, client_id, module, position, status, attempts, cursor, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'queued', 0, NULL, ?7, ?7)",
+                params![new_id(), sweep_id, login, client_id, module, position, ts])?;
+            n += 1;
+        }
+    }
+    Ok(n)
+}

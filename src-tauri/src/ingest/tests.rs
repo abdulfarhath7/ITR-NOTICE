@@ -88,7 +88,7 @@ fn runner(db: &Arc<Mutex<Connection>>, sweep_id: &str) -> Runner<tauri::test::Mo
     Runner {
         app: app.handle().clone(), db: db.clone(), shared: Arc::new(Mutex::new(IngestionState::default())),
         controls: Controls::default(), sidecar: Arc::new(Mutex::new(None)), sweep_id: sweep_id.into(),
-        device_id: "dev_test".into(),
+        device_id: "dev_test".into(), whole_book: true,
     }
 }
 

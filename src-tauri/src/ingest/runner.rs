@@ -124,7 +124,8 @@ impl<'a, R: tauri::Runtime> PanelSink<'a, R> {
     fn absorb(&mut self, card: &ProceedingCard, notice: Option<&NoticeCard>) -> Result<(), String> {
         let mut con = self.db.lock().map_err(|e| e.to_string())?;
         let tx = con.transaction().map_err(|e| e.to_string())?;
-        intake::absorb(&tx, Some(self.login_pan), card, notice).map_err(|e| e.to_string())?;
+        crate::repo::rows::with_sweep_context(|| intake::absorb(&tx, Some(self.login_pan), card, notice))
+            .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())
     }
 
@@ -149,7 +150,8 @@ impl<'a, R: tauri::Runtime> PanelSink<'a, R> {
                     drop(con);
                     let mut con = self.db.lock().map_err(|e| e.to_string())?;
                     let tx = con.transaction().map_err(|e| e.to_string())?;
-                    intake_modules::absorb_demand(&tx, Some(self.login_pan), &card).map_err(|e| e.to_string())?;
+                    crate::repo::rows::with_sweep_context(|| intake_modules::absorb_demand(&tx, Some(self.login_pan), &card))
+                        .map_err(|e| e.to_string())?;
                     tx.commit().map_err(|e| e.to_string())?;
                     Ok((false, true))
                 }
@@ -190,12 +192,16 @@ impl<'a, R: tauri::Runtime> PanelSink<'a, R> {
     fn absorb_module(&mut self, module: &str, p: &HashMap<String, Value>, pdf: Option<Vec<u8>>, receipt: Option<Vec<u8>>) -> Result<(), String> {
         let mut con = self.db.lock().map_err(|e| e.to_string())?;
         let tx = con.transaction().map_err(|e| e.to_string())?;
-        match module {
-            "returns" => { intake_modules::absorb_return(&tx, Some(self.login_pan), &return_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
-            "forms" => { intake_modules::absorb_filed_form(&tx, Some(self.login_pan), &form_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
-            "demands" => { intake_modules::absorb_demand(&tx, Some(self.login_pan), &demand_from(p)).map_err(|e| e.to_string())?; }
-            _ => return Err(format!("unknown module panel {module}")),
-        }
+        let login = self.login_pan;
+        crate::repo::rows::with_sweep_context(|| -> Result<(), String> {
+            match module {
+                "returns" => { intake_modules::absorb_return(&tx, Some(login), &return_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
+                "forms" => { intake_modules::absorb_filed_form(&tx, Some(login), &form_from(p, pdf, receipt)).map_err(|e| e.to_string())?; }
+                "demands" => { intake_modules::absorb_demand(&tx, Some(login), &demand_from(p)).map_err(|e| e.to_string())?; }
+                _ => return Err(format!("unknown module panel {module}")),
+            }
+            Ok(())
+        })?;
         tx.commit().map_err(|e| e.to_string())
     }
 }
@@ -335,7 +341,13 @@ pub struct Runner<R: tauri::Runtime> {
     pub sidecar: Arc<Mutex<Option<SidecarHandle>>>,
     pub sweep_id: String,
     pub device_id: String,
+    /// A whole-book sweep needs the collector lease when a relay is
+    /// configured; a single-client refresh does not (docs/04).
+    pub whole_book: bool,
 }
+
+/// Lease renewal cadence (Q06): every 60 minutes while the run is alive.
+const LEASE_RENEW_SECONDS: u64 = 60 * 60;
 
 impl<R: tauri::Runtime> Runner<R> {
     fn log(&self, level: &str, msg: &str) {
@@ -350,8 +362,77 @@ impl<R: tauri::Runtime> Runner<R> {
         crate::keychain::load_portal_password(login_ref).ok().flatten()
     }
 
+    fn relay(&self) -> Option<crate::relay::Relay> {
+        let con = self.db.lock().ok()?;
+        crate::relay::config(&con).ok().flatten().map(crate::relay::Relay::new)
+    }
+
+    /// Whole-book sweeps under a relay: sync to current first, then claim
+    /// the lease; refuse without it. Returns the renewal task to abort.
+    async fn take_lease(&self) -> Result<Option<tokio::task::JoinHandle<()>>, String> {
+        let Some(relay) = self.relay() else { return Ok(None); };
+        if !self.whole_book { return Ok(None); }
+        self.log("info", "syncing to current before the sweep");
+        if let Err(e) = crate::sync::sync_now(&self.db).await {
+            self.log("warn", &format!("sync before the sweep failed: {e}"));
+        }
+        relay.claim_lease().await.map_err(|e| format!("this device does not hold the collector lease: {e}"))?;
+        self.log("info", "collector lease held");
+        // Refresh requests other devices queued for ERI clients go first.
+        if let Ok(keys) = relay.take_refresh_requests().await {
+            if !keys.is_empty() {
+                if let Ok(con) = self.db.lock() {
+                    let mut logins = Vec::new();
+                    for c in clients::list(&con).unwrap_or_default() {
+                        let login = c.portal_login_ref.clone().unwrap_or(c.pan.clone());
+                        if let Ok(k) = crate::relay::client_key(&login) {
+                            if keys.contains(&k) { logins.push((login, Some(c.id))); }
+                        }
+                    }
+                    let n = queue::prepend_jobs(&con, &self.sweep_id, &logins, queue::MODULES).unwrap_or(0);
+                    if n > 0 { self.log("info", &format!("{n} refresh request(s) from other devices queued first")); }
+                }
+            }
+        }
+        // Renew hourly; a renewal that says we are no longer the nominee
+        // drains the current client and stops (the handoff, docs/04).
+        let controls = self.controls.clone();
+        let app = self.app.clone();
+        let handle = tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(LEASE_RENEW_SECONDS)).await;
+                match relay.claim_lease().await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        let _ = app.emit("ingestion", json!({"ev": "log", "level": "warn",
+                            "msg": "another device was nominated as collector; finishing this client, then stopping"}));
+                        controls.stopping.store(true, std::sync::atomic::Ordering::Relaxed);
+                        break;
+                    }
+                    Err(e) => {
+                        let _ = app.emit("ingestion", json!({"ev": "log", "level": "warn", "msg": format!("lease renewal failed: {e}")}));
+                    }
+                }
+            }
+        });
+        Ok(Some(handle))
+    }
+
     pub async fn run(self) {
         self.log("info", &format!("run started, sweep {}", &self.sweep_id[..8]));
+        let renewal = match self.take_lease().await {
+            Ok(h) => h,
+            Err(e) => {
+                self.log("error", &e);
+                if let Ok(con) = self.db.lock() {
+                    let _ = queue::cancel_open_jobs(&con, &self.sweep_id);
+                    let _ = queue::set_sweep_status(&con, &self.sweep_id, "failed");
+                }
+                state::update(&self.shared, |st| { st.running = false; st.phase = Some("failed".into()); st.last_error = Some(e); st.finished_at = Some(now()); });
+                self.publish();
+                return;
+            }
+        };
         loop {
             if self.controls.stopping() { break; }
             let job = {
@@ -367,6 +448,12 @@ impl<R: tauri::Runtime> Runner<R> {
         if let Ok(con) = self.db.lock() {
             if status == "stopped" { let _ = queue::cancel_open_jobs(&con, &self.sweep_id); }
             let _ = queue::set_sweep_status(&con, &self.sweep_id, status);
+        }
+        if let Some(h) = renewal { h.abort(); }
+        if let Some(relay) = self.relay() {
+            // Publish what the sweep wrote, then let go of the lease.
+            if let Err(e) = crate::sync::sync_now(&self.db).await { self.log("warn", &format!("publish after the sweep failed: {e}")); }
+            if self.whole_book { let _ = relay.release_lease().await; }
         }
         state::update(&self.shared, |st| {
             st.running = false; st.paused = false; st.phase = Some(status.into());
@@ -395,8 +482,12 @@ impl<R: tauri::Runtime> Runner<R> {
         self.publish();
         if let Ok(con) = self.db.lock() { let _ = queue::set_job_status(&con, &job.id, "running", None); }
 
-        // The per-login lock: one live session per taxpayer, ever.
-        let locked = self.db.lock().ok().and_then(|con| queue::acquire_lock(&con, &job.login_ref, &self.device_id).ok()).unwrap_or(false);
+        // The per-login lock: one live session per taxpayer, ever. The relay
+        // arbitrates it across devices; without a relay it is local.
+        let locked = match self.relay() {
+            Some(relay) => relay.acquire_lock(&job.login_ref).await.unwrap_or(false),
+            None => self.db.lock().ok().and_then(|con| queue::acquire_lock(&con, &job.login_ref, &self.device_id).ok()).unwrap_or(false),
+        };
         if !locked {
             self.log("warn", "this login is in use by another device; the job will retry later");
             if let Ok(con) = self.db.lock() { let _ = queue::schedule_retry(&con, job, "login in use elsewhere"); }
@@ -414,7 +505,10 @@ impl<R: tauri::Runtime> Runner<R> {
         };
 
         let outcome = self.run_session(job, &password).await;
-        if let Ok(con) = self.db.lock() { let _ = queue::release_lock(&con, &job.login_ref, &self.device_id); }
+        match self.relay() {
+            Some(relay) => { let _ = relay.release_lock(&job.login_ref).await; }
+            None => { if let Ok(con) = self.db.lock() { let _ = queue::release_lock(&con, &job.login_ref, &self.device_id); } }
+        }
         match outcome {
             Ok(()) => { if let Ok(con) = self.db.lock() { let _ = queue::set_job_status(&con, &job.id, "done", None); } }
             Err(SourceError::WrongPassword) => {

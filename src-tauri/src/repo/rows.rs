@@ -27,6 +27,25 @@ pub enum Origin<'a> {
     Replay { device_id: &'a str },
 }
 
+thread_local! {
+    /// Set by the ingestion runner around its writes (which happen under
+    /// the archive lock, without an await, so the thread is stable). A
+    /// local write made while it is set is a sweep write (migration 0016).
+    pub static SWEEP_CONTEXT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+pub fn in_sweep_context() -> bool {
+    SWEEP_CONTEXT.with(|c| c.get())
+}
+
+/// Run `f` with every local write marked as a sweep write.
+pub fn with_sweep_context<T>(f: impl FnOnce() -> T) -> T {
+    SWEEP_CONTEXT.with(|c| c.set(true));
+    let out = f();
+    SWEEP_CONTEXT.with(|c| c.set(false));
+    out
+}
+
 fn check_table(table: &str) -> AppResult<()> {
     if SYNCED_TABLES.contains(&table) || LOCAL_TABLES.contains(&table) {
         Ok(())

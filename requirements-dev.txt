@@ -8,3 +8,5 @@ anthropic
 python-dotenv
 playwright
 pytest
+pynacl
+httpx

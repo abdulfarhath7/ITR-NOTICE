@@ -42,6 +42,9 @@ step "python: mypy"
 step "python: sidecar parser fixtures"
 ( cd sidecar && "../$PY" -m pytest tests -q )
 
+step "python: relay invariants"
+"$PY" -m pytest relay/tests -q
+
 step "python: compile"
 "$PY" -m compileall -q sidecar/notice_scraper.py sidecar/draftax_sidecar.py sidecar/ingest proxy/main.py
 [ -d relay ] && "$PY" -m compileall -q relay

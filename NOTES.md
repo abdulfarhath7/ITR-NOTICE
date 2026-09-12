@@ -112,3 +112,24 @@ Append as you go. This is where the next session picks up your thread.
   "Sweep everything now". The module walkers in the sidecar are blocked on
   captures (see BLOCKED); the pipeline from header to row is complete and
   tested with mock headers.
+- Phase 6: ledger (migrations 0014–0016), merge-never-overwrite with
+  natural keys and the smaller-id rule (D-017), JSON snapshots (D-016),
+  the `.draftax` bundle (AES-256-GCM over Argon2id, Ed25519 signature).
+  docs/12's ledger and snapshot cases are Rust tests.
+- Phase 7: `relay/` (FastAPI + SQLite, signed requests, the four
+  server-enforced invariants as pytest cases), `src-tauri/src/relay.rs`
+  (signed client, firm-key sealing, opaque client keys for locks),
+  `sync.rs` (push contiguous runs by kind, pull by cursor map, two facts
+  kept apart), lease claim/renew/handoff in the runner, roster screen with
+  the admin's radio control, firm setup / join / recover dialogs, the
+  three-state Sync button in the sidebar. A live round trip against a local
+  uvicorn (`RELAY_URL=... cargo test relay_round_trip -- --ignored`) passes:
+  register, invite, enrol, push, pull, nominate, lease, lock.
+- Errors and resolutions:
+  - Tauri commands must return `Send` futures; holding the archive
+    `MutexGuard` across a network await made three enrolment commands
+    non-Send. Split into read-id / network / store steps.
+  - ruff's B008 objects to `Depends(caller)` in every signature; one
+    module-level `CALLER = Depends(caller)` instead.
+  - `pkill -f "uvicorn relay.main:app"` matched the shell running it and
+    killed the whole command; bracket a character in the pattern.

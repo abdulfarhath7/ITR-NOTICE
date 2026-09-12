@@ -9,6 +9,7 @@ import DevicesScreen from "./screens/devices";
 import IngestionScreen from "./screens/ingestion";
 import SettingsScreen from "./screens/settings";
 import WorkItemScreen from "./screens/work-item";
+import SyncButton from "./ui/sync-button";
 import Toasts from "./ui/toasts";
 
 const THEME_KEY = "draftax.theme";
@@ -58,6 +59,7 @@ export default function App() {
           <a key={n.label} href={href(n.route)} aria-current={current(route, n.route) ? "page" : undefined}>{n.label}</a>
         ))}
         <span className="spacer" />
+        <div className="footer"><SyncButton /></div>
         <div className="footer">Read-only against the portal.</div>
       </nav>
       {screen}
