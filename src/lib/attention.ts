@@ -1,5 +1,8 @@
 /** The attention ranking (docs/09 screen 1). Pure; the hook feeds it rows.
  *
+ *  The effective due date is the manual one when a person entered it,
+ *  else the portal's (Q14). A suggestion never counts.
+ *
  *  1. overdue, soonest first
  *  2. limitation date within 30 days
  *  3. due within 7 days
@@ -7,8 +10,7 @@
  *  5. everything else open
  *
  *  Settled items (closed, submitted) never rank: only the attention list
- *  filters by status. A manual date fills a blank; a suggestion never
- *  counts. */
+ *  filters by status. */
 import { daysBetween, parseDate, todayIst, type Ymd } from "./dates";
 import { describeDue, type DueDescription } from "./due";
 import { isSettled, parseStatus, type Status } from "./status";
@@ -28,7 +30,7 @@ export interface RankedItem {
   row: WorkItemRow;
   status: Status;
   rank: Rank;
-  /** The date the ranking used: stated, else manual. */
+  /** The date the ranking used: manual when set, else the portal's. */
   effectiveDue: string | null;
   due: DueDescription;
   limitation: DueDescription;
@@ -40,7 +42,7 @@ export function rankRows(rows: WorkItemRow[], today: Ymd = todayIst()): RankedIt
   for (const row of rows) {
     const status = parseStatus(row.status);
     if (isSettled(status)) continue;
-    const effectiveDue = row.due_date ?? row.manual_due_date ?? null;
+    const effectiveDue = row.manual_due_date ?? row.due_date ?? null;
     const due = describeDue(effectiveDue, status, today);
     const limitation = describeDue(row.limitation_date, status, today);
     const dueDays = due.days;

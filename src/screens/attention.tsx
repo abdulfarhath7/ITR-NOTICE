@@ -122,7 +122,7 @@ export default function AttentionScreen() {
                     <td className="num">{i.row.assessment_year ?? <span className="muted">Not stated</span>}</td>
                     <td className="right">
                       <DueText due={i.due} />
-                      {!i.row.due_date && i.row.manual_due_date ? <div className="sub">manual</div> : null}
+                      {i.row.manual_due_date ? <div className="sub">manual{i.row.due_date ? ` · portal: ${i.row.due_date}` : ""}</div> : null}
                       {!i.effectiveDue && i.row.suggested_due_date
                         ? <div className="sub suggested">suggested {i.row.suggested_due_date}</div> : null}
                     </td>

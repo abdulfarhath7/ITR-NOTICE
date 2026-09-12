@@ -95,17 +95,15 @@ pub async fn create_draft(state: State<'_, AppState>, ref_id: String) -> AppResu
 }
 
 /// The explicit human action that turns a suggestion into a date the app
-/// acts on. It fills the manual due date (a blank only, Q14); the portal's
-/// stated date is never touched and the row stays machine-read.
+/// acts on. It writes the manual due date (Q14: the manual date may sit
+/// beside a portal date and drives the worklist); the portal's stated date
+/// is never touched and the row stays machine-read.
 #[tauri::command]
 pub fn promote_suggested_due_date(state: State<AppState>, proceeding_id: String) -> AppResult<()> {
     let con = lock_db(&state)?;
     let p = crate::repo::proceedings::get(&con, &proceeding_id)?.ok_or_else(|| AppError::not_found("proceeding"))?;
     if !Status::parse(&p.status).allows_manual_due_date() {
         return Err(AppError::state("this item is settled; its dates are no longer editable"));
-    }
-    if p.due_date.is_some() {
-        return Err(AppError::state("the portal states a due date; nothing to promote"));
     }
     let suggested = p.suggested_due_date.clone().ok_or_else(|| AppError::state("there is no suggested date to promote"))?;
     crate::repo::proceedings::set_manual_due_date(&con, &proceeding_id, Some(&suggested))

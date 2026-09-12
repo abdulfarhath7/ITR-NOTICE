@@ -53,7 +53,7 @@ function DocRow({ doc, onView, onOpen, onSave }: { doc: Document; onView: () => 
 
 function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => void }) {
   const [value, setValue] = useState(p.manual_due_date ?? "");
-  const can = actionsFor(p.status).editManualDueDate && !p.due_date;
+  const can = actionsFor(p.status).editManualDueDate;
   const save = async () => {
     try {
       await api.setManualDueDate(p.id, value || null);
@@ -61,7 +61,6 @@ function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => voi
       onSaved();
     } catch (e) { toastError(describeError(e)); }
   };
-  if (p.due_date) return <span className="muted">portal states a date; no manual override (Q14)</span>;
   if (!can) return <span className="muted">{p.manual_due_date ?? "not set"}</span>;
   return (
     <div className="row">
@@ -173,7 +172,10 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
   if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;
   const p = q.data;
   const status = parseStatus(p.status);
-  const due = describeDue(p.due_date ?? p.manual_due_date, status);
+  // The manual date drives the worklist when set; the portal's is shown
+  // beside it, labelled (Q14).
+  const due = describeDue(p.manual_due_date ?? p.due_date, status);
+  const portalDue = describeDue(p.due_date, status);
   const limitation = describeDue(p.limitation_date, status);
   const refresh = () => invalidate(`proceedings:${id}`);
   const promote = async () => {
@@ -209,13 +211,14 @@ export default function WorkItemScreen({ module, id }: { module: string; id: str
                 <dt>DIN</dt><dd><Gap value={p.din_reference} gaps={p.gaps} column="din_reference" mono /></dd>
                 <dt>Authority</dt><dd><Gap value={p.authority} gaps={p.gaps} column="authority" /></dd>
                 <dt>Initiated on</dt><dd><DateCell iso={p.initiated_on} gap={p.gaps.includes("initiated_on")} /></dd>
-                <dt>Response due</dt><dd><DueText due={due} />{!p.due_date && p.manual_due_date ? <span className="meta"> · manual</span> : null}</dd>
+                <dt>Response due</dt><dd><DueText due={due} />{p.manual_due_date ? <span className="meta"> · manual</span> : null}</dd>
+                {p.manual_due_date ? <><dt>Portal states</dt><dd><DueText due={portalDue} /></dd></> : null}
                 <dt>Manual due date</dt><dd><ManualDueDate p={p} onSaved={refresh} /></dd>
                 <dt>Suggested due date</dt>
                 <dd>{p.suggested_due_date
                   ? <span className="row">
                       <span className="suggested">{p.suggested_due_date}</span> <span className="pill warning">suggested</span>
-                      {actionsFor(p.status).editManualDueDate && !p.due_date && p.manual_due_date !== p.suggested_due_date
+                      {actionsFor(p.status).editManualDueDate && p.manual_due_date !== p.suggested_due_date
                         ? <button className="btn small" onClick={() => { void promote(); }}>Promote to manual due date</button> : null}
                     </span>
                   : <span className="muted">none</span>}</dd>

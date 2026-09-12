@@ -18,7 +18,9 @@ pub fn get_proceeding(state: State<AppState>, id: String) -> AppResult<Proceedin
     work_items::proceeding_detail(&con, &id)?.ok_or_else(|| AppError::not_found("proceeding"))
 }
 
-/// A manual date fills a blank only (Q14) and follows the action matrix.
+/// A manual date may override the portal's (Q14, answered): both are kept,
+/// both are shown, the manual one drives the worklist. The portal's own
+/// field is never overwritten. Follows the action matrix.
 #[tauri::command]
 pub fn set_manual_due_date(state: State<AppState>, proceeding_id: String, date: Option<String>) -> AppResult<()> {
     let con = lock_db(&state)?;
@@ -30,9 +32,6 @@ pub fn set_manual_due_date(state: State<AppState>, proceeding_id: String, date: 
     if let Some(d) = &date {
         if crate::dates::parse_portal_date(d).is_none() {
             return Err(AppError::invalid("enter the date as YYYY-MM-DD"));
-        }
-        if p.due_date.is_some() {
-            return Err(AppError::state("the portal states a due date; a manual date only fills a blank"));
         }
     }
     let iso = date.and_then(|d| crate::dates::to_iso(Some(&d)));

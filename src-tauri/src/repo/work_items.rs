@@ -360,7 +360,7 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
                   WHERE y.client_id = cl.id AND p.status IN ('open','adjournment_sought','unknown')),
                 (SELECT count(*) FROM proceedings p JOIN year_contexts y ON y.id = p.year_context_id
                   WHERE y.client_id = cl.id AND p.status IN ('open','adjournment_sought','unknown')
-                    AND p.due_date IS NOT NULL AND p.due_date < ?1),
+                    AND coalesce(p.manual_due_date, p.due_date) IS NOT NULL AND coalesce(p.manual_due_date, p.due_date) < ?1),
                 (SELECT run_at FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
                 (SELECT status FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
                 (SELECT count(*) FROM year_contexts y WHERE y.client_id = cl.id)

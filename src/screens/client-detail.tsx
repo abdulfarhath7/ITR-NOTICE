@@ -34,7 +34,7 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
         <table className="table">
           <tbody>
             {rows.map((r) => {
-              const due = describeDue(r.due_date ?? r.manual_due_date, r.status);
+              const due = describeDue(r.manual_due_date ?? r.due_date, r.status);
               return (
                 <tr key={r.id} className="row-link" tabIndex={0}
                     onClick={() => navigate({ name: "item", module: r.module, id: r.id })}
