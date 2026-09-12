@@ -57,3 +57,19 @@ as "not stated". AI suggestions live in separate columns and require a human
 action to be promoted.
 Rejected: Inferring dates to make the dashboard look complete.
 Reversible: yes, but do not.
+
+## D-006 — Previous-generation docs moved to `docs/legacy/`, not deleted
+Date: 2026-09-12
+Context: The spec bundle's `docs/01..15` collided with the older
+`docs/01..09` set (different numbering, different design). The old
+`NOTES.md` and `QUESTIONS.md` (373 and ~300 lines of real history: SQLCipher
+key handling, sidecar freeze rules, the first green CI run, sixteen open
+questions on updater, signing, install mode) were overwritten by the bundle's
+templates.
+Decision: `git mv` the old docs into `docs/legacy/` and save the old
+`NOTES.md` / `QUESTIONS.md` there as dated files. The reading order in
+`CLAUDE.md` now resolves unambiguously.
+Rejected: Deleting them — task 0.1 says delete nothing yet, and the legacy
+questions (updater, code signing, NSIS mode) are still unanswered and still
+matter for Phase 10.
+Reversible: easily.

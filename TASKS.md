@@ -9,9 +9,9 @@ Legend: `[ ]` todo · `[x]` done · `[~]` partially done, see NOTES.md
 
 ## Phase 0 — Groundwork
 
-- [ ] **0.1** Inspect the repository. Produce `docs/99-repo-map.md`: what exists, what runs, what is dead code. Do not delete anything yet.
+- [x] **0.1** Inspect the repository. Produce `docs/99-repo-map.md`: what exists, what runs, what is dead code. Do not delete anything yet.
   - *Done when:* the map lists every top-level directory with a one-line purpose and a live/dead verdict.
-- [ ] **0.2** Get the existing desktop app building and starting on this machine. Record the exact commands in `docs/99-repo-map.md`.
+- [x] **0.2** Get the existing desktop app building and starting on this machine. Record the exact commands in `docs/99-repo-map.md`.
   - *Done when:* a documented command sequence produces a running window.
 - [ ] **0.3** Introduce `migrations/` with a forward-only numbered runner. Baseline the current schema as `0001_baseline.sql`.
   - *Done when:* a fresh database can be built from migrations alone.
