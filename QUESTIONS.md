@@ -152,3 +152,11 @@ in `Answer:`, then re-run Claude Code to apply any that differ.
 - **Default used:** `claude-sonnet-4-6` through the existing server-side proxy. Drafts cached per notice, never regenerated automatically.
 - **Answer:**
 - **Resolved:** no
+
+### Q21 — Draftax or Litigation Command Center?
+- **Context:** The spec says Draftax; the repo was renamed to Litigation Command Center (LLC) on 2026-09-08 at your request.
+- **Options:** A) Draftax everywhere the user sees it. B) Litigation Command Center. C) Something else.
+- **Default used:** A for what the user sees; the bundle identifier `in.llc.app` and package names stay (D-012).
+- **Blast radius:** One constant in the frontend, one in `tauri.conf.json`, the export header.
+- **Answer:**
+- **Resolved:** no

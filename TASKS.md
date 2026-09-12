@@ -50,13 +50,13 @@ Read `docs/15-known-bugs.md`.
 
 ## Phase 3 — Clients and credentials
 
-- [ ] **3.1** Client registry screen per `docs/09-ui-spec.md`.
-- [ ] **3.2** Add-client form. GSTIN input derives PAN from characters 3 to 12 and state from characters 1 to 2. Both stay editable.
-- [ ] **3.3** Credential handling per `docs/07-security.md`. Passwords go to the OS keychain, never the database, never a log.
+- [x] **3.1** Client registry screen per `docs/09-ui-spec.md`.
+- [x] **3.2** Add-client form. GSTIN input derives PAN from characters 3 to 12 and state from characters 1 to 2. Both stay editable.
+- [x] **3.3** Credential handling per `docs/07-security.md`. Passwords go to the OS keychain, never the database, never a log.
   - *Done when:* grepping the repo and the database file for a test password returns nothing.
-- [ ] **3.4** `clients.portal_login_ref` — a client may be reachable through an AR login rather than its own credentials.
-- [ ] **3.5** Client import from CSV, with a dry-run preview and a per-row error list.
-- [ ] **3.6** Client detail view: year contexts down the side, modules across.
+- [x] **3.4** `clients.portal_login_ref` — a client may be reachable through an AR login rather than its own credentials.
+- [x] **3.5** Client import from CSV, with a dry-run preview and a per-row error list.
+- [x] **3.6** Client detail view: year contexts down the side, modules across.
 
 ## Phase 4 — Ingestion service, e-Proceedings
 

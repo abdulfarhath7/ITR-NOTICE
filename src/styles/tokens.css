@@ -1,0 +1,49 @@
+/* Design tokens (docs/10-design-system.md). Dark first; both modes real.
+   Colour is semantic only: danger, warning, success, and one accent. */
+
+:root {
+  --bg: #0E0E0D;
+  --surface-1: #161615;
+  --surface-2: #1E1E1C;
+  --border: #2A2A27;
+  --border-strong: #3A3A36;
+  --text: #EDEBE4;
+  --text-muted: #9A988F;
+  --text-faint: #6B6A63;
+  --accent: #3B9E7E;
+  --danger: #E06A5E;
+  --warning: #D9A03C;
+  --success: #4FA97F;
+
+  --font-ui: ui-sans-serif, -apple-system, "Segoe UI", Inter, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-pill: 999px;
+
+  --row-h: 40px;
+  --control-h: 32px;
+
+  --ease: 150ms ease-out;
+  --ease-overlay: 200ms ease-out;
+}
+
+:root[data-theme="light"] {
+  --bg: #FAFAF7;
+  --surface-1: #FFFFFF;
+  --surface-2: #F4F3EF;
+  --border: #E2E0D8;
+  --border-strong: #CFCDC3;
+  --text: #1C1C1A;
+  --text-muted: #6B6A63;
+  --text-faint: #94938C;
+  --accent: #0F6E56;
+  --danger: #B23A2C;
+  --warning: #8A5B12;
+  --success: #1D7A54;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --ease: 0ms; --ease-overlay: 0ms; }
+}

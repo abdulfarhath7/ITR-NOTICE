@@ -134,3 +134,14 @@ Decision: The backfill and live intake move such a date to
 The legacy archive on this machine has no such rows; the rule exists for the
 ones that do.
 Reversible: yes.
+
+## D-012 — Display name "Draftax"; bundle identifier unchanged
+Date: 2026-09-12
+Context: The spec bundle names the product Draftax (Q19 default) while the
+tree had been renamed to "Litigation Command Center" four days earlier.
+Decision: The window title, sidebar and export header say Draftax, held in
+one constant (`src/lib/product.ts`, `tauri.conf.json`). The Tauri identifier
+`in.llc.app`, the Cargo/npm package names and the keychain service name are
+untouched: changing the identifier orphans every installed archive and its
+key (legacy Q16). Filed as Q21.
+Reversible: easily for the display name; the identifier deliberately not.

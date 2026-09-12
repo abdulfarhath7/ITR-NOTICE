@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Litigation Command Center",
+  "productName": "Draftax",
   "version": "0.1.2",
   "identifier": "in.llc.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Litigation Command Center",
+        "title": "Draftax",
         "label": "main",
         "width": 1200,
         "height": 780,
