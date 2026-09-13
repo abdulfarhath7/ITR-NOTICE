@@ -167,12 +167,6 @@ impl PortalSource {
         self.handle.clone()
     }
 
-    pub async fn stop(mut self) {
-        let _ = self.handle.send(json!({"cmd": "stop"})).await;
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(8), self.child.wait()).await;
-        let _ = self.child.kill().await;
-    }
-
     async fn next_event(&mut self) -> Result<Value, SourceError> {
         match self.events.recv().await {
             Some(ev) if ev["ev"] == "exited" => { self.logged_in = false; Err(SourceError::SessionLost("the sidecar exited".into())) }
@@ -296,6 +290,11 @@ impl NoticeSource for PortalSource {
                 }
             }
             self.logged_in = false;
+            // Ask the sidecar to close its browser and exit on its own;
+            // kill_on_drop is only the backstop for one that will not.
+            let _ = self.handle.send(json!({"cmd": "stop"})).await;
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(8), self.child.wait()).await;
+            let _ = self.child.kill().await;
         })
     }
 

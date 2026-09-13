@@ -236,15 +236,6 @@ impl Status {
         matches!(self, Status::Open | Status::AdjournmentSought | Status::Unknown)
     }
 
-    /// The transitions the machine allows (docs/02). Same status is a no-op.
-    pub fn can_transition(self, to: Status) -> bool {
-        use Status::*;
-        self == to || matches!((self, to),
-            (Open, AdjournmentSought | ResponseSubmitted | Closed)
-            | (AdjournmentSought, Open | Closed)
-            | (ResponseSubmitted, Closed)
-            | (Unknown, Open | AdjournmentSought | ResponseSubmitted | Closed))
-    }
 
     /// The portal's own words. Anything unrecognised is `unknown`, never a
     /// guess.

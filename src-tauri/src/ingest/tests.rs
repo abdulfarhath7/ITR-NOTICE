@@ -206,7 +206,7 @@ fn same_item_from_two_engines_is_one_row() {
     let card = ProceedingCard {
         tab: "self".into(), sub_tab: "action".into(), proceeding_name: Some("Penalty Proceeding".into()),
         pan: Some(PAN.into()), assessee_name: Some("Example Assessee".into()), assessment_year: Some("2024-25".into()),
-        financial_year: None, applicable_act: None, status: Some("Open".into()), initiated_on: None,
+        financial_year: None, status: Some("Open".into()), initiated_on: None,
         closure_date: None, closure_order: None,
     };
     let notice = NoticeCard { ref_id: "100000000009".into(), description: Some("[ITBA]Show Cause Notice u/s 270A".into()),

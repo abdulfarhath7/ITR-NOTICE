@@ -50,7 +50,7 @@ fn card_from(header: &WorkItemHeader) -> Result<ProceedingCard, String> {
         tab: tab.into(), sub_tab: sub.into(),
         proceeding_name: s(p.get("proceeding_name")), pan: s(p.get("pan")),
         assessee_name: s(p.get("assessee_name")), assessment_year: s(p.get("assessment_year")),
-        financial_year: s(p.get("financial_year")), applicable_act: s(p.get("applicable_act")),
+        financial_year: s(p.get("financial_year")),
         status: s(p.get("status")), initiated_on: s(p.get("initiated_on")),
         closure_date: s(p.get("closure_date")), closure_order: s(p.get("closure_order")),
     })
@@ -534,7 +534,12 @@ impl<R: tauri::Runtime> Runner<R> {
             return;
         };
 
+        // A session can outlive the lock (six panels plus documents), so
+        // the lock is renewed at half its life until the session ends
+        // (task 4.5: five minutes, renewable).
+        let renew = self.spawn_lock_renewal(&job.login_ref);
         let outcome = self.run_session(job, &password).await;
+        renew.abort();
         match self.relay() {
             Some(relay) => { let _ = relay.release_lock(&job.login_ref).await; }
             None => { if let Ok(con) = self.db.lock() { let _ = queue::release_lock(&con, &job.login_ref, &self.device_id); } }
@@ -565,6 +570,28 @@ impl<R: tauri::Runtime> Runner<R> {
             }
         }
         self.publish();
+    }
+
+    fn spawn_lock_renewal(&self, login_ref: &str) -> tokio::task::JoinHandle<()> {
+        let relay = self.relay();
+        let db = self.db.clone();
+        let device_id = self.device_id.clone();
+        let login_ref = login_ref.to_string();
+        let app = self.app.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs((queue::LOCK_SECONDS / 2) as u64)).await;
+                let kept = match &relay {
+                    // Re-acquiring by the same holder extends the relay's lock.
+                    Some(relay) => relay.acquire_lock(&login_ref).await.unwrap_or(false),
+                    None => db.lock().ok().and_then(|con| queue::renew_lock(&con, &login_ref, &device_id).ok()).unwrap_or(false),
+                };
+                if !kept {
+                    let _ = app.emit("ingestion", json!({"ev": "log", "level": "warn",
+                        "msg": "the per-login lock could not be renewed; another device may open this session"}));
+                }
+            }
+        })
     }
 
     async fn run_session(&self, job: &Job, password: &str) -> Result<(), SourceError> {

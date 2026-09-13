@@ -102,6 +102,10 @@ pub struct PanelResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verdict { Skip, Fetch, Stop }
 
+/// Part of the docs/06 contract (task 4.1); nothing displays it until the
+/// ERI engine lands, so the lint is silenced here rather than the trait
+/// narrowed.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceHealth { Ok, NotConfigured, Degraded, Down }
@@ -134,6 +138,7 @@ pub trait PanelSink: Send {
 /// The seam. `list_work_items` streams headers to the sink and fetches the
 /// items the sink asks for (`fetch_item` is what it calls per Fetch verdict,
 /// exposed so a caller can re-fetch one item by reference).
+#[allow(dead_code)]   // fetch_item and health: docs/06 contract, callers arrive with ERI
 pub trait NoticeSource: Send {
     fn login<'a>(&'a mut self, login: &'a LoginRef, password: &'a str, sink: &'a mut dyn PanelSink)
         -> BoxFuture<'a, Result<(), SourceError>>;

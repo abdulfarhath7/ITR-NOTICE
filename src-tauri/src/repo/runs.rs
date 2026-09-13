@@ -24,8 +24,3 @@ pub fn latest(con: &Connection) -> AppResult<Option<IngestionRun>> {
         .optional()?)
 }
 
-pub fn latest_for_client(con: &Connection, client_id: &str) -> AppResult<Option<IngestionRun>> {
-    Ok(con.query_row(
-        "SELECT * FROM ingestion_runs WHERE client_id = ?1 ORDER BY run_at DESC LIMIT 1",
-        [client_id], from_row).optional()?)
-}

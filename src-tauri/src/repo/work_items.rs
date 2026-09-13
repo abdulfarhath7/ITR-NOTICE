@@ -496,7 +496,8 @@ pub fn return_detail(con: &Connection, id: &str) -> AppResult<Option<ReturnDetai
     }
     let mut chain = vec![root.clone()];
     let mut cur = root;
-    while let Some(next) = con.query_row("SELECT * FROM returns WHERE supersedes_id = ?1 LIMIT 1", [&cur.id], modules::return_row).optional()? {
+    let mut next_of = con.prepare_cached("SELECT * FROM returns WHERE supersedes_id = ?1 LIMIT 1")?;
+    while let Some(next) = next_of.query_row([&cur.id], modules::return_row).optional()? {
         chain.push(next.clone());
         cur = next;
     }

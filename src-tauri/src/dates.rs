@@ -3,7 +3,7 @@
 //! numeric form is always day-first — `03/09/2026` is 3 September, and the
 //! test below uses a day above 12 so an MM/DD reading cannot pass.
 
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{NaiveDate, Utc};
 use chrono_tz::Asia::Kolkata;
 
 const MONTHS: [&str; 12] = ["jan", "feb", "mar", "apr", "may", "jun",
@@ -54,21 +54,6 @@ pub fn today_ist() -> NaiveDate {
     Utc::now().with_timezone(&Kolkata).date_naive()
 }
 
-/// Whole days from `today` to `date`; negative means past. Callers must
-/// render this through `due::describe`, never print it raw (docs/15).
-pub fn days_until(date: NaiveDate, today: NaiveDate) -> i64 {
-    (date - today).num_days()
-}
-
-/// `22 Sep` or `22 Sep 2025` when the year differs from today's.
-pub fn short_date(date: NaiveDate, today: NaiveDate) -> String {
-    if date.year() == today.year() {
-        date.format("%-d %b").to_string()
-    } else {
-        date.format("%-d %b %Y").to_string()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,7 +91,7 @@ mod tests {
         let ist_day = utc.with_timezone(&Kolkata).date_naive();
         assert_eq!(ist_day, NaiveDate::from_ymd_opt(2026, 9, 13).unwrap());
         let due = NaiveDate::from_ymd_opt(2026, 9, 13).unwrap();
-        assert_eq!(days_until(due, ist_day), 0);
-        assert_eq!(days_until(due, utc.date_naive()), 1);
+        assert_eq!((due - ist_day).num_days(), 0);
+        assert_eq!((due - utc.date_naive()).num_days(), 1);
     }
 }

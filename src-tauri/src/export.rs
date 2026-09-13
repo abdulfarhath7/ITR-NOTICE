@@ -13,7 +13,6 @@ use chrono::Datelike;
 use rusqlite::{Connection, OptionalExtension};
 use rust_xlsxwriter::{ExcelDateTime, Format, FormatAlign, Workbook, Worksheet};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Which rows go out (task 8.3).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,7 +184,7 @@ fn scope_where(scope: &ExportScope, module: &str, alias_client: &str) -> (String
         ExportScope::All => (String::new(), Vec::new()),
         ExportScope::Client { client_id } => (format!(" AND {alias_client}.id = ?1"), vec![client_id.clone()]),
         ExportScope::View { items, .. } => {
-            let ids: Vec<String> = items.iter().filter(|(m, _)| m == module).map(|(_, id)| id.clone()).collect();
+            let ids: Vec<String> = items.iter().filter(|(m, _)| m == module).map(|(_, id)| id.to_owned()).collect();
             if ids.is_empty() { return (" AND 0".into(), Vec::new()); }
             let marks: Vec<String> = (1..=ids.len()).map(|i| format!("?{i}")).collect();
             (format!(" AND x.id IN ({})", marks.join(",")), ids)
@@ -235,12 +234,12 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id) = row?;
         // DIN and Issued On fall back to the communications when the
         // proceeding card did not carry them (docs/11 columns 11 and 12).
-        let comm: Option<(Option<String>, Option<String>)> = con.query_row(
-            "SELECT din, issued_on FROM communications WHERE proceeding_id = ?1 ORDER BY issued_on IS NULL, issued_on LIMIT 1",
-            [&id], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
-        let submitted: Option<String> = con.query_row(
-            "SELECT filed_on FROM responses WHERE proceeding_id = ?1 AND filed_on IS NOT NULL ORDER BY filed_on DESC LIMIT 1",
-            [&id], |r| r.get(0)).optional()?;
+        let comm: Option<(Option<String>, Option<String>)> = con.prepare_cached(
+            "SELECT din, issued_on FROM communications WHERE proceeding_id = ?1 ORDER BY issued_on IS NULL, issued_on LIMIT 1")?
+            .query_row([&id], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
+        let submitted: Option<String> = con.prepare_cached(
+            "SELECT filed_on FROM responses WHERE proceeding_id = ?1 AND filed_on IS NOT NULL ORDER BY filed_on DESC LIMIT 1")?
+            .query_row([&id], |r| r.get(0)).optional()?;
         let section = match (s2025.as_deref(), s1961.as_deref()) {
             (Some(n), Some(o)) => Some(format!("{n} ({o})")), (Some(n), None) => Some(n.to_string()),
             (None, Some(o)) => Some(o.to_string()), (None, None) => None,
@@ -281,16 +280,16 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, Option<String>>(8)?, r.get::<_, String>(9)?, r.get::<_, String>(10)?)))?;
     for (i, row) in q.enumerate() {
         let (name, ay, reference, raised, amount, outstanding, section, status, gaps, id, yc_id) = row?;
-        let resp: Option<LatestResponse> = con.query_row(
-            "SELECT stance, disputed_amount, filed_on, id FROM demand_responses WHERE demand_id = ?1 ORDER BY filed_on DESC LIMIT 1",
-            [&id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).optional()?;
+        let resp: Option<LatestResponse> = con.prepare_cached(
+            "SELECT stance, disputed_amount, filed_on, id FROM demand_responses WHERE demand_id = ?1 ORDER BY filed_on DESC LIMIT 1")?
+            .query_row([&id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).optional()?;
         let pay: Option<(Option<String>, Option<String>, Option<f64>)> = match &resp {
-            Some((_, _, _, rid)) => con.query_row(
-                "SELECT cin, paid_on, amount FROM payments WHERE demand_response_id = ?1 ORDER BY paid_on DESC LIMIT 1",
-                [rid], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?,
-            None => con.query_row(
-                "SELECT cin, paid_on, amount FROM payments WHERE year_context_id = ?1 AND purpose = 'demand_settlement' ORDER BY paid_on DESC LIMIT 1",
-                [&yc_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?,
+            Some((_, _, _, rid)) => con.prepare_cached(
+                "SELECT cin, paid_on, amount FROM payments WHERE demand_response_id = ?1 ORDER BY paid_on DESC LIMIT 1")?
+                .query_row([rid], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?,
+            None => con.prepare_cached(
+                "SELECT cin, paid_on, amount FROM payments WHERE year_context_id = ?1 AND purpose = 'demand_settlement' ORDER BY paid_on DESC LIMIT 1")?
+                .query_row([&yc_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?,
         };
         unverified += gap_count(gaps.as_deref());
         rows.push(vec![
@@ -372,16 +371,6 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.unverified_fields = proceedings_unverified + demands_unverified + returns_unverified + unverified;
     wb.save(path).map_err(|e| AppError::Io { message: format!("could not write the workbook: {e}") })?;
     Ok(report)
-}
-
-/// Column labels as a map, for the screens' scope preview.
-pub fn column_map() -> HashMap<&'static str, Vec<&'static str>> {
-    let mut m = HashMap::new();
-    m.insert("proceedings", PROCEEDING_COLUMNS.to_vec());
-    m.insert("demands", DEMAND_COLUMNS.to_vec());
-    m.insert("returns", RETURN_COLUMNS.to_vec());
-    m.insert("forms", FORM_COLUMNS.to_vec());
-    m
 }
 
 #[cfg(test)]

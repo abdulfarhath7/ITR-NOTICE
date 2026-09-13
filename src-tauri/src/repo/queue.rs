@@ -105,15 +105,14 @@ pub fn create_sweep(con: &Connection, device_id: &str, scope: &Scope, modules: &
         params![sweep.id, sweep.device_id, sweep.scope, sweep.status, sweep.operator, sweep.started_at,
                 sweep.finished_at, sweep.created_at])?;
     // One job per distinct login per module, in book order.
-    let mut seen: Vec<String> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut position = 0i64;
     for (client_id, pan, login_ref) in rows {
         let login = login_ref.unwrap_or(pan);
-        if seen.contains(&login) { continue; }
-        seen.push(login.clone());
+        if !seen.insert(login.clone()) { continue; }
         // The login's own client, when the login is a client in the book.
-        let owner: Option<String> = con.query_row("SELECT id FROM clients WHERE pan = ?1", [&login], |r| r.get(0))
-            .optional()?.or(Some(client_id));
+        let owner: Option<String> = con.prepare_cached("SELECT id FROM clients WHERE pan = ?1")?
+            .query_row([&login], |r| r.get(0)).optional()?.or(Some(client_id));
         for module in modules {
             position += 1;
             con.execute(

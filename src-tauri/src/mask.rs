@@ -9,10 +9,3 @@ pub fn pan(pan: &str) -> String {
     format!("{}••••{}", &p[..5], &p[9..])
 }
 
-pub fn phone(phone: &str) -> String {
-    let digits: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
-    if digits.len() < 4 {
-        return "•".repeat(digits.len().max(1));
-    }
-    format!("••••••{}", &digits[digits.len() - 4..])
-}

@@ -38,7 +38,7 @@ pub fn open(path: &Path, key: &str) -> DbResult<Connection> {
 
 // ------------------------------------------------------------ rows out
 
-/// What the notice list needs - never the blob. One row per communication.
+/// A notice as the drafting commands see it - never the blob.
 #[derive(Debug, Serialize, Clone)]
 pub struct NoticeRow {
     pub ref_id: String,
@@ -70,7 +70,8 @@ pub struct NoticeRow {
     pub verified_flag: i64,
 }
 
-pub fn list_notices(con: &Connection) -> AppResult<Vec<NoticeRow>> {
+/// One notice by its portal reference: what the drafting commands need.
+pub fn get_notice(con: &Connection, ref_id: &str) -> AppResult<Option<NoticeRow>> {
     let mut st = con.prepare(
         r#"SELECT c.reference_id, c.id, p.id, cl.id, c.section_1961, c.description, c.issued_on,
                   c.served_on, c.response_due_date, p.suggested_due_date, p.manual_due_date,
@@ -84,9 +85,9 @@ pub fn list_notices(con: &Connection) -> AppResult<Vec<NoticeRow>> {
            JOIN proceedings p ON p.id = c.proceeding_id
            JOIN year_contexts yc ON yc.id = p.year_context_id
            JOIN clients cl ON cl.id = yc.client_id
-           ORDER BY c.response_due_date IS NULL, c.response_due_date, c.issued_on DESC"#,
+           WHERE c.reference_id = ?1"#,
     )?;
-    let rows = st.query_map([], |r| {
+    let mut rows = st.query_map([ref_id], |r| {
         let comm_status: String = r.get(11)?;
         let responded = match comm_status.as_str() {
             "response_submitted" => Some(1),
@@ -106,11 +107,7 @@ pub fn list_notices(con: &Connection) -> AppResult<Vec<NoticeRow>> {
             gap_flags: r.get(20)?, verified_flag: r.get(21)?,
         })
     })?;
-    Ok(rows.collect::<Result<Vec<_>, _>>()?)
-}
-
-pub fn get_notice(con: &Connection, ref_id: &str) -> AppResult<Option<NoticeRow>> {
-    Ok(list_notices(con)?.into_iter().find(|n| n.ref_id == ref_id))
+    Ok(rows.next().transpose()?)
 }
 
 /// The notice PDF, by the portal reference id.

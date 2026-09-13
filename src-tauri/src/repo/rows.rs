@@ -110,10 +110,6 @@ pub fn write_value(con: &Connection, table: &str, value: &Value, origin: Origin)
     Ok(())
 }
 
-pub fn delete(con: &Connection, table: &str, id: &str) -> AppResult<()> {
-    delete_with(con, table, id, Origin::Local)
-}
-
 pub fn delete_with(con: &Connection, table: &str, id: &str, origin: Origin) -> AppResult<()> {
     check_table(table)?;
     con.execute(&format!("DELETE FROM {table} WHERE id = ?1"), [id])?;

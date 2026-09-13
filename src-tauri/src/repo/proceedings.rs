@@ -1,7 +1,7 @@
 //! Proceedings, communications, responses and adjournment requests.
 
 use crate::error::AppResult;
-use crate::repo::model::{AdjournmentRequest, Communication, Proceeding, Response, Status};
+use crate::repo::model::{AdjournmentRequest, Communication, Proceeding, Response};
 use crate::repo::rows;
 use rusqlite::{Connection, OptionalExtension, Row};
 
@@ -76,10 +76,6 @@ pub fn communication_by_reference(con: &Connection, reference_id: &str) -> AppRe
                      communication_row).optional()?)
 }
 
-pub fn get_communication(con: &Connection, id: &str) -> AppResult<Option<Communication>> {
-    Ok(con.query_row("SELECT * FROM communications WHERE id = ?1", [id], communication_row).optional()?)
-}
-
 pub fn communications_for(con: &Connection, proceeding_id: &str) -> AppResult<Vec<Communication>> {
     let mut st = con.prepare(
         "SELECT * FROM communications WHERE proceeding_id = ?1 ORDER BY issued_on IS NULL, issued_on, created_at")?;
@@ -107,10 +103,6 @@ pub fn adjournments_for(con: &Connection, proceeding_id: &str) -> AppResult<Vec<
         "SELECT * FROM adjournment_requests WHERE proceeding_id = ?1 ORDER BY filed_on IS NULL, filed_on")?;
     let rows = st.query_map([proceeding_id], adjournment_row)?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
-}
-
-pub fn save_adjournment(con: &Connection, a: &AdjournmentRequest) -> AppResult<()> {
-    rows::upsert(con, "adjournment_requests", a)
 }
 
 /// The proceeding's `due_date` is the portal-stated response due date of its
@@ -147,10 +139,6 @@ pub fn with_gap(current: Option<&str>, column: &str, is_gap: bool) -> String {
     }
     gaps.sort();
     serde_json::to_string(&gaps).unwrap_or_else(|_| "[]".into())
-}
-
-pub fn status_of(p: &Proceeding) -> Status {
-    Status::parse(&p.status)
 }
 
 pub fn set_manual_due_date(con: &Connection, proceeding_id: &str, date: Option<&str>) -> AppResult<()> {

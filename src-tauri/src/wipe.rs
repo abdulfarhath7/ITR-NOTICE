@@ -8,7 +8,7 @@
 //! reconnects, is untouched — the admin dialog says so.
 
 use crate::error::{AppError, AppResult};
-use crate::repo::{clients, local};
+use crate::repo::clients;
 use crate::AppState;
 use rusqlite::Connection;
 
@@ -73,6 +73,3 @@ pub async fn check(state: &AppState) -> AppResult<bool> {
     }
 }
 
-pub fn mark_pending(con: &Connection) -> AppResult<()> {
-    local::set(con, "device_removed", "1")
-}

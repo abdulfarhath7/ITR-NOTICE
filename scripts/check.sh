@@ -46,7 +46,7 @@ step "python: relay invariants"
 "$PY" -m pytest relay/tests -q
 
 step "python: compile"
-"$PY" -m compileall -q sidecar/notice_scraper.py sidecar/draftax_sidecar.py sidecar/ingest proxy/main.py
+"$PY" -m compileall -q sidecar/draftax_sidecar.py sidecar/app sidecar/ingest proxy/main.py
 [ -d relay ] && "$PY" -m compileall -q relay
 
 printf '\n\033[32mcheck: green\033[0m\n'

@@ -99,6 +99,9 @@ pub fn entries_after(con: &Connection, device_id: &str, after: i64) -> AppResult
 }
 
 /// Every entry on this device, from every stream, after the cursor map.
+/// Production reads by stream (`entries_after`); the snapshot test checks
+/// that snapshot plus tail equals a full replay (docs/12).
+#[cfg(test)]
 pub fn tail(con: &Connection, after: &CursorMap) -> AppResult<Vec<Entry>> {
     let mut st = con.prepare(
         "SELECT device_id, seq, op, entity_type, entity_id, payload, created_at, source FROM ledger ORDER BY device_id, seq")?;

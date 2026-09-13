@@ -14,13 +14,14 @@ metadata. No log line carries a blob.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
 import json
 import logging
+import os
 import secrets
-import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
@@ -36,14 +37,18 @@ from . import alerts, db
 LEASE_HOURS = 24            # Q06
 LOCK_SECONDS = 5 * 60       # docs/04
 SIGNATURE_SKEW_SECONDS = 300
+# Ledger entries carry rows and document metadata, never document bytes
+# (docs/03), so a changeset is small; a snapshot is the compacted book.
+MAX_CHANGESET_BYTES = int(os.environ.get("RELAY_MAX_CHANGESET_MB", "32")) * 1024 * 1024
+MAX_SNAPSHOT_BYTES = int(os.environ.get("RELAY_MAX_SNAPSHOT_MB", "512")) * 1024 * 1024
 
 
 async def _alert_loop() -> None:
-    """Hourly: collector-silent emails (Q17)."""
-    import asyncio
+    """Hourly: collector-silent emails (Q17). SMTP is blocking, so the pass
+    runs on a worker thread and never stalls request handling."""
     while True:
         try:
-            alerts.run_once()
+            await asyncio.to_thread(alerts.run_once)
         except Exception:  # noqa: BLE001 - an alert pass must never take the relay down
             logging.getLogger("relay").exception("alert pass failed")
         await asyncio.sleep(3600)
@@ -51,7 +56,6 @@ async def _alert_loop() -> None:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
-    import asyncio
     db.init()
     task = asyncio.create_task(_alert_loop())
     try:
@@ -349,9 +353,10 @@ async def recover_admin(firm_id: str, body: Recover, request: Request,
         raise HTTPException(401, "bad signature")
     with db.connect() as con:
         firm = con.execute("SELECT recovery_code_hash FROM firms WHERE id = ?", (firm_id,)).fetchone()
-        if firm is None or not hmac.compare_digest(firm["recovery_code_hash"], hash_code(body.recovery_code.strip().upper())):
-            time.sleep(1)      # a wrong code costs a second
-            raise HTTPException(403, "recovery code does not match")
+    if firm is None or not hmac.compare_digest(firm["recovery_code_hash"], hash_code(body.recovery_code.strip().upper())):
+        await asyncio.sleep(1)      # a wrong code costs the caller a second, not the event loop
+        raise HTTPException(403, "recovery code does not match")
+    with db.connect() as con:
         device_id = body.device_id
         _check_device_id(con, device_id)
         con.execute("UPDATE devices SET permission = 'member' WHERE firm_id = ? AND permission = 'admin'", (firm_id,))
@@ -460,6 +465,8 @@ async def publish_changeset(firm_id: str, request: Request, c: Caller = CALLER,
     blob = await request.body()
     if not blob:
         raise HTTPException(400, "empty changeset")
+    if len(blob) > MAX_CHANGESET_BYTES:
+        raise HTTPException(413, f"changeset larger than {MAX_CHANGESET_BYTES // (1024 * 1024)} MB")
     with db.connect() as con:
         if x_kind == "sweep":
             lease = _lease_row(con, firm_id)
@@ -520,6 +527,8 @@ async def publish_snapshot(firm_id: str, request: Request, c: Caller = CALLER,
     blob = await request.body()
     if not blob:
         raise HTTPException(400, "empty snapshot")
+    if len(blob) > MAX_SNAPSHOT_BYTES:
+        raise HTTPException(413, f"snapshot larger than {MAX_SNAPSHOT_BYTES // (1024 * 1024)} MB")
     with db.connect() as con:
         con.execute("INSERT INTO snapshots (firm_id, device_id, cursor, blob, created_at) VALUES (?,?,?,?,?)",
                     (firm_id, c.id, x_cursor, blob, now()))

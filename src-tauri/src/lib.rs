@@ -1,7 +1,3 @@
-// Repository functions are written ahead of the phases that call them
-// (TASKS.md); the dead-code lint is re-enabled once Phase 7 lands.
-#![allow(dead_code)]
-
 mod backfill;
 mod bundle;
 mod claude;
@@ -27,11 +23,9 @@ mod snapshot;
 mod sync;
 mod wipe;
 
-use db::NoticeRow;
-use error::AppResult;
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, State};
+use tauri::Manager;
 
 pub struct AppState {
     pub db: Arc<Mutex<Connection>>,
@@ -40,23 +34,6 @@ pub struct AppState {
     /// on every launch.
     pub temp_dir: std::path::PathBuf,
     pub ingestion: commands::ingestion::IngestionService,
-}
-
-/// The legacy notice list the current dashboard reads. Replaced screen by
-/// screen by `list_work_items`.
-#[tauri::command]
-fn list_notices(state: State<AppState>) -> AppResult<Vec<NoticeRow>> {
-    let con = commands::lock_db(&state)?;
-    db::list_notices(&con)
-}
-
-/// Base64 so the webview can build a blob: URL and show it in an <iframe>.
-#[tauri::command]
-fn get_notice_pdf(state: State<AppState>, ref_id: String) -> AppResult<String> {
-    use base64::Engine;
-    let con = commands::lock_db(&state)?;
-    let pdf = db::get_pdf(&con, &ref_id)?.ok_or_else(|| error::AppError::not_found("PDF for this notice"))?;
-    Ok(base64::engine::general_purpose::STANDARD.encode(pdf))
 }
 
 /// The bundle identifier changed from `in.llc.app` to `in.lcc.app` (Q21).
@@ -104,7 +81,6 @@ pub fn run() {
             commands::settings::get_settings, commands::settings::save_settings,
             commands::settings::get_data_dir, commands::settings::open_data_dir,
             commands::settings::get_setup_state, commands::settings::mark_setup_done,
-            list_notices, get_notice_pdf,
             commands::ai::get_draft, commands::ai::save_draft_text,
             commands::ai::suggest_due_date, commands::ai::create_draft, commands::ai::promote_suggested_due_date,
             commands::clients::list_clients, commands::clients::get_client,

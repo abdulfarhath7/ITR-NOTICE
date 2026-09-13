@@ -26,7 +26,6 @@ pub struct ProceedingCard {
     pub assessee_name: Option<String>,
     pub assessment_year: Option<String>,
     pub financial_year: Option<String>,
-    pub applicable_act: Option<String>,
     pub status: Option<String>,
     /// Left unpopulated by the portal engine (Q22: the stepper date's meaning
     /// is unconfirmed, so it is not read). Nullable for a source that does
@@ -58,8 +57,6 @@ pub struct NoticeCard {
 }
 
 pub struct Absorbed {
-    pub client_id: String,
-    pub proceeding_id: String,
     pub communication_id: Option<String>,
 }
 
@@ -248,7 +245,7 @@ pub fn absorb(con: &Connection, self_pan: Option<&str>, card: &ProceedingCard,
     };
     proceedings::refresh_due_date(con, &proceeding.id)?;
 
-    Ok(Absorbed { client_id: client.id, proceeding_id: proceeding.id, communication_id })
+    Ok(Absorbed { communication_id })
 }
 
 fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> AppResult<String> {
