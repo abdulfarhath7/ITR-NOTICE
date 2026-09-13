@@ -1,5 +1,5 @@
 /** Modal dialog and side drawer. Escape and the backdrop close; focus goes
- *  to the first control. */
+ *  to the first control and back to the opener afterwards. */
 import { useEffect, useRef } from "react";
 
 export function Dialog({ title, onClose, children, footer, wide = false, drawer = false }: {
@@ -8,8 +8,12 @@ export function Dialog({ title, onClose, children, footer, wide = false, drawer 
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const first = ref.current?.querySelector<HTMLElement>("input, select, textarea, button");
     first?.focus();
+    return () => { opener?.focus(); };
+  }, []);
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

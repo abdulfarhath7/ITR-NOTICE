@@ -22,6 +22,12 @@ const SCREENS: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "ingestion" }, label: "Ingestion", icon: "download" },
   { route: { name: "devices" }, label: "Devices", icon: "monitor" },
   { route: { name: "settings" }, label: "Settings", icon: "sliders" },
+  { route: { name: "settings", section: "sweeps" }, label: "Settings › Sweeps", icon: "sliders" },
+  { route: { name: "settings", section: "drafting" }, label: "Settings › Drafting", icon: "sliders" },
+  { route: { name: "settings", section: "notifications" }, label: "Settings › Notifications", icon: "sliders" },
+  { route: { name: "settings", section: "data" }, label: "Settings › Data", icon: "sliders" },
+  { route: { name: "settings", section: "firm" }, label: "Settings › Firm and sync", icon: "sliders" },
+  { route: { name: "settings", section: "about" }, label: "Settings › About", icon: "sliders" },
 ];
 
 function matches(text: string, q: string): boolean {
@@ -73,7 +79,11 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
     return commands.filter((c) => matches(c.label, query) || (c.hint ? matches(c.hint, query) : false)).slice(0, 40);
   }, [commands, query]);
 
-  useEffect(() => { input.current?.focus(); }, []);
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    input.current?.focus();
+    return () => { opener?.focus(); };
+  }, []);
   useEffect(() => { setActive(0); }, [query]);
 
   const onKey = (e: React.KeyboardEvent) => {

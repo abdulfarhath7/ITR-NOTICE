@@ -285,6 +285,7 @@ table.table tr.group th {
 table.table tr.group th .count { margin-left: 8px; }
 table.table.compact th, table.table.compact td { height: 30px; font-size: 12px; }
 .actions { display: inline-flex; gap: 6px; }
+.table-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--border); }
 
 /* ---------------------------------------------------------------- cards */
 .card { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-1); overflow: hidden; }

@@ -1,7 +1,7 @@
 /** Screen 1 — Attention. One ranked list across the modules: the counts
  *  up top are the ranking's own buckets and double as the filter; the
  *  rows below are grouped by that same rank. */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useClients } from "../hooks/use-clients";
 import { useRowNav, type RowNavProps } from "../hooks/use-row-nav";
 import { useAttention, useWorkItems } from "../hooks/use-work-items";
@@ -16,6 +16,9 @@ import ExportDialog from "../ui/export-dialog";
 import Icon from "../ui/icons";
 import { Page, PageBody, PageHead } from "../ui/page";
 import { StatusPill } from "../ui/pill";
+
+/** Rows rendered at a time; the rest arrive on request. */
+const PAGE = 200;
 
 function Row({ item, nav }: { item: RankedItem; nav: RowNavProps }) {
   const r = item.row;
@@ -53,6 +56,7 @@ export default function AttentionScreen() {
   const [status, setStatus] = useState("");
   const [rank, setRank] = useState<Rank | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [limit, setLimit] = useState(PAGE);
 
   const clients = useClients("");
   const q = useWorkItems({ client_ids: clientId ? [clientId] : null, assessment_year: ay || null, module: module || null, status: status || null });
@@ -62,7 +66,9 @@ export default function AttentionScreen() {
     for (const i of ranked) c[i.rank]++;
     return c;
   }, [ranked]);
-  const visible = useMemo(() => (rank ? ranked.filter((i) => i.rank === rank) : ranked), [ranked, rank]);
+  const matching = useMemo(() => (rank ? ranked.filter((i) => i.rank === rank) : ranked), [ranked, rank]);
+  const visible = useMemo(() => matching.slice(0, limit), [matching, limit]);
+  useEffect(() => { setLimit(PAGE); }, [clientId, ay, module, status, rank]);
   const years = useMemo(
     () => [...new Set((q.data ?? []).map((r) => r.assessment_year).filter((y): y is string => !!y))].sort().reverse(),
     [q.data]);
@@ -87,7 +93,7 @@ export default function AttentionScreen() {
 
   return (
     <Page>
-      <PageHead title="Attention" meta={q.loading && !q.data ? "Loading" : plural(visible.length, "open item")}>
+      <PageHead title="Attention" meta={q.loading && !q.data ? "Loading" : plural(matching.length, "open item")}>
         <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export</span></button>
       </PageHead>
       <PageBody>
@@ -154,12 +160,18 @@ export default function AttentionScreen() {
                 </tbody>
               ))}
             </table>
+            {matching.length > visible.length ? (
+              <div className="table-foot">
+                <span className="meta">{visible.length} of {matching.length} shown</span>
+                <button className="btn small" onClick={() => setLimit((n) => n + PAGE)}>Show {Math.min(PAGE, matching.length - visible.length)} more</button>
+              </div>
+            ) : null}
           </div>
         )}
       </PageBody>
       {exporting ? (
         <ExportDialog onClose={() => setExporting(false)} choices={{
-          view: { items: visible.map((i) => [i.row.module, i.row.id] as [string, string]), label: `attention list, ${plural(visible.length, "open item")}` },
+          view: { items: matching.map((i) => [i.row.module, i.row.id] as [string, string]), label: `attention list, ${plural(matching.length, "open item")}` },
         }} />
       ) : null}
     </Page>
