@@ -22,6 +22,10 @@ interface Snapshot<T = unknown> {
 interface Entry<T = unknown> {
   snap: Snapshot<T>;
   inflight: Promise<void> | null;
+  /** The fetcher of the running or last fetch, for a refetch after it. */
+  fetcher: (() => Promise<unknown>) | null;
+  /** An invalidation arrived while a fetch was running: go again after it. */
+  again: boolean;
   listeners: Set<Listener>;
 }
 
@@ -33,7 +37,7 @@ const IDLE_TTL_MS = 5 * 60_000;
 function entry<T>(key: string): Entry<T> {
   let e = cache.get(key) as Entry<T> | undefined;
   if (!e) {
-    e = { snap: EMPTY as Snapshot<T>, inflight: null, listeners: new Set() };
+    e = { snap: EMPTY as Snapshot<T>, inflight: null, fetcher: null, again: false, listeners: new Set() };
     cache.set(key, e);
   }
   return e;
@@ -46,11 +50,20 @@ function update<T>(e: Entry<T>, patch: Partial<Snapshot<T>>): void {
 
 function fetchInto<T>(key: string, fetcher: () => Promise<T>): Promise<void> {
   const e = entry<T>(key);
+  e.fetcher = fetcher;
   if (e.inflight) return e.inflight;
   update(e, { loading: true });
+  const settle = (patch: Partial<Snapshot<T>>) => {
+    e.inflight = null;
+    const again = e.again;
+    e.again = false;
+    // A result that an invalidation overtook is shown, then replaced.
+    update(e, { ...patch, loading: false, fetchedAt: again ? 0 : Date.now() });
+    if (again && e.fetcher) void fetchInto(key, e.fetcher as () => Promise<T>);
+  };
   const p = fetcher().then(
-    (data) => { e.inflight = null; update(e, { data, error: null, loading: false, fetchedAt: Date.now() }); },
-    (err) => { e.inflight = null; update(e, { error: describeError(err), loading: false, fetchedAt: Date.now() }); },
+    (data) => settle({ data, error: null }),
+    (err) => settle({ error: describeError(err) }),
   );
   e.inflight = p;
   return p;
@@ -62,8 +75,9 @@ function fetchInto<T>(key: string, fetcher: () => Promise<T>): Promise<void> {
 export function invalidate(prefix: string): void {
   for (const [key, e] of cache) {
     if (key !== prefix && !key.startsWith(prefix + ":")) continue;
-    if (e.listeners.size) update(e, { fetchedAt: 0 });
-    else cache.delete(key);
+    if (!e.listeners.size) { cache.delete(key); continue; }
+    if (e.inflight) e.again = true;
+    update(e, { fetchedAt: 0 });
   }
 }
 
