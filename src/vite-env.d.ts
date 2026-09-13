@@ -1,10 +1,4 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_BACKEND_URL?: string;
-  readonly VITE_APP_TOKEN?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+/** package.json version, stamped by vite.config.ts. */
+declare const __APP_VERSION__: string;

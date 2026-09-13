@@ -25,6 +25,9 @@ export function describeDue(
   const st = parseStatus(typeof status === "string" ? status : null);
   const date = parseDate(due);
   if (!date) {
+    // Status still wins: a settled item with no date is simply settled,
+    // not a gap to chase.
+    if (isSettled(st)) return { text: st === "closed" ? "Closed" : "Submitted", tone: "muted", unverified: false, days: null };
     return { text: "Not stated", tone: "muted", unverified: true, days: null };
   }
   const days = daysBetween(today, date);

@@ -9,7 +9,26 @@ import { invalidate, useQuery } from "../lib/query";
 import { navigate } from "../lib/router";
 import { toast, toastError } from "../lib/toast";
 import type { SetupState } from "../lib/types";
+import Icon from "../ui/icons";
+import { Page, PageBody, PageHead } from "../ui/page";
 import FirmSetup from "./firm-setup";
+
+function Step({ n, title, state, children }: { n: number; title: string; state: "done" | "next" | "later" | "optional"; children: React.ReactNode }) {
+  const pill = state === "done" ? <span className="pill success">done</span>
+    : state === "next" ? <span className="pill warning">next</span>
+    : state === "optional" ? <span className="pill">optional</span>
+    : <span className="pill">after step {n - 1}</span>;
+  return (
+    <div className={`card step${state === "done" ? " done" : ""}`}>
+      <div className="card-head">
+        <span className={`step-no${state === "done" ? " done" : ""}`}>{state === "done" ? <Icon name="check" /> : n}</span>
+        <h2>{title}</h2>
+        {pill}
+      </div>
+      <div className="card-body stack">{children}</div>
+    </div>
+  );
+}
 
 export default function SetupScreen() {
   const state = useQuery<SetupState>("setup:state", () => api.setupState());
@@ -33,43 +52,35 @@ export default function SetupScreen() {
   const step = !s ? 0 : !s.relay_configured ? 1 : (admin && !collectorSet) ? 2 : 3;
 
   return (
-    <div className="page">
-      <div className="page-head"><h1>Welcome to {PRODUCT_NAME}</h1></div>
-      <div className="page-body" style={{ maxWidth: 720 }}>
+    <Page>
+      <PageHead title={`Welcome to ${PRODUCT_NAME}`} />
+      <PageBody narrow>
         <p className="muted">Income tax notices, demands, filed returns and forms for every client of the firm, collected read-only from the portal and kept in one encrypted book on this machine. Nothing is ever invented: a date the portal does not state is shown as not stated.</p>
 
-        <div className="card">
-          <div className="card-head"><h2>1 · The firm</h2>{s?.relay_configured ? <span className="pill success">done</span> : <span className="pill">optional</span>}</div>
-          <div className="card-body stack">
-            <p className="muted">Sync shares the book between the firm's devices through a relay that stores only sealed blobs. The first device to create the firm becomes its admin and is shown a recovery code once. A device can also join with an invite from the admin.</p>
-            {s?.relay_configured
-              ? <p>Enrolled{s.permission ? ` as ${s.permission}` : ""}.</p>
-              : <div className="row"><button className="btn accent" onClick={() => setShowFirm(true)}>Create or join a firm</button><span className="meta">You can do this later from Devices.</span></div>}
-          </div>
-        </div>
+        <Step n={1} title="The firm" state={s?.relay_configured ? "done" : "optional"}>
+          <p className="muted">Sync shares the book between the firm's devices through a relay that stores only sealed blobs. The first device to create the firm becomes its admin and is shown a recovery code once. A device can also join with an invite from the admin.</p>
+          {s?.relay_configured
+            ? <p>Enrolled{s.permission ? ` as ${s.permission}` : ""}.</p>
+            : <div className="row"><button className="btn accent" onClick={() => setShowFirm(true)}>Create or join a firm</button><span className="meta">You can do this later from Devices.</span></div>}
+        </Step>
 
-        <div className="card">
-          <div className="card-head"><h2>2 · The collector</h2>{collectorSet ? <span className="pill success">done</span> : step === 2 ? <span className="pill warning">next</span> : <span className="pill">after step 1</span>}</div>
-          <div className="card-body stack">
-            <p className="muted">One device per firm sweeps the portal for everyone. It is a device setting, not a login: the admin nominates it, and the nomination can move. A sweep needs someone at that machine to clear the portal's captcha and OTP.</p>
-            {step === 2 ? <div className="row"><button className="btn accent" onClick={() => { void nominateSelf(); }}>Make this device the collector</button><span className="meta">or nominate another device from Devices</span></div>
-              : collectorSet ? <p>Collector nominated.</p>
-              : <p className="meta">{s?.relay_configured && !admin ? "Only the admin nominates the collector." : "Available once the firm exists."}</p>}
-          </div>
-        </div>
+        <Step n={2} title="The collector" state={collectorSet ? "done" : step === 2 ? "next" : "later"}>
+          <p className="muted">One device per firm sweeps the portal for everyone. It is a device setting, not a login: the admin nominates it, and the nomination can move. A sweep needs someone at that machine to clear the portal's captcha and OTP.</p>
+          {step === 2 ? <div className="row"><button className="btn accent" onClick={() => { void nominateSelf(); }}>Make this device the collector</button><span className="meta">or nominate another device from Devices</span></div>
+            : collectorSet ? <p>Collector nominated.</p>
+            : <p className="meta">{s?.relay_configured && !admin ? "Only the admin nominates the collector." : "Available once the firm exists."}</p>}
+        </Step>
 
-        <div className="card">
-          <div className="card-head"><h2>3 · Clients and credentials</h2>{s && s.client_count > 0 ? <span className="pill success">{s.client_count} in the book</span> : null}</div>
-          <div className="card-body stack">
-            <p className="muted">Add clients by hand or import the firm's list from a CSV. Portal passwords go to the operating system's keychain only — never the database, never a log. A client reached through an Authorised Representative login needs no password of its own.</p>
-            <div className="row">
-              <button className="btn accent" onClick={() => { void finish("clients"); }}>Go to Clients</button>
-              <button className="btn" onClick={() => { void finish("attention"); }}>Skip for now</button>
-            </div>
+        <Step n={3} title="Clients and credentials" state={s && s.client_count > 0 ? "done" : "optional"}>
+          <p className="muted">Add clients by hand or import the firm's list from a CSV. Portal passwords go to the operating system's keychain only, never the database, never a log. A client reached through an Authorised Representative login needs no password of its own.</p>
+          <div className="row">
+            <button className="btn accent" onClick={() => { void finish("clients"); }}>Go to Clients</button>
+            <button className="btn" onClick={() => { void finish("attention"); }}>Skip for now</button>
+            {s && s.client_count > 0 ? <span className="meta">{s.client_count} in the book</span> : null}
           </div>
-        </div>
-      </div>
+        </Step>
+      </PageBody>
       {showFirm ? <FirmSetup onClose={() => { setShowFirm(false); invalidate("setup"); invalidate("sync"); }} /> : null}
-    </div>
+    </Page>
   );
 }

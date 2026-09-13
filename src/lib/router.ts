@@ -9,7 +9,7 @@ export type Route =
   | { name: "item"; module: string; id: string }
   | { name: "ingestion" }
   | { name: "devices" }
-  | { name: "settings" }
+  | { name: "settings"; section?: string }
   | { name: "setup" };
 
 export function href(route: Route): string {
@@ -20,7 +20,7 @@ export function href(route: Route): string {
     case "item": return `#/items/${route.module}/${encodeURIComponent(route.id)}`;
     case "ingestion": return "#/ingestion";
     case "devices": return "#/devices";
-    case "settings": return "#/settings";
+    case "settings": return route.section ? `#/settings/${route.section}` : "#/settings";
     case "setup": return "#/setup";
   }
 }
@@ -34,7 +34,7 @@ export function parse(hash: string): Route {
       return parts[1] && parts[2] ? { name: "item", module: parts[1], id: parts[2] } : { name: "attention" };
     case "ingestion": return { name: "ingestion" };
     case "devices": return { name: "devices" };
-    case "settings": return { name: "settings" };
+    case "settings": return parts[1] ? { name: "settings", section: parts[1] } : { name: "settings" };
     case "setup": return { name: "setup" };
     default: return { name: "attention" };
   }
@@ -42,6 +42,13 @@ export function parse(hash: string): Route {
 
 export function navigate(route: Route): void {
   window.location.hash = href(route);
+}
+
+/** The top-level screen a route belongs to, for the navigation highlight. */
+export function section(route: Route): Route["name"] {
+  if (route.name === "client") return "clients";
+  if (route.name === "item") return "attention";
+  return route.name;
 }
 
 export function useRoute(): Route {

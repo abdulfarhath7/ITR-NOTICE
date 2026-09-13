@@ -3,10 +3,10 @@
  *  right; every gap reads "Not stated". */
 import { useDocuments } from "../hooks/use-documents";
 import { useDemand, useFiledForm, useReturn } from "../hooks/use-proceeding";
-import { href, navigate } from "../lib/router";
-import type { Document } from "../lib/types";
+import { navigate } from "../lib/router";
 import { DateCell } from "../ui/dates";
-import DocumentPreview from "../ui/document-preview";
+import { DocList, DocPreview } from "../ui/doc-list";
+import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { StatusPill } from "../ui/pill";
 
 function money(v: number | null): React.ReactNode {
@@ -18,60 +18,37 @@ function Gap({ value, mono = false }: { value: string | null | undefined; mono?:
   return value ? <span className={mono ? "mono" : undefined}>{value}</span> : <span className="muted">Not stated</span>;
 }
 
-function Docs({ docs, d }: { docs: Document[]; d: ReturnType<typeof useDocuments> }) {
-  if (!docs.length) return <div className="card-body muted">No documents fetched yet.</div>;
-  return (
-    <table className="table"><tbody>
-      {docs.map((doc) => {
-        const stored = doc.state === "stored";
-        return (
-          <tr key={doc.id}>
-            <td className="wrap">{doc.filename ?? doc.doc_kind}
-              <div className="sub">{doc.doc_kind}{doc.state === "pending" ? " · awaited" : doc.state === "failed" ? " · fetch failed" : ""}</div></td>
-            <td className="right"><div className="actions">
-              <button className="btn small" disabled={!stored} onClick={() => { void d.view(doc); }}>View</button>
-              <button className="btn small" disabled={!stored} onClick={() => { void d.openExternal(doc); }}>Open</button>
-              <button className="btn small" disabled={!stored} onClick={() => { void d.saveAs(doc); }}>Save</button>
-            </div></td>
-          </tr>
-        );
-      })}
-    </tbody></table>
-  );
-}
-
-function Frame({ title, client, status, verified, children }: {
-  title: string; client: { id: string; name: string }; status: string; verified: number; children: React.ReactNode;
+function Frame({ title, client, status, verified, docs, children }: {
+  title: string; client: { id: string; name: string }; status: string; verified: number;
+  docs: ReturnType<typeof useDocuments>; children: React.ReactNode;
 }) {
   return (
-    <div className="page">
-      <div className="page-head">
-        <a className="btn small quiet" href={href({ name: "client", id: client.id })}>{client.name}</a>
-        <h1>{title}</h1>
-        <StatusPill status={status} />
-        {verified ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}
-      </div>
-      <div className="page-body">{children}</div>
-    </div>
+    <Page>
+      <PageHead title={title} back={{ route: { name: "client", id: client.id }, label: client.name }}
+                meta={<span className="row"><StatusPill status={status} />
+                  {verified ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}</span>} />
+      <PageBody>{children}</PageBody>
+      <DocPreview docs={docs} />
+    </Page>
   );
 }
 
 export function DemandScreen({ id }: { id: string }) {
   const q = useDemand(id);
   const docs = useDocuments();
-  if (q.error) return <div className="page"><div className="page-body"><div className="banner danger">{q.error}</div></div></div>;
-  if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;
+  if (q.error) return <ErrorPage message={q.error} />;
+  if (!q.data) return <LoadingPage />;
   const d = q.data;
   const allDocs = [...d.documents, ...d.responses.flatMap((r) => r.documents)];
   return (
-    <Frame title={`Demand ${d.demand_reference_number ?? ""}`.trim()} client={{ id: d.client_id, name: d.client_name }} status={d.status} verified={d.verified_flag}>
+    <Frame title={`Demand ${d.demand_reference_number ?? ""}`.trim()} client={{ id: d.client_id, name: d.client_name }} status={d.status} verified={d.verified_flag} docs={docs}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Demand</h2><span className="meta">{d.section_or_demand_type ?? ""}</span></div>
           <div className="card-body">
             <dl className="kv">
               <dt>Client</dt><dd>{d.client_name} <span className="mono muted">{d.pan_masked}</span></dd>
-              <dt>Assessment year</dt><dd>{d.assessment_year ?? <span className="muted">Not stated</span>}</dd>
+              <dt>Assessment year</dt><dd><Gap value={d.assessment_year} /></dd>
               <dt>Reference</dt><dd><Gap value={d.demand_reference_number} mono /></dd>
               <dt>Section / type</dt><dd><Gap value={d.section_or_demand_type} /></dd>
               <dt>Raised on</dt><dd><DateCell iso={d.raised_on} gap={d.gaps.includes("raised_on")} /></dd>
@@ -86,7 +63,7 @@ export function DemandScreen({ id }: { id: string }) {
         </div>
         <div className="card">
           <div className="card-head"><h2>Documents</h2><span className="meta num">{allDocs.length}</span></div>
-          <Docs docs={allDocs} d={docs} />
+          <DocList items={allDocs} docs={docs} />
         </div>
       </div>
       <div className="card">
@@ -96,11 +73,11 @@ export function DemandScreen({ id }: { id: string }) {
             <thead><tr><th>Stance</th><th>Reason</th><th className="num">Disputed amount</th><th>Filed on</th><th>Transaction</th></tr></thead>
             <tbody>{d.responses.map((r) => (
               <tr key={r.id}>
-                <td>{r.stance ? r.stance.replace("_", " ") : <span className="muted">Not stated</span>}</td>
-                <td className="wrap">{r.reason_label ?? <span className="muted">Not stated</span>}</td>
+                <td><Gap value={r.stance?.replace("_", " ")} /></td>
+                <td className="wrap"><Gap value={r.reason_label} /></td>
                 <td className="num">{money(r.disputed_amount)}</td>
                 <td><DateCell iso={r.filed_on} /></td>
-                <td className="mono">{r.transaction_id ?? <span className="muted">Not stated</span>}</td>
+                <td><Gap value={r.transaction_id} mono /></td>
               </tr>
             ))}</tbody>
           </table>
@@ -114,8 +91,8 @@ export function DemandScreen({ id }: { id: string }) {
             <tbody>{d.payments.map((p) => (
               <tr key={p.id}>
                 <td>{p.purpose.replace("_", " ")}</td>
-                <td className="mono">{p.cin ?? <span className="muted">Not stated</span>}</td>
-                <td className="mono">{p.bsr_code ?? <span className="muted">Not stated</span>}</td>
+                <td><Gap value={p.cin} mono /></td>
+                <td><Gap value={p.bsr_code} mono /></td>
                 <td><DateCell iso={p.paid_on} /></td>
                 <td className="num">{money(p.amount)}</td>
               </tr>
@@ -123,9 +100,6 @@ export function DemandScreen({ id }: { id: string }) {
           </table>
         ) : <div className="card-body muted">No challan recorded.</div>}
       </div>
-      {docs.preview ? <DocumentPreview preview={docs.preview} onClose={docs.closePreview}
-        onOpen={() => { if (docs.preview) void docs.openExternal(docs.preview.doc); }}
-        onSave={() => { if (docs.preview) void docs.saveAs(docs.preview.doc); }} /> : null}
     </Frame>
   );
 }
@@ -133,54 +107,52 @@ export function DemandScreen({ id }: { id: string }) {
 export function ReturnScreen({ id }: { id: string }) {
   const q = useReturn(id);
   const docs = useDocuments();
-  if (q.error) return <div className="page"><div className="page-body"><div className="banner danger">{q.error}</div></div></div>;
-  if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;
+  if (q.error) return <ErrorPage message={q.error} />;
+  if (!q.data) return <LoadingPage />;
   const r = q.data;
   return (
-    <Frame title={`${r.return_type ?? "Return"} · ${r.acknowledgement_number}`} client={{ id: r.client_id, name: r.client_name }} status={r.status} verified={r.verified_flag}>
+    <Frame title={`${r.return_type ?? "Return"} · ${r.acknowledgement_number}`} client={{ id: r.client_id, name: r.client_name }} status={r.status} verified={r.verified_flag} docs={docs}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Return</h2><span className="meta">{r.filing_type ?? ""}</span></div>
           <div className="card-body">
             <dl className="kv">
               <dt>Client</dt><dd>{r.client_name} <span className="mono muted">{r.pan_masked}</span></dd>
-              <dt>Assessment year</dt><dd>{r.assessment_year ?? <span className="muted">Not stated</span>}</dd>
+              <dt>Assessment year</dt><dd><Gap value={r.assessment_year} /></dd>
               <dt>Acknowledgement</dt><dd className="mono">{r.acknowledgement_number}</dd>
               <dt>Return type</dt><dd><Gap value={r.return_type} /></dd>
               <dt>Filing type</dt><dd><Gap value={r.filing_type} /></dd>
               <dt>Filed on</dt><dd><DateCell iso={r.filed_on} gap={r.gaps.includes("filed_on")} /></dd>
               <dt>Verification</dt><dd><Gap value={r.verification_status} /></dd>
               <dt>Processing</dt><dd><Gap value={r.processing_status} /></dd>
-              <dt>Supersedes</dt><dd>{r.supersedes_ack ? <span className="mono">{r.supersedes_ack}</span> : <span className="muted">— (original)</span>}</dd>
-              <dt>Superseded by</dt><dd>{r.superseded_by_ack ? <span className="mono">{r.superseded_by_ack}</span> : <span className="muted">—</span>}</dd>
+              <dt>Supersedes</dt><dd>{r.supersedes_ack ? <span className="mono">{r.supersedes_ack}</span> : <span className="muted">none (original)</span>}</dd>
+              <dt>Superseded by</dt><dd>{r.superseded_by_ack ? <span className="mono">{r.superseded_by_ack}</span> : <span className="muted">none</span>}</dd>
               <dt>Last seen</dt><dd className="num">{r.last_seen_at.slice(0, 10)}</dd>
             </dl>
           </div>
         </div>
         <div className="card">
           <div className="card-head"><h2>Form and receipt</h2><span className="meta">always two nodes</span></div>
-          <Docs docs={r.documents} d={docs} />
+          <DocList items={r.documents} docs={docs} />
         </div>
       </div>
       <div className="card">
-        <div className="card-head"><h2>Filing thread</h2><span className="meta">original, revised, updated — one thread</span></div>
+        <div className="card-head"><h2>Filing thread</h2><span className="meta">original, revised, updated: one thread</span></div>
         <table className="table"><tbody>
           {r.chain.map((c, i) => (
-            <tr key={c.id} className={c.id === r.id ? "" : "row-link"} tabIndex={0}
-                onClick={() => { if (c.id !== r.id) navigate({ name: "item", module: "returns", id: c.id }); }}>
+            <tr key={c.id} className={c.id === r.id ? "" : "row-link"} tabIndex={c.id === r.id ? -1 : 0}
+                onClick={() => { if (c.id !== r.id) navigate({ name: "item", module: "returns", id: c.id }); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && c.id !== r.id) navigate({ name: "item", module: "returns", id: c.id }); }}>
               <td className="num">{i + 1}</td>
               <td className="mono">{c.acknowledgement_number}{c.id === r.id ? <span className="sub">this one</span> : null}</td>
-              <td>{c.filing_type ?? <span className="muted">Not stated</span>}</td>
+              <td><Gap value={c.filing_type} /></td>
               <td><DateCell iso={c.filed_on} /></td>
-              <td>{c.verification_status ?? <span className="muted">Not stated</span>}</td>
+              <td><Gap value={c.verification_status} /></td>
               <td>{i === r.chain.length - 1 ? <span className="pill success">current</span> : <span className="pill">superseded</span>}</td>
             </tr>
           ))}
         </tbody></table>
       </div>
-      {docs.preview ? <DocumentPreview preview={docs.preview} onClose={docs.closePreview}
-        onOpen={() => { if (docs.preview) void docs.openExternal(docs.preview.doc); }}
-        onSave={() => { if (docs.preview) void docs.saveAs(docs.preview.doc); }} /> : null}
     </Frame>
   );
 }
@@ -188,18 +160,18 @@ export function ReturnScreen({ id }: { id: string }) {
 export function FiledFormScreen({ id }: { id: string }) {
   const q = useFiledForm(id);
   const docs = useDocuments();
-  if (q.error) return <div className="page"><div className="page-body"><div className="banner danger">{q.error}</div></div></div>;
-  if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;
+  if (q.error) return <ErrorPage message={q.error} />;
+  if (!q.data) return <LoadingPage />;
   const f = q.data;
   return (
-    <Frame title={f.form_label ?? f.type_label} client={{ id: f.client_id, name: f.client_name }} status={f.status} verified={f.verified_flag}>
+    <Frame title={f.form_label ?? f.type_label} client={{ id: f.client_id, name: f.client_name }} status={f.status} verified={f.verified_flag} docs={docs}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Form</h2><span className="meta">{f.type_label}</span></div>
           <div className="card-body">
             <dl className="kv">
               <dt>Client</dt><dd>{f.client_name} <span className="mono muted">{f.pan_masked}</span></dd>
-              <dt>Assessment year</dt><dd>{f.assessment_year ?? <span className="muted">Not stated</span>}</dd>
+              <dt>Assessment year</dt><dd><Gap value={f.assessment_year} /></dd>
               <dt>Acknowledgement</dt><dd className="mono">{f.acknowledgement_number}</dd>
               <dt>Filed on</dt><dd><DateCell iso={f.filed_on} gap={f.gaps.includes("filed_on")} /></dd>
               <dt>Filing type</dt><dd><Gap value={f.filing_type} /></dd>
@@ -211,12 +183,9 @@ export function FiledFormScreen({ id }: { id: string }) {
         </div>
         <div className="card">
           <div className="card-head"><h2>Form and receipt</h2><span className="meta">always two nodes</span></div>
-          <Docs docs={f.documents} d={docs} />
+          <DocList items={f.documents} docs={docs} />
         </div>
       </div>
-      {docs.preview ? <DocumentPreview preview={docs.preview} onClose={docs.closePreview}
-        onOpen={() => { if (docs.preview) void docs.openExternal(docs.preview.doc); }}
-        onSave={() => { if (docs.preview) void docs.saveAs(docs.preview.doc); }} /> : null}
     </Frame>
   );
 }

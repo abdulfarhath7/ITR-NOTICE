@@ -106,8 +106,8 @@ export default function ClientForm({ existing, onClose, onSaved }: {
         </Field>
         <Field label="Phone">
           <div className="row">
-            <input className="input" style={{ width: 64 }} value={form.phone_cc ?? "+91"} onChange={(e) => set("phone_cc", e.target.value)} aria-label="Country code" />
-            <input className="input" style={{ flex: 1 }} value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} aria-label="Phone number" />
+            <input className="input cc" value={form.phone_cc ?? "+91"} onChange={(e) => set("phone_cc", e.target.value)} aria-label="Country code" />
+            <input className="input grow" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} aria-label="Phone number" />
           </div>
         </Field>
         <Field label="Email">

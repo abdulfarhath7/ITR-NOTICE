@@ -18,12 +18,20 @@ import type { WorkItemRow } from "./types";
 
 export type Rank = 1 | 2 | 3 | 4 | 5;
 
+export const RANKS: Rank[] = [1, 2, 3, 4, 5];
+
 export const RANK_LABEL: Record<Rank, string> = {
   1: "Overdue",
   2: "Limitation within 30 days",
   3: "Due within 7 days",
-  4: "Open, no due date stated",
+  4: "No due date stated",
   5: "Open",
+};
+
+/** The tone each rank's count carries. Colour means something (docs/10):
+ *  the dangerous ranks are the overdue ones and the ones with no date. */
+export const RANK_TONE: Record<Rank, "danger" | "warning" | "muted" | "normal"> = {
+  1: "danger", 2: "warning", 3: "warning", 4: "muted", 5: "normal",
 };
 
 export interface RankedItem {
@@ -59,17 +67,4 @@ export function rankRows(rows: WorkItemRow[], today: Ymd = todayIst()): RankedIt
   }
   out.sort((a, b) => a.rank - b.rank || a.sortKey - b.sortKey || a.row.client_name.localeCompare(b.row.client_name));
   return out;
-}
-
-export type DueWindow = "" | "overdue" | "7" | "30" | "none";
-
-export function inDueWindow(item: RankedItem, window: DueWindow): boolean {
-  const d = item.due.days;
-  switch (window) {
-    case "": return true;
-    case "overdue": return d !== null && d < 0;
-    case "7": return d !== null && d >= 0 && d <= 7;
-    case "30": return d !== null && d >= 0 && d <= 30;
-    case "none": return d === null;
-  }
 }

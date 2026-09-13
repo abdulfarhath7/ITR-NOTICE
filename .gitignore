@@ -28,3 +28,7 @@ Screenshot*.png
 # leftover from the old loopback-sidecar design (Linux binary, 89 MB)
 src-tauri/binaries/
 .npmrc
+
+# the relay writes its SQLite file into the cwd when RELAY_DB is unset
+relay.db
+relay.db-*

@@ -11,7 +11,7 @@ export default function DocumentPreview({ preview, onClose, onOpen, onSave }: {
         <button className="btn" onClick={onSave}>Save</button>
       </>
     }>
-      <div style={{ height: "70vh" }}>
+      <div className="preview-box">
         <iframe className="preview" src={preview.url} title={preview.doc.filename ?? "document"} />
       </div>
     </Dialog>

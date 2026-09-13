@@ -1,37 +1,23 @@
 /** Screen 6 — Devices (docs/09). Roster with the collector radio control
- *  (admin only; read-only for members), sync state as two independent
- *  facts, "changes behind" by originating device, bundles in and out. */
+ *  (admin only; read-only for members), and sync state as two independent
+ *  facts: cursor freshness and collector health. This device's own
+ *  identity and the leave action live in Settings › Firm and sync. */
 import { useState } from "react";
 import { useRoster, useSyncNow, useSyncState } from "../hooks/use-sync";
 import { api, describeError } from "../lib/api";
-import { invalidate, useQuery } from "../lib/query";
+import { plural } from "../lib/labels";
+import { invalidate } from "../lib/query";
+import { href } from "../lib/router";
 import { toast, toastError } from "../lib/toast";
-import type { DeviceInfo, RosterDevice } from "../lib/types";
+import type { RosterDevice } from "../lib/types";
 import { stamp } from "../ui/dates";
 import { Confirm, Dialog } from "../ui/dialog";
+import Icon from "../ui/icons";
+import { Page, PageBody, PageHead } from "../ui/page";
 import { ExportBundle, ImportBundle } from "./bundles";
 import FirmSetup from "./firm-setup";
 
 const ONLINE_MINUTES = 10;
-
-/** Where this device's user is emailed when the collector misses a run (Q17). */
-function AlertEmail() {
-  const q = useQuery<string | null>("sync:alert-email", () => api.alertEmail());
-  const [value, setValue] = useState<string | null>(null);
-  const shown = value ?? q.data ?? "";
-  const save = async () => {
-    try { await api.setAlertEmail(shown.trim() || null); invalidate("sync:alert-email"); setValue(null); toast("Alert email saved."); }
-    catch (e) { toastError(describeError(e)); }
-  };
-  return (
-    <div className="card-body row">
-      <span className="meta">Collector-silent alerts go to</span>
-      <input className="input" type="email" style={{ width: 260 }} value={shown} onChange={(e) => setValue(e.target.value)} aria-label="Alert email" />
-      {value !== null && value !== (q.data ?? "") ? <button className="btn small" onClick={() => { void save(); }}>Save</button> : null}
-      <span className="meta">one email per missed run, at most one a day, and one when it returns</span>
-    </div>
-  );
-}
 
 function online(lastSeen: string | null): boolean {
   if (!lastSeen) return false;
@@ -48,16 +34,16 @@ export default function DevicesScreen() {
   const s = sync.data;
   const roster = useRoster(!!s?.configured);
   const syncNow = useSyncNow();
-  const info = useQuery<DeviceInfo>("device:info", () => api.deviceInfo());
   const [setup, setSetup] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [invite, setInvite] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ kind: "remove" | "transfer" | "leave"; device?: RosterDevice } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "remove" | "transfer"; device: RosterDevice } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const admin = roster.data?.you.permission === "admin";
   const me = s?.device_id;
+  const nameOf = (id: string) => roster.data?.devices.find((d) => d.id === id)?.name ?? <span className="mono">{id}</span>;
 
   const act = async (f: () => Promise<unknown>, done: string) => {
     setBusy(true);
@@ -69,51 +55,51 @@ export default function DevicesScreen() {
   const nominate = (d: RosterDevice) => act(() => api.setCollector(d.id), `${d.name} nominated as collector. The current holder finishes its client, then hands over.`);
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <h1>Devices</h1>
+    <Page>
+      <PageHead title="Devices" meta={roster.data ? plural(roster.data.devices.filter((d) => !d.removed_at).length, "device") : undefined}>
         {s?.configured ? (
           <button className={`btn ${s.status === "unreachable" ? "danger" : s.status === "behind" ? "accent" : ""}`}
                   disabled={syncNow.busy} onClick={() => { void syncNow.run(); }}>
-            {syncNow.busy ? "Syncing" : s.status === "unreachable" ? "Cannot reach relay · retry"
-              : s.status === "behind" ? `Sync · ${s.behind_total.toLocaleString("en-IN")} behind` : "Sync · up to date"}
+            <Icon name="refresh" className={syncNow.busy ? "spin" : undefined} />
+            <span>{syncNow.busy ? "Syncing" : s.status === "unreachable" ? "Cannot reach relay · retry"
+              : s.status === "behind" ? `Sync · ${s.behind_total.toLocaleString("en-IN")} behind` : "Sync · up to date"}</span>
           </button>
         ) : <button className="btn accent" onClick={() => setSetup(true)}>Set up sync</button>}
-        <button className="btn" onClick={() => setImporting(true)}>Import bundle</button>
-        <button className="btn" onClick={() => setExporting(true)}>Export bundle</button>
-      </div>
-      <div className="page-body">
+        <button className="btn" onClick={() => setImporting(true)}><Icon name="download" /><span>Import bundle</span></button>
+        <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export bundle</span></button>
+      </PageHead>
+      <PageBody>
         {s?.configured && s.collector_silent ? (
           <div className="banner warning">
-            <span><b>The collector has not reported</b> since {stamp(s.collector_last_seen)}. Being up to date with the relay does not mean the book is current — nothing new has been swept.</span>
+            <Icon name="alert" />
+            <span><b>The collector has not reported</b> since {stamp(s.collector_last_seen)}. Being up to date with the relay does not mean the book is current: nothing new has been swept.</span>
           </div>
         ) : null}
-        {s?.last_error ? <div className="banner danger">{s.last_error}</div> : null}
+        {s?.last_error ? <div className="banner danger" role="alert"><Icon name="alert" /><span>{s.last_error}</span></div> : null}
 
         {s?.configured ? (
           <div className="grid-2">
             <div className="card">
               <div className="card-head"><h2>Cursor freshness</h2><span className="meta">fact one</span></div>
-              <div className="card-body">
+              <div className="card-body stack">
                 {s.behind_total === 0 ? <p>Every change the relay holds has been applied here.</p>
                   : <p><b className="num">{s.behind_total.toLocaleString("en-IN")}</b> change{s.behind_total === 1 ? "" : "s"} not yet applied on this device.</p>}
                 {Object.keys(s.behind_by_device).length ? (
-                  <table className="table" style={{ marginTop: 8 }}><tbody>
+                  <table className="table compact"><tbody>
                     {Object.entries(s.behind_by_device).map(([dev, n]) => (
-                      <tr key={dev}><td>{roster.data?.devices.find((d) => d.id === dev)?.name ?? <span className="mono">{dev}</span>}</td><td className="num">{n.toLocaleString("en-IN")}</td></tr>
+                      <tr key={dev}><td>{nameOf(dev)}</td><td className="num">{n.toLocaleString("en-IN")}</td></tr>
                     ))}
                   </tbody></table>
                 ) : null}
-                <p className="meta" style={{ marginTop: 8 }}>Last sync {stamp(s.last_sync_at)} · {s.unpublished} local change{s.unpublished === 1 ? "" : "s"} to send{s.unpublished_sweep_waiting ? " · sweep changes wait for the collector lease" : ""}</p>
+                <p className="meta">Last sync {stamp(s.last_sync_at)} · {plural(s.unpublished, "local change")} to send{s.unpublished_sweep_waiting ? " · sweep changes wait for the collector lease" : ""}</p>
               </div>
             </div>
             <div className="card">
               <div className="card-head"><h2>Collector health</h2><span className="meta">fact two</span></div>
-              <div className="card-body">
+              <div className="card-body stack">
                 {s.collector_device_id ? (
                   <>
-                    <p>{roster.data?.devices.find((d) => d.id === s.collector_device_id)?.name ?? <span className="mono">{s.collector_device_id}</span>}
-                      {s.collector_device_id === me ? " (this device)" : ""}</p>
+                    <p>{nameOf(s.collector_device_id)}{s.collector_device_id === me ? " (this device)" : ""}</p>
                     <p className={s.collector_silent ? "due danger" : "muted"}>Last reported {stamp(s.collector_last_seen)}</p>
                   </>
                 ) : <p className="muted">No collector is nominated. Nothing sweeps the portal until the admin nominates one below.</p>}
@@ -127,14 +113,14 @@ export default function DevicesScreen() {
             <div className="card-head">
               <h2>{roster.data?.firm.name ?? s.firm_name ?? "Firm"}</h2>
               <span className="meta mono">{s.firm_id}</span>
-              {admin ? <button className="btn small" disabled={busy} onClick={() => { void act(async () => setInvite(await api.createInvite()), "Invite created."); }}>Invite a device</button> : null}
-              <button className="btn small danger" onClick={() => setConfirm({ kind: "leave" })}>Leave firm on this device</button>
+              {admin ? <button className="btn small" disabled={busy} onClick={() => { void act(async () => setInvite(await api.createInvite()), "Invite created."); }}><Icon name="plus" /><span>Invite a device</span></button> : null}
+              <a className="btn small quiet" href={href({ name: "settings", section: "firm" })}>This device</a>
             </div>
             {roster.error ? <div className="card-body"><div className="banner danger">{roster.error}</div></div>
             : !roster.data ? <div className="loading">Loading</div> : (
               <table className="table">
                 <thead><tr>
-                  <th>Collector</th><th>Name</th><th>RAM</th><th>Role</th><th>Online</th><th className="num">Position</th><th className="num">Behind here</th><th className="right">Actions</th>
+                  <th>Collector</th><th>Name</th><th>RAM</th><th>Role</th><th>Online</th><th className="num">Position</th><th className="num">Behind here</th><th className="right"><span className="sr-only">Actions</span></th>
                 </tr></thead>
                 <tbody>
                   {roster.data.devices.filter((d) => !d.removed_at).map((d) => {
@@ -146,12 +132,14 @@ export default function DevicesScreen() {
                                  checked={roster.data?.nominee_id === d.id || (roster.data?.nominee_id == null && d.role === "collector")}
                                  disabled={!admin || busy} onChange={() => { void nominate(d); }} />
                         </td>
-                        <td className="wrap">{d.name}{d.id === me ? <span className="sub">this device</span> : null}</td>
+                        <td className="wrap">{d.name}{d.id === me ? <div className="sub">this device</div> : null}</td>
                         <td className="num">{ram(d.ram_mb)}</td>
                         <td>
-                          <span className={`pill ${d.permission === "admin" ? "accent" : ""}`}>{d.permission}</span>{" "}
-                          {d.role === "collector" ? <span className="pill success">collector</span> : null}
-                          {roster.data?.lease?.device_id === d.id ? <span className="pill normal">lease held</span> : null}
+                          <span className="row">
+                            <span className={`pill ${d.permission === "admin" ? "accent" : ""}`}>{d.permission}</span>
+                            {d.role === "collector" ? <span className="pill success">collector</span> : null}
+                            {roster.data?.lease?.device_id === d.id ? <span className="pill normal">lease held</span> : null}
+                          </span>
                         </td>
                         <td>{online(d.last_seen) ? <span className="pill success">online</span> : <span className="muted num">{stamp(d.last_seen)}</span>}</td>
                         <td className="num">{d.head.toLocaleString("en-IN")}</td>
@@ -171,7 +159,6 @@ export default function DevicesScreen() {
               </table>
             )}
             {!admin && roster.data ? <div className="card-body meta">Only the admin can nominate the collector, remove a device or transfer the admin role. You see the same list.</div> : null}
-            <AlertEmail />
           </div>
         ) : (
           <div className="card">
@@ -182,47 +169,28 @@ export default function DevicesScreen() {
             </div>
           </div>
         )}
-
-        <div className="card">
-          <div className="card-head"><h2>This device</h2></div>
-          <div className="card-body">
-            {info.data ? (
-              <dl className="kv">
-                <dt>Device id</dt><dd className="mono">{info.data.device_id}</dd>
-                <dt>Signing key</dt><dd className="mono" style={{ overflowWrap: "anywhere" }}>{info.data.public_key}</dd>
-                <dt>Own ledger entries</dt><dd className="num">{info.data.own_entries.toLocaleString("en-IN")}</dd>
-                <dt>Last snapshot</dt><dd className="num">{stamp(info.data.last_snapshot_at)}{info.data.snapshot_due ? <span className="pill warning" style={{ marginLeft: 8 }}>due</span> : null}</dd>
-              </dl>
-            ) : <span className="muted">Loading</span>}
-          </div>
-        </div>
-      </div>
+      </PageBody>
 
       {setup ? <FirmSetup onClose={() => { setSetup(false); invalidate("sync"); invalidate("device"); }} /> : null}
       {exporting ? <ExportBundle onClose={() => setExporting(false)} /> : null}
       {importing ? <ImportBundle onClose={() => setImporting(false)} /> : null}
       {invite ? (
         <Dialog title="Invite" onClose={() => setInvite(null)} footer={<button className="btn accent" onClick={() => setInvite(null)}>Done</button>}>
-          <div className="banner warning">This invite carries the firm key. Send it over a channel you trust and delete it afterwards. It works once.</div>
+          <div className="banner warning"><Icon name="alert" /><span>This invite carries the firm key. Send it over a channel you trust and delete it afterwards. It works once.</span></div>
           <textarea className="textarea mono" rows={4} readOnly value={invite} onFocus={(e) => e.currentTarget.select()} />
           <p className="muted">On the other device: Devices → Set up sync → Join with an invite.</p>
         </Dialog>
       ) : null}
-      {confirm?.kind === "remove" && confirm.device ? (
+      {confirm?.kind === "remove" ? (
         <Confirm title={`Remove ${confirm.device.name}?`} danger confirmLabel="Remove"
                  body="Its relay access is revoked now. The book, documents and keys on that machine are deleted best-effort: only if the device comes online and the app is opened, after it has handed over any pending changes. A disk image or a machine that never reconnects is out of reach. It can be re-enrolled with a new invite."
-                 onConfirm={() => { if (confirm.device) void act(() => api.removeDevice(confirm.device!.id), "Device removed."); }} onClose={() => setConfirm(null)} />
+                 onConfirm={() => { void act(() => api.removeDevice(confirm.device.id), "Device removed."); }} onClose={() => setConfirm(null)} />
       ) : null}
-      {confirm?.kind === "transfer" && confirm.device ? (
+      {confirm?.kind === "transfer" ? (
         <Confirm title={`Make ${confirm.device.name} the admin?`} confirmLabel="Transfer"
                  body="You become a member in the same step. Only the new admin can nominate the collector, remove devices or transfer the role back."
-                 onConfirm={() => { if (confirm.device) void act(() => api.transferAdmin(confirm.device!.id), "Admin transferred."); }} onClose={() => setConfirm(null)} />
+                 onConfirm={() => { void act(() => api.transferAdmin(confirm.device.id), "Admin transferred."); }} onClose={() => setConfirm(null)} />
       ) : null}
-      {confirm?.kind === "leave" ? (
-        <Confirm title="Leave the firm on this device?" danger confirmLabel="Leave"
-                 body="This device forgets the relay and the firm key; the archive stays. The admin still has to remove it from the roster."
-                 onConfirm={() => { void act(() => api.leaveFirm(), "Left the firm on this device."); }} onClose={() => setConfirm(null)} />
-      ) : null}
-    </div>
+    </Page>
   );
 }

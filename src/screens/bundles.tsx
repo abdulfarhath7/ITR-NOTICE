@@ -121,7 +121,7 @@ export function ImportBundle({ onClose }: { onClose: () => void }) {
       </Field>
       {error ? <div className="banner danger">{error}</div> : null}
       {manifest ? (
-        <div className="card"><div className="card-body">
+        <div className="card"><div className="card-body stack">
           <dl className="kv">
             <dt>From device</dt><dd className="mono">{manifest.device_id}</dd>
             <dt>Created</dt><dd className="num">{stamp(manifest.created_at)}</dd>
@@ -130,7 +130,7 @@ export function ImportBundle({ onClose }: { onClose: () => void }) {
             <dt>Passwords</dt><dd>{manifest.includes_credentials ? "included" : "not included"}</dd>
           </dl>
           {manifest.includes_credentials ? (
-            <label className="check" style={{ marginTop: 8 }}>
+            <label className="check">
               <input type="checkbox" checked={writeCreds} onChange={(e) => setWriteCreds(e.target.checked)} />
               Store the bundled portal passwords in this device's keychain
             </label>

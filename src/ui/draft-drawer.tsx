@@ -34,10 +34,10 @@ export default function DraftDrawer({ draft, busy, sourceDocumentId, onClose, on
       </>
     }>
       <div className="banner warning">A draft for a chartered accountant to review against the notice. Nothing in it is verified; fill every [bracket] before use.</div>
-      <div className="grid-2" style={{ minHeight: "60vh" }}>
-        <div style={{ minHeight: "60vh" }}>
-          {source ? <iframe className="preview" src={source} title="Source notice" style={{ height: "60vh" }} />
-            : <div className="frame" style={{ aspectRatio: "auto", height: "60vh" }}><span>{sourceDocumentId ? "Loading the notice" : "No PDF is stored for this notice."}</span></div>}
+      <div className="grid-2 pane">
+        <div className="pane">
+          {source ? <iframe className="preview" src={source} title="Source notice" />
+            : <div className="frame tall"><span>{sourceDocumentId ? "Loading the notice" : "No PDF is stored for this notice."}</span></div>}
         </div>
         <div className="stack">
           <h3>What the notice asks</h3>
@@ -45,7 +45,7 @@ export default function DraftDrawer({ draft, busy, sourceDocumentId, onClose, on
           {draft.checklist.length ? (
             <>
               <h3>Documents and explanations wanted</h3>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>{draft.checklist.map((c, i) => <li key={i}>{c}</li>)}</ul>
+              <ul className="list">{draft.checklist.map((c, i) => <li key={i}>{c}</li>)}</ul>
             </>
           ) : null}
           <h3>Reply</h3>

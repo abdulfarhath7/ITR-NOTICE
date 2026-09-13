@@ -6,30 +6,30 @@ import { useClient } from "../hooks/use-clients";
 import { useWorkItems } from "../hooks/use-work-items";
 import { api, describeError } from "../lib/api";
 import { describeDue } from "../lib/due";
+import { MODULES, MODULE_LABEL, plural } from "../lib/labels";
 import { invalidate } from "../lib/query";
-import { href, navigate } from "../lib/router";
+import { navigate } from "../lib/router";
+import { isSettled, parseStatus } from "../lib/status";
 import { toast, toastError } from "../lib/toast";
 import type { Module, WorkItemRow } from "../lib/types";
+import { stamp } from "../ui/dates";
 import { Confirm, Dialog } from "../ui/dialog";
 import DueText from "../ui/due-text";
-import Field from "../ui/field";
-import { StatusPill } from "../ui/pill";
-import { stamp } from "../ui/dates";
-import ClientForm from "./client-form";
 import ExportDialog from "../ui/export-dialog";
-
-const MODULES: { key: Module; label: string }[] = [
-  { key: "proceedings", label: "e-Proceedings" },
-  { key: "demands", label: "Outstanding demands" },
-  { key: "returns", label: "e-Returns filed" },
-  { key: "forms", label: "e-Forms filed" },
-];
+import Field from "../ui/field";
+import Icon from "../ui/icons";
+import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
+import { StatusPill } from "../ui/pill";
+import ClientForm from "./client-form";
 
 function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
-  const label = MODULES.find((m) => m.key === module)?.label ?? module;
+  const open = rows.filter((r) => !isSettled(parseStatus(r.status))).length;
   return (
     <div className="card">
-      <div className="card-head"><h2>{label}</h2><span className="meta num">{rows.length}</span></div>
+      <div className="card-head">
+        <h2>{MODULE_LABEL[module]}</h2>
+        <span className="meta num">{rows.length ? `${open} open of ${rows.length}` : "none"}</span>
+      </div>
       {rows.length ? (
         <table className="table">
           <tbody>
@@ -93,7 +93,7 @@ function CredentialCard({ clientId, hasCredential, loginRef, ownLogin }: {
           {ownLogin
             ? <>Logs in with the client's own credentials (<span className="mono">{loginRef}</span>).</>
             : <>Reached through the login <span className="mono">{loginRef}</span>; the password stored there is the one used.</>}
-          {" "}Passwords go to the OS keychain only — never the database, never a log.
+          {" "}Passwords go to the OS keychain only, never the database, never a log.
         </p>
         <div className="row">
           <button className="btn" onClick={() => setSetting(true)}>{hasCredential ? "Replace password" : "Store password"}</button>
@@ -121,6 +121,10 @@ function CredentialCard({ clientId, hasCredential, loginRef, ownLogin }: {
   );
 }
 
+function Value({ v, mono = false, none = "Not set" }: { v: string | null | undefined; mono?: boolean; none?: string }) {
+  return v ? <span className={mono ? "mono" : undefined}>{v}</span> : <span className="muted">{none}</span>;
+}
+
 export default function ClientDetailScreen({ id }: { id: string }) {
   const q = useClient(id);
   const items = useWorkItems({ client_ids: [id] });
@@ -131,10 +135,21 @@ export default function ClientDetailScreen({ id }: { id: string }) {
 
   const years = q.data?.years ?? [];
   const selectedYear = year === undefined ? (years[0]?.id ?? null) : year;
+  const openByYear = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of items.data ?? []) if (!isSettled(parseStatus(r.status))) m.set(r.year_context_id, (m.get(r.year_context_id) ?? 0) + 1);
+    return m;
+  }, [items.data]);
   const byYear = useMemo(() => {
     const rows = (items.data ?? []).filter((r) => r.year_context_id === selectedYear);
-    return Object.fromEntries(MODULES.map((m) => [m.key, rows.filter((r) => r.module === m.key)])) as Record<Module, WorkItemRow[]>;
+    return Object.fromEntries(MODULES.map((m) => [m, rows.filter((r) => r.module === m)])) as Record<Module, WorkItemRow[]>;
   }, [items.data, selectedYear]);
+  const totals = useMemo(() => {
+    const all = items.data ?? [];
+    const open = all.filter((r) => !isSettled(parseStatus(r.status)));
+    const overdue = open.filter((r) => { const d = describeDue(r.manual_due_date ?? r.due_date, r.status).days; return d !== null && d < 0; });
+    return { open: open.length, overdue: overdue.length };
+  }, [items.data]);
 
   const refreshNow = async () => {
     try {
@@ -154,37 +169,40 @@ export default function ClientDetailScreen({ id }: { id: string }) {
     } catch (e) { toastError(describeError(e)); }
   };
 
-  if (q.error) return <div className="page"><div className="page-body"><div className="banner danger">{q.error}</div></div></div>;
-  if (!q.data) return <div className="page"><div className="loading">Loading</div></div>;
+  if (q.error) return <ErrorPage message={q.error} />;
+  if (!q.data) return <LoadingPage />;
   const c = q.data;
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <a className="btn small quiet" href={href({ name: "clients" })}>Clients</a>
-        <h1>{c.name}</h1>
-        <span className="meta mono">{c.pan_masked}</span>
-        {c.source === "portal" ? <button className="btn" onClick={() => { void refreshNow(); }}>Refresh from portal</button> : null}
-        <button className="btn" onClick={() => setExporting(true)}>Export</button>
+    <Page>
+      <PageHead title={c.name} back={{ route: { name: "clients" }, label: "Clients" }}
+                meta={<span className="row">
+                  <span className="mono">{c.pan_masked}</span>
+                  {totals.overdue ? <span className="pill danger">{plural(totals.overdue, "overdue item")}</span>
+                    : totals.open ? <span className="pill normal">{plural(totals.open, "open item")}</span>
+                    : items.data ? <span className="pill success">Clear</span> : null}
+                </span>}>
+        {c.source === "portal" ? <button className="btn" onClick={() => { void refreshNow(); }}><Icon name="refresh" /><span>Refresh from portal</span></button> : null}
+        <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export</span></button>
         <button className="btn" onClick={() => setEditing(true)}>Edit</button>
-      </div>
-      <div className="page-body">
+      </PageHead>
+      <PageBody>
         <div className="grid-2">
           <div className="card">
             <div className="card-head"><h2>Client</h2><span className={`pill ${c.source === "eri" ? "accent" : ""}`}>{c.source === "eri" ? "ERI" : "portal"}</span></div>
             <div className="card-body">
               <dl className="kv">
-                <dt>Client code</dt><dd className="mono">{c.client_code ?? <span className="muted">Not set</span>}</dd>
+                <dt>Client code</dt><dd><Value v={c.client_code} mono /></dd>
                 <dt>Entity</dt><dd>{c.entity_type}</dd>
-                <dt>GSTIN</dt><dd className="mono">{c.gstin ?? <span className="muted">Not set</span>}</dd>
-                <dt>Group</dt><dd>{c.client_group ?? <span className="muted">None</span>}</dd>
-                <dt>Phone</dt><dd className="num">{c.phone ? `${c.phone_cc} ${c.phone}` : <span className="muted">Not set</span>}</dd>
-                <dt>Email</dt><dd>{c.email ?? <span className="muted">Not set</span>}</dd>
-                <dt>Tags</dt><dd>{c.tags ?? <span className="muted">None</span>}</dd>
+                <dt>GSTIN</dt><dd><Value v={c.gstin} mono /></dd>
+                <dt>Group</dt><dd><Value v={c.client_group} none="None" /></dd>
+                <dt>Phone</dt><dd className="num"><Value v={c.phone ? `${c.phone_cc} ${c.phone}` : null} /></dd>
+                <dt>Email</dt><dd><Value v={c.email} /></dd>
+                <dt>Tags</dt><dd><Value v={c.tags} none="None" /></dd>
                 <dt>Client file no.</dt>
                 <dd>
                   <div className="row">
-                    <input className="input" style={{ maxWidth: 220 }} value={fileNo ?? c.client_file_no ?? ""}
+                    <input className="input short" value={fileNo ?? c.client_file_no ?? ""}
                            onChange={(e) => setFileNo(e.target.value)} aria-label="Client file number" />
                     {fileNo !== null && fileNo !== (c.client_file_no ?? "")
                       ? <button className="btn small" onClick={() => { void saveFileNo(); }}>Save</button> : null}
@@ -200,21 +218,25 @@ export default function ClientDetailScreen({ id }: { id: string }) {
 
         <div className="split">
           <div className="side-list" role="tablist" aria-label="Assessment years">
-            {years.length ? years.map((y) => (
-              <button key={y.id} role="tab" aria-current={y.id === selectedYear}
-                      onClick={() => setYear(y.id)}>
-                {y.assessment_year ? `AY ${y.assessment_year}` : "Year not stated"}
-              </button>
-            )) : <span className="meta">No years yet — a sweep creates them.</span>}
+            {years.length ? years.map((y) => {
+              const n = openByYear.get(y.id) ?? 0;
+              return (
+                <button key={y.id} role="tab" aria-selected={y.id === selectedYear} aria-current={y.id === selectedYear}
+                        onClick={() => setYear(y.id)}>
+                  <span>{y.assessment_year ? `AY ${y.assessment_year}` : "Year not stated"}</span>
+                  {n ? <span className="count">{n}</span> : null}
+                </button>
+              );
+            }) : <span className="meta">No years yet. A sweep creates them.</span>}
           </div>
           <div className="grid-2">
-            {MODULES.map((m) => <ModulePane key={m.key} module={m.key} rows={byYear[m.key] ?? []} />)}
+            {MODULES.map((m) => <ModulePane key={m} module={m} rows={byYear[m] ?? []} />)}
           </div>
         </div>
-      </div>
+      </PageBody>
       {editing ? <ClientForm existing={c} onClose={() => setEditing(false)}
                              onSaved={() => { setEditing(false); invalidate(`clients:${id}`); }} /> : null}
       {exporting ? <ExportDialog choices={{ client: { id: c.id, name: c.name } }} onClose={() => setExporting(false)} /> : null}
-    </div>
+    </Page>
   );
 }

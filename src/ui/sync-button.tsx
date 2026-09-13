@@ -3,10 +3,12 @@
 import { useEffect } from "react";
 import { useSyncNow, useSyncState } from "../hooks/use-sync";
 import { api } from "../lib/api";
+import { plural } from "../lib/labels";
 import { invalidate, useQuery } from "../lib/query";
 import { href } from "../lib/router";
 import type { IngestionState } from "../lib/types";
 import { stamp } from "./dates";
+import Icon from "./icons";
 
 export default function SyncButton() {
   const q = useSyncState();
@@ -15,19 +17,22 @@ export default function SyncButton() {
   if (!s || !s.configured) return null;
   const label = sync.busy ? "Syncing"
     : s.status === "unreachable" ? "Cannot reach relay"
-    : s.status === "behind" ? `${s.behind_total.toLocaleString("en-IN")} change${s.behind_total === 1 ? "" : "s"} behind`
+    : s.status === "behind" ? `${plural(s.behind_total, "change")} behind`
     : "Up to date";
-  const cls = s.status === "unreachable" ? "btn danger" : s.status === "behind" ? "btn" : "btn quiet";
+  const tone = s.status === "unreachable" ? "danger" : s.status === "behind" ? "" : "quiet";
   return (
-    <span className="row">
-      <button className={cls} disabled={sync.busy} onClick={() => { void sync.run(); }}
-              title={`last sync ${stamp(s.last_sync_at)}${s.unpublished ? ` · ${s.unpublished} local change(s) to send` : ""}`}>
-        Sync · {label}
+    <div className="nav-sync">
+      <button className={`btn ${tone}`} disabled={sync.busy} onClick={() => { void sync.run(); }}
+              title={`last sync ${stamp(s.last_sync_at)}${s.unpublished ? ` · ${plural(s.unpublished, "local change")} to send` : ""}`}>
+        <Icon name="refresh" className={sync.busy ? "spin" : undefined} />
+        <span>{label}</span>
       </button>
       {s.collector_silent
-        ? <span className="pill warning" title="the collector has missed a scheduled run">Collector silent</span>
-        : <span className="meta">Collector reported {stamp(s.collector_last_seen)}</span>}
-    </span>
+        ? <a className="nav-fact warning" href={href({ name: "devices" })} title="the collector has missed a scheduled run">
+            <Icon name="alert" /><span>Collector silent</span>
+          </a>
+        : <span className="nav-fact"><Icon name="clock" /><span>Collector {stamp(s.collector_last_seen)}</span></span>}
+    </div>
   );
 }
 
@@ -41,6 +46,6 @@ export function RunIndicator() {
   const s = q.data;
   if (!s?.running) return null;
   return s.awaiting_operator
-    ? <a className="btn danger" href={href({ name: "ingestion" })}>Run waiting for you</a>
-    : <a className="btn quiet" href={href({ name: "ingestion" })}>{s.paused ? "Run paused" : "Sweep running"}</a>;
+    ? <a className="btn danger" href={href({ name: "ingestion" })}><Icon name="alert" /><span>Run waiting for you</span></a>
+    : <a className="btn quiet" href={href({ name: "ingestion" })}><Icon name="download" /><span>{s.paused ? "Run paused" : "Sweep running"}</span></a>;
 }

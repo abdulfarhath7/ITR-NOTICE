@@ -49,8 +49,8 @@ export default function FirmSetup({ onClose }: { onClose: () => void }) {
         <button className="btn accent" disabled={!saved} onClick={() => { invalidate("sync"); invalidate("device"); onClose(); }}>Done</button>
       }>
         <div className="banner danger">This code is shown once and stored nowhere on this device. It is the only way back into the firm if this laptop is lost.</div>
-        <div className="card"><div className="card-body" style={{ textAlign: "center" }}>
-          <span className="mono" style={{ fontSize: 18, letterSpacing: 1 }}>{shownCode}</span>
+        <div className="card"><div className="card-body">
+          <span className="code-big">{shownCode}</span>
         </div></div>
         <label className="check">
           <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />

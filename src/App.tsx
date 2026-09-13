@@ -1,7 +1,12 @@
 /** The shell: navigation on the left, one screen on the right (docs/09). */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAttentionCounts } from "./hooks/use-work-items";
+import { api } from "./lib/api";
 import { PRODUCT_NAME, PRODUCT_SHORT } from "./lib/product";
-import { href, navigate, useRoute, type Route } from "./lib/router";
+import { useQuery } from "./lib/query";
+import { href, navigate, section, useRoute, type Route } from "./lib/router";
+import { useTheme } from "./lib/theme";
+import type { SetupState } from "./lib/types";
 import AttentionScreen from "./screens/attention";
 import ClientDetailScreen from "./screens/client-detail";
 import ClientsScreen from "./screens/clients";
@@ -9,61 +14,62 @@ import DevicesScreen from "./screens/devices";
 import IngestionScreen from "./screens/ingestion";
 import SettingsScreen from "./screens/settings";
 import SetupScreen from "./screens/setup";
-import { api } from "./lib/api";
-import { useQuery } from "./lib/query";
-import type { SetupState } from "./lib/types";
 import WorkItemScreen from "./screens/work-item";
+import CommandPalette, { useCommandPalette } from "./ui/command-palette";
+import Icon, { type IconName } from "./ui/icons";
 import SyncButton, { RunIndicator } from "./ui/sync-button";
 import Toasts from "./ui/toasts";
 
-const THEME_KEY = "lcc.theme";
-
-const NAV: { route: Route; label: string }[] = [
-  { route: { name: "attention" }, label: "Attention" },
-  { route: { name: "clients" }, label: "Clients" },
-  { route: { name: "ingestion" }, label: "Ingestion" },
-  { route: { name: "devices" }, label: "Devices" },
-  { route: { name: "settings" }, label: "Settings" },
+const NAV: { route: Route; label: string; icon: IconName }[] = [
+  { route: { name: "attention" }, label: "Attention", icon: "inbox" },
+  { route: { name: "clients" }, label: "Clients", icon: "users" },
+  { route: { name: "ingestion" }, label: "Ingestion", icon: "download" },
+  { route: { name: "devices" }, label: "Devices", icon: "monitor" },
+  { route: { name: "settings" }, label: "Settings", icon: "sliders" },
 ];
 
-function current(route: Route, nav: Route): boolean {
-  if (route.name === nav.name) return true;
-  if (nav.name === "clients" && route.name === "client") return true;
-  if (nav.name === "attention" && route.name === "item") return true;
-  return false;
+const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
+
+function AttentionBadge() {
+  const { open, overdue } = useAttentionCounts();
+  if (!open) return null;
+  return overdue
+    ? <span className="count danger" title={`${overdue} overdue of ${open} open`}>{overdue}</span>
+    : <span className="count">{open}</span>;
+}
+
+function Brand() {
+  return <div className="brand"><span className="mark">{PRODUCT_SHORT}</span><span className="name">{PRODUCT_NAME}</span></div>;
+}
+
+function RemovedScreen() {
+  return (
+    <div className="shell">
+      <nav className="nav" aria-label="Main"><Brand /></nav>
+      <div className="page"><div className="page-body narrow">
+        <div className="card"><div className="card-body stack">
+          <h2>This device was removed from the firm</h2>
+          <p className="muted">The firm's admin removed it. The local book, its documents and the keys on this machine have been deleted. Nothing on the relay or on the firm's other devices was touched.</p>
+          <p className="muted">To use it again, an admin has to invite it afresh (Devices → Invite a device on their machine), then this app can be reinstalled or its data folder emptied and the invite entered on first run.</p>
+        </div></div>
+      </div></div>
+      <Toasts />
+    </div>
+  );
 }
 
 export default function App() {
   const route = useRoute();
+  const theme = useTheme();
+  const palette = useCommandPalette();
   // The first launch lands on the wizard until it is finished or skipped.
   const setup = useQuery<SetupState>("setup:gate", () => api.setupState());
   useEffect(() => {
     if (setup.data && !setup.data.done && route.name !== "setup") navigate({ name: "setup" });
   }, [setup.data, route.name]);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; } catch { return "dark"; }
-  });
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem(THEME_KEY, theme); } catch { /* a private window is fine */ }
-  }, [theme]);
 
   // Removed by the admin (Q16): the book and keys are gone; say so plainly.
-  if (setup.data?.removed) {
-    return (
-      <div className="shell">
-        <nav className="nav" aria-label="Main"><div className="brand"><span className="mark">{PRODUCT_SHORT}</span>{PRODUCT_NAME}</div></nav>
-        <div className="page"><div className="page-body" style={{ maxWidth: 560 }}>
-          <div className="card"><div className="card-body stack">
-            <h2>This device was removed from the firm</h2>
-            <p className="muted">The firm's admin removed it. The local book, its documents and the keys on this machine have been deleted. Nothing on the relay or on the firm's other devices was touched.</p>
-            <p className="muted">To use it again, an admin has to invite it afresh (Devices → Invite a device on their machine), then this app can be reinstalled or its data folder emptied and the invite entered on first run.</p>
-          </div></div>
-        </div></div>
-        <Toasts />
-      </div>
-    );
-  }
+  if (setup.data?.removed) return <RemovedScreen />;
 
   let screen: React.ReactNode;
   switch (route.name) {
@@ -73,24 +79,39 @@ export default function App() {
     case "item": screen = <WorkItemScreen key={route.id} module={route.module} id={route.id} />; break;
     case "ingestion": screen = <IngestionScreen />; break;
     case "devices": screen = <DevicesScreen />; break;
-    case "settings": screen = <SettingsScreen theme={theme} onTheme={setTheme} />; break;
+    case "settings": screen = <SettingsScreen section={route.section} theme={theme} />; break;
     case "setup": screen = <SetupScreen />; break;
   }
+  const active = section(route);
 
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
-        <div className="brand"><span className="mark">{PRODUCT_SHORT}</span>{PRODUCT_NAME}</div>
-        {NAV.map((n) => (
-          <a key={n.label} href={href(n.route)} aria-current={current(route, n.route) ? "page" : undefined}>{n.label}</a>
-        ))}
+        <Brand />
+        <button className="nav-search" onClick={() => palette.setOpen(true)} aria-keyshortcuts={IS_MAC ? "Meta+K" : "Control+K"}>
+          <Icon name="search" />
+          <span>Search</span>
+          <kbd>{IS_MAC ? "⌘" : "Ctrl"} K</kbd>
+        </button>
+        <div className="nav-list">
+          {NAV.map((n) => (
+            <a key={n.label} href={href(n.route)} aria-current={active === n.route.name ? "page" : undefined}>
+              <Icon name={n.icon} />
+              <span>{n.label}</span>
+              {n.route.name === "attention" ? <AttentionBadge /> : null}
+            </a>
+          ))}
+        </div>
         <span className="spacer" />
-        <div className="footer"><RunIndicator /></div>
-        <div className="footer"><SyncButton /></div>
-        <div className="footer">Read-only against the portal.</div>
+        <div className="nav-foot">
+          <RunIndicator />
+          <SyncButton />
+          <div className="nav-note"><Icon name="shield" /><span>Read-only against the portal</span></div>
+        </div>
       </nav>
       {screen}
       <Toasts />
+      {palette.open ? <CommandPalette onClose={() => palette.setOpen(false)} /> : null}
     </div>
   );
 }
