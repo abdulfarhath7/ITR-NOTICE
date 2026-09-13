@@ -42,7 +42,13 @@ machine and OS the firm uses. Tick what passed; note what did not in
 
 Also worth a glance each time:
 
-- The Attention count in the header equals the number of rows shown.
+- The Attention count in the header equals the sum of the five tiles, and
+  clicking a tile narrows the list to that rank; the sidebar badge shows
+  the overdue count.
+- Ctrl+K opens the palette; typing a client's code finds it; Esc closes
+  and focus returns to where it was.
+- Settings → General → System follows the OS theme; every settings
+  section shows its save bar only after a change and clears it on Save.
 - No due cell anywhere shows a bare negative number.
 - Nothing in the run log shows a PAN, a name or a password; PANs are
   masked as `AABCV••••K`.
