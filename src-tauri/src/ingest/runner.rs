@@ -364,6 +364,13 @@ pub struct Runner<R: tauri::Runtime> {
 /// Lease renewal cadence (Q06): every 60 minutes while the run is alive.
 const LEASE_RENEW_SECONDS: u64 = 60 * 60;
 
+/// A background task that must not outlive its scope, whatever path
+/// leaves it: the renewal loop stops even if the session panics.
+struct AbortOnDrop(tokio::task::JoinHandle<()>);
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) { self.0.abort(); }
+}
+
 impl<R: tauri::Runtime> Runner<R> {
     fn log(&self, level: &str, msg: &str) {
         let _ = self.app.emit("ingestion", json!({"ev": "log", "level": level, "msg": msg}));
@@ -537,9 +544,8 @@ impl<R: tauri::Runtime> Runner<R> {
         // A session can outlive the lock (six panels plus documents), so
         // the lock is renewed at half its life until the session ends
         // (task 4.5: five minutes, renewable).
-        let renew = self.spawn_lock_renewal(&job.login_ref);
+        let _renew = AbortOnDrop(self.spawn_lock_renewal(&job.login_ref));
         let outcome = self.run_session(job, &password).await;
-        renew.abort();
         match self.relay() {
             Some(relay) => { let _ = relay.release_lock(&job.login_ref).await; }
             None => { if let Ok(con) = self.db.lock() { let _ = queue::release_lock(&con, &job.login_ref, &self.device_id); } }
