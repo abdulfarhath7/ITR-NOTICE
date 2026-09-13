@@ -12,7 +12,7 @@ Read `10-design-system.md` alongside this.
 | 4 | Work item detail | One proceeding, demand, return or form with its documents. |
 | 5 | Ingestion monitor | Live run state, operator challenges, pause and resume. |
 | 6 | Devices | Roster, collector nomination, sync state. |
-| 7 | Settings | Cadence, data folder, firm, about. |
+| 7 | Settings | Sectioned like a desktop app: General, Sweeps, Drafting, Notifications, Data, Firm and sync, About. |
 | 8 | First-run wizard | Firm setup, admin, recovery code, collector. |
 
 ## 1 — Attention
@@ -29,6 +29,9 @@ Ranking, in order:
 Each row: client, module chip, what it is, AY, due, status pill, actions.
 
 Filters: client (multi-select), AY, module, status, due window.
+
+The five ranks are shown as counts above the list and act as the filter;
+rows are grouped under a header per rank. Arrow keys move, Enter opens.
 
 ## 2 — Clients
 
@@ -60,6 +63,25 @@ does not fail while waiting.
 Roster with radio control for the collector (admin only; read-only for
 members). Per device: name, RAM, role chip, online state, cursor position,
 how far behind.
+
+## 7 — Settings
+
+One section per concern, listed down the left, each built from the same
+row vocabulary (label and hint left, control right) with a save bar that
+appears only while something has changed. Sections: General (theme: dark,
+light or system; the keyboard), Sweeps (cadence per module, the unattended
+schedule, the worker count), Drafting (proxy URL and firm token),
+Notifications (desktop moments, the collector-silent email), Data (folder,
+archive size, bundle export and import), Firm and sync (firm, this device's
+id and signing key, leave), About (version, the two guarantees). Adding a
+setting is one row; adding a concern is one section file.
+
+## Shell
+
+A command palette on Ctrl+K / ⌘K reaches every screen, every client (by
+name, code or masked PAN) and the two actions (sweep, sync). The Attention
+entry in the navigation carries the overdue count in danger tone, or the
+open count when nothing is overdue.
 
 ## Critical UI rules
 

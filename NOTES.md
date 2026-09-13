@@ -198,3 +198,36 @@ Append as you go. This is where the next session picks up your thread.
   need something from a live portal session or the ITD.
 - Answer `QUESTIONS.md` and re-run with the follow-up prompt in
   `PROMPT.md`.
+
+### Session 3 — 2026-09-13, production pass: efficiency, cleanliness, UI
+- Frontend redesigned on the docs/10 tokens with Linear, Vercel and Attio
+  as the references: icon navigation with an overdue badge, a Ctrl+K
+  command palette, stat tiles that filter the Attention list, rows
+  grouped by rank with arrow-key navigation, sortable client columns, and
+  Settings rebuilt as one section per concern (D-033). Screenshots were
+  taken against a stubbed Tauri bridge (Playwright, scratch only) to check
+  every screen in both themes; nothing of that is in the repo.
+- Query layer: cache plus stale-while-revalidate plus in-flight dedupe
+  (D-034). The first version returned the mutated entry object from
+  `getSnapshot`, so `useSyncExternalStore` never re-rendered and every
+  screen sat on "Loading"; snapshots are immutable now.
+- Rust: the crate-wide dead-code allow is lifted (D-035). Found behind it:
+  the per-login session lock was never renewed (task 4.5 says renewable),
+  so a client whose sweep ran past five minutes could be opened by a
+  second device — a renewal task now runs at half the lock's life.
+  `get_notice` loaded every notice to find one. Per-row lookups in the
+  export and queue builder use `prepare_cached`.
+- Relay: blocking `time.sleep` and SMTP moved off the event loop; blob
+  size caps (D-036); `RELAY_DB` and the SMTP variables are documented.
+- `relay.db` (a runtime SQLite file with roster rows from local runs) was
+  tracked in git. Untracked and ignored; it stays in history. It holds
+  device public keys, firm names and optional emails, no secrets.
+- `scripts/check.sh` compiled a `sidecar/notice_scraper.py` that no longer
+  exists (the step printed "Can't list" and passed anyway); it now
+  compiles `sidecar/app` and `sidecar/ingest`.
+- The unused `xlsx` npm dependency is gone (export is Rust); the package
+  is named `lcc`; the version is stamped from package.json into About.
+- Not done, by choice: `spawn_blocking` around the sink's SQL writes in
+  the runner (short, no await held across a lock; a desktop app tolerates
+  it), and batching the detail view's per-communication queries (a
+  handful of rows per screen).

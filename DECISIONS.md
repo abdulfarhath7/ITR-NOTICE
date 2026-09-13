@@ -364,3 +364,54 @@ once more when the collector returns (`relay/alerts.py`, pure decision
 function with tests). Addresses are optional, entered at enrolment or on
 Devices, and live on the relay (docs/07).
 Reversible: easily.
+
+## D-033 — Settings is one section per concern, built from one row vocabulary
+Date: 2026-09-13
+Context: The settings screen had grown into a grid of unrelated cards, and
+new settings (alert email, this-device facts) were landing on whichever
+screen was nearest.
+Decision: `src/screens/settings/` holds one file per section (General,
+Sweeps, Drafting, Notifications, Data, Firm and sync, About) listed down
+the left, each built from `Section`/`Row`/`Segmented` in `ui.tsx`, with a
+save bar that appears only while something changed. The route carries the
+section (`#/settings/<section>`). The alert email and this-device facts
+moved here from Devices; Devices keeps the roster and the two sync facts.
+Rejected: Tabs across the top (does not scale past five); one long page
+(no way to link to a setting).
+Reversible: easily.
+
+## D-034 — The query layer caches, de-duplicates and revalidates
+Date: 2026-09-13
+Context: Every mounted `useQuery` fetched on its own, so the shell's
+attention badge and the Attention screen each pulled every work item, and
+every screen revisit painted "Loading".
+Decision: `src/lib/query.ts` keeps an immutable snapshot per key, shares
+one in-flight call between subscribers, serves the cached value while a
+refetch runs, and drops entries nobody watches after five minutes.
+`invalidate(prefix)` marks mounted entries stale and forgets the rest.
+Work-item keys are normalised so `{}` and `{client_ids: null}` are one key.
+Rejected: A third-party query library — the surface needed is four
+functions and no dependency.
+Reversible: easily.
+
+## D-035 — The dead-code lint is on; contract members are allowed by name
+Date: 2026-09-13
+Context: `#![allow(dead_code)]` had been left on crate-wide since Phase 1
+with a note to lift it after Phase 7. Nineteen unused items had collected
+behind it, including the legacy notice commands.
+Decision: The allow is gone; unused items are deleted. Only the two
+`NoticeSource` members the docs/06 contract reserves for ERI
+(`fetch_item`, `health`, and `SourceHealth`) carry a narrow allow with the
+reason beside them, and `ledger::tail` is `#[cfg(test)]` for the docs/12
+snapshot test.
+Reversible: easily.
+
+## D-036 — The relay caps blob sizes and never blocks its event loop
+Date: 2026-09-13
+Context: A changeset or snapshot of any size was accepted, and a wrong
+recovery code slept the whole server for a second.
+Decision: 413 above `RELAY_MAX_CHANGESET_MB` (32) and
+`RELAY_MAX_SNAPSHOT_MB` (512); the wrong-code delay is an `asyncio.sleep`
+outside the database connection; the hourly alert pass with its blocking
+SMTP runs on a worker thread.
+Reversible: easily.

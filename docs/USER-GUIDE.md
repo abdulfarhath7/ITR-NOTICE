@@ -17,7 +17,11 @@ pays anything.
 | **Item** | One proceeding, demand, return or form: its details, its documents, and the notice-and-response thread. |
 | **Ingestion** | Start a sweep, answer the portal's OTP or captcha, watch progress, pause, resume. |
 | **Devices** | The firm's devices, who collects, how far this device is behind, bundles in and out. |
-| **Settings** | Sweep cadence, the unattended schedule, the drafting proxy, the data folder, appearance. |
+| **Settings** | One section per concern down the left: General (theme, keyboard), Sweeps (cadence, unattended schedule), Drafting (the proxy), Notifications (the alert email), Data (folder, backup bundles), Firm and sync (this device on the relay), About. |
+
+Press **Ctrl K** (⌘K on a Mac) anywhere to jump to a screen, find a client
+by name, code or PAN, start a sweep or sync. In the Attention and Clients
+lists the arrow keys move and Enter opens.
 
 ## Getting started
 
@@ -36,7 +40,7 @@ pays anything.
    an Authorised Representative login needs none of its own — set "Reached
    through login" to that PAN instead.
 5. **Sweep.** Ingestion → Start, or let it run by itself: Settings →
-   Unattended sweep sets a time and days. If the portal asks for an OTP or
+   Sweeps → Unattended sweep sets a time and days. If the portal asks for an OTP or
    a captcha, the run pauses, the app notifies you, and the sidebar shows
    *Run waiting for you*. Nothing times out and nothing is retried on its
    own.
@@ -75,7 +79,7 @@ behind*, *cannot reach relay*. Next to it, separately, is when the
 while the collector has been switched off for a week, and LCC says so.
 
 Without a relay, move the book between devices with a **bundle** (Devices →
-Export bundle / Import bundle). A bundle is encrypted with a passphrase.
+Export bundle / Import bundle, or Settings → Data). A bundle is encrypted with a passphrase.
 Importing merges — nothing is overwritten or deleted. Passwords are left out
 unless you ask twice.
 
@@ -111,7 +115,7 @@ offer no Draft, but View and Save are always there.
   deleted the next time that device comes online with the app open. A
   device that never reconnects keeps its copy — the dialog says so.
 - **The collector has gone quiet** — every device shows a banner, and
-  everyone who gave an email address gets one message per missed run, at
-  most one a day, plus one when it is back.
+  everyone who gave an email address (Settings → Notifications) gets one
+  message per missed run, at most one a day, plus one when it is back.
 
 Nothing here is legal advice. Verify every figure against the portal.

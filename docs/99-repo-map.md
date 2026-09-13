@@ -95,6 +95,22 @@ and the rebuilt `src/` frontend (screens, hooks, design tokens).
 `docs/USER-GUIDE.md`, `docs/SMOKE.md`. `test_app.py` was removed (it
 carried a real PAN).
 
+The frontend today (session 3):
+
+| Path | What |
+|---|---|
+| `src/App.tsx` | the shell: icon navigation, overdue badge, command palette, sync facts |
+| `src/lib/query.ts` | the query layer: cache by key, stale-while-revalidate, in-flight de-duplication |
+| `src/lib/labels.ts` | every display label more than one screen needs |
+| `src/lib/theme.ts` | dark / light / system preference |
+| `src/lib/router.ts`, `attention.ts`, `due.ts`, `dates.ts`, `status.ts` | routes, the ranking, the one due-date renderer, the state machine |
+| `src/hooks/` | data hooks over the query layer, plus `use-row-nav` (arrow keys in lists) |
+| `src/screens/settings/` | one file per settings section; `ui.tsx` is the Section/Row/Segmented vocabulary |
+| `src/ui/` | page frame, icons, pills, dialogs, document list, command palette, toasts |
+
+The sidecar's `app/` package is live: `ingest/` imports the verified
+selectors and login mechanics from it.
+
 Still not here: a live-verified captcha path, parsers for the demand /
 return / form list pages (need DOM captures), the ERI engine (blocked on
 the ITD), and a Windows CI run of `v0.2.0`.
