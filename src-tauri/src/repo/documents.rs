@@ -51,6 +51,21 @@ pub fn for_parent(con: &Connection, parent_type: &str, parent_id: &str) -> AppRe
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
+/// Every document under a proceeding's communications, grouped by
+/// communication: one query for the detail view instead of one per row.
+pub fn for_communications_of(con: &Connection, proceeding_id: &str) -> AppResult<std::collections::HashMap<String, Vec<Document>>> {
+    let mut st = con.prepare(
+        "SELECT d.* FROM documents d JOIN communications c ON c.id = d.parent_id
+         WHERE d.parent_type = 'communication' AND c.proceeding_id = ?1 ORDER BY d.created_at")?;
+    let rows = st.query_map([proceeding_id], from_row)?;
+    let mut out: std::collections::HashMap<String, Vec<Document>> = std::collections::HashMap::new();
+    for d in rows {
+        let d = d?;
+        out.entry(d.parent_id.clone()).or_default().push(d);
+    }
+    Ok(out)
+}
+
 pub fn find(con: &Connection, parent_type: &str, parent_id: &str, doc_kind: &str) -> AppResult<Option<Document>> {
     Ok(con.query_row(
         "SELECT * FROM documents WHERE parent_type = ?1 AND parent_id = ?2 AND doc_kind = ?3

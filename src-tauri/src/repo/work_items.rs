@@ -305,13 +305,24 @@ pub fn proceeding_detail(con: &Connection, id: &str) -> AppResult<Option<Proceed
             params![p.year_context_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)))?;
     let t = registry::get(con, &p.proceeding_type_id)?;
+    // Three queries for the whole thread, not three per communication.
+    let mut docs_by_comm = documents::for_communications_of(con, id)?;
+    let drafted = drafts::communications_with_draft(con, id)?;
+    let mut labels: std::collections::HashMap<String, String> = std::collections::HashMap::new();
     let mut comms = Vec::new();
     for c in proceedings::communications_for(con, id)? {
-        let ct = registry::get(con, &c.communication_type_id)?;
+        let type_label = match labels.get(&c.communication_type_id) {
+            Some(l) => l.clone(),
+            None => {
+                let l = registry::get(con, &c.communication_type_id)?.map(|t| t.label).unwrap_or_else(|| "Communication".into());
+                labels.insert(c.communication_type_id.clone(), l.clone());
+                l
+            }
+        };
         comms.push(CommunicationView {
-            type_label: ct.map(|t| t.label).unwrap_or_else(|| "Communication".into()),
-            documents: documents::for_parent(con, "communication", &c.id)?,
-            has_draft: drafts::for_communication(con, &c.id)?.is_some(),
+            type_label,
+            documents: docs_by_comm.remove(&c.id).unwrap_or_default(),
+            has_draft: drafted.contains(&c.id),
             gaps: gaps(c.gap_flags.clone()),
             row: c,
         });

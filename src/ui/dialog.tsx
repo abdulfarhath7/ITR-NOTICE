@@ -1,6 +1,7 @@
 /** Modal dialog and side drawer. Escape and the backdrop close; focus goes
  *  to the first control and back to the opener afterwards. */
 import { useEffect, useRef } from "react";
+import Icon from "./icons";
 
 export function Dialog({ title, onClose, children, footer, wide = false, drawer = false }: {
   title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode;
@@ -22,7 +23,7 @@ export function Dialog({ title, onClose, children, footer, wide = false, drawer 
     <div ref={ref} className={drawer ? "drawer" : `dialog${wide ? " wide" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
       <div className="dialog-head">
         <h2>{title}</h2>
-        <button className="btn small quiet" onClick={onClose} aria-label="Close">Close</button>
+        <button className="btn small quiet icon" onClick={onClose} aria-label="Close" title="Close (Esc)"><Icon name="x" /></button>
       </div>
       <div className="dialog-body">{children}</div>
       {footer ? <div className="dialog-foot">{footer}</div> : null}

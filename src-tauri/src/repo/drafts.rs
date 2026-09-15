@@ -19,6 +19,14 @@ pub fn for_communication(con: &Connection, communication_id: &str) -> AppResult<
         .optional()?)
 }
 
+/// The communications of a proceeding that already have a draft.
+pub fn communications_with_draft(con: &Connection, proceeding_id: &str) -> AppResult<std::collections::HashSet<String>> {
+    let mut st = con.prepare(
+        "SELECT d.communication_id FROM drafts d JOIN communications c ON c.id = d.communication_id WHERE c.proceeding_id = ?1")?;
+    let rows = st.query_map([proceeding_id], |r| r.get::<_, String>(0))?;
+    Ok(rows.collect::<Result<_, _>>()?)
+}
+
 pub fn save(con: &Connection, draft: &Draft) -> AppResult<()> {
     rows::upsert(con, "drafts", draft)
 }

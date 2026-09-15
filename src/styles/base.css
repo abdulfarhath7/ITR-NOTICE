@@ -145,6 +145,7 @@ kbd {
 .btn.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 .btn.small { height: 26px; padding: 0 8px; font-size: 12px; gap: 4px; }
 .btn.quiet { border-color: transparent; color: var(--text-muted); }
+.btn.icon { padding: 0; width: 26px; justify-content: center; }
 .btn.quiet:hover { color: var(--text); }
 
 .input, .select, .textarea {

@@ -27,6 +27,7 @@ function ChallengeCard({ kind, image, onSubmit }: { kind: string; image: string 
         {image ? <img className="captcha" src={`data:image/png;base64,${image}`} alt="Captcha" /> : null}
         <div className="row">
           <input className="input mono" inputMode={isOtp ? "numeric" : "text"} value={value} autoFocus
+                 placeholder={isOtp ? "OTP from the registered phone or email" : "The characters in the image"}
                  onChange={(e) => setValue(isOtp ? e.target.value.replace(/\D/g, "") : e.target.value)}
                  onKeyDown={(e) => { if (e.key === "Enter") send(); }}
                  aria-label={isOtp ? "OTP" : "Captcha text"} />
