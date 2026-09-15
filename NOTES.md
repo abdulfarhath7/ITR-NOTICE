@@ -227,7 +227,14 @@ Append as you go. This is where the next session picks up your thread.
   compiles `sidecar/app` and `sidecar/ingest`.
 - The unused `xlsx` npm dependency is gone (export is Rust); the package
   is named `lcc`; the version is stamped from package.json into About.
+- Review pass (a second agent over the diff) found one thing: a panic in
+  the session would have left the lock-renewal task running. It is a drop
+  guard now. The proceeding detail then got its thread in three queries
+  instead of three per communication.
 - Not done, by choice: `spawn_blocking` around the sink's SQL writes in
   the runner (short, no await held across a lock; a desktop app tolerates
-  it), and batching the detail view's per-communication queries (a
-  handful of rows per screen).
+  it).
+- Ended at: tree green (`./scripts/check.sh`), 31 Rust tests, 13 vitest
+  cases, 9 relay tests. `TASKS.md` unchanged: no phase task was opened or
+  closed by this pass; Phase 11's three parsers and 11.4 still wait on
+  the same inputs as before.
