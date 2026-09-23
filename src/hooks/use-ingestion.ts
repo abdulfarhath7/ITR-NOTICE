@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, describeError, onIngestion } from "../lib/api";
 import { invalidate } from "../lib/query";
 import { toastError } from "../lib/toast";
-import type { IngestionEvent, IngestionState, Scope } from "../lib/types";
+import type { IngestionEvent, IngestionState, Module, Scope } from "../lib/types";
 
 export interface LogLine { level: string; msg: string; at: number }
 
@@ -55,7 +55,7 @@ export function useIngestion() {
 
   return {
     state, log, frame, progress,
-    start: (scope: Scope, allNow = false) => guard(() => { setFrame(null); setProgress(null); return api.startIngestion(scope, allNow); }),
+    start: (scope: Scope, allNow = false, modules?: Module[]) => guard(() => { setFrame(null); setProgress(null); return api.startIngestion(scope, allNow, modules); }),
     resumeSweep: (id: string) => guard(() => api.resumeSweep(id)),
     pause: () => guard(() => api.pauseIngestion()),
     resume: () => guard(() => api.resumeIngestion()),

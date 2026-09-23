@@ -73,14 +73,17 @@ pub fn notify<R: tauri::Runtime>(app: &AppHandle<R>, title: &str, body: &str) {
 
 /// `all` sweeps the modules whose cadence is due (Q12); `all_now` sweeps
 /// every module regardless; `module` one module; `client` every module for
-/// one client.
+/// one client. `modules`, when given, narrows any of those to the modules
+/// the operator ticked (e.g. one client, demands and returns only).
 #[tauri::command]
-pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope, all_now: Option<bool>) -> AppResult<String> {
-    launch_scope(app, &state, scope, all_now.unwrap_or(false))
+pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope, all_now: Option<bool>,
+                           modules: Option<Vec<String>>) -> AppResult<String> {
+    launch_scope(app, &state, scope, all_now.unwrap_or(false), modules)
 }
 
 /// The same entry point the scheduler uses.
-pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: bool) -> AppResult<String> {
+pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: bool,
+                    only: Option<Vec<String>>) -> AppResult<String> {
     let sweep = {
         let con = lock_db(state)?;
         let device_id = local::device_id(&con)?;
@@ -94,6 +97,19 @@ pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: boo
                 due
             },
         };
+        let modules: Vec<String> = match &only {
+            Some(pick) => {
+                if let Some(bad) = pick.iter().find(|m| !queue::MODULES.contains(&m.as_str())) {
+                    return Err(AppError::state(format!("unknown module {bad}")));
+                }
+                // keep the queue's canonical order, whatever order the ticks came in
+                modules.into_iter().filter(|m| pick.contains(m)).collect()
+            }
+            None => modules,
+        };
+        if modules.is_empty() {
+            return Err(AppError::state("no module selected, or none of the selected modules is due yet"));
+        }
         let refs: Vec<&str> = modules.iter().map(String::as_str).collect();
         queue::create_sweep(&con, &device_id, &scope, &refs)?
     };
@@ -160,7 +176,7 @@ pub async fn refresh_client(app: AppHandle, state: State<'_, AppState>, client_i
         crate::relay::Relay::new(cfg).request_refresh(&login_ref).await?;
         return Ok("queued-to-collector".into());
     }
-    launch_scope(app, &state, Scope::Client { client_id }, true)
+    launch_scope(app, &state, Scope::Client { client_id }, true, None)
 }
 
 #[tauri::command]

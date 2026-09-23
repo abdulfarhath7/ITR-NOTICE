@@ -4,7 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
   RelayConfig, Roster, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
-  FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState,
+  FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemRow,
 } from "./types";
 
@@ -44,7 +44,7 @@ export const api = {
   createDraft: (refId: string) => invoke<Draft>("create_draft", { refId }),
   promoteSuggestedDueDate: (proceedingId: string) => invoke<void>("promote_suggested_due_date", { proceedingId }),
 
-  startIngestion: (scope: Scope, allNow = false) => invoke<string>("start_ingestion_run", { scope, allNow }),
+  startIngestion: (scope: Scope, allNow = false, modules?: Module[]) => invoke<string>("start_ingestion_run", { scope, allNow, modules: modules ?? null }),
   sweepCadence: () => invoke<Cadences>("get_sweep_cadence"),
   setSweepCadence: (cadences: Cadences) => invoke<void>("set_sweep_cadence", { cadences }),
   modulesDue: () => invoke<string[]>("modules_due"),

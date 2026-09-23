@@ -53,7 +53,11 @@ def menu_click_ok(label: str) -> bool:
     # "pay" as a noun ("File Income Tax Return", "e-Pay Tax"); the pages they
     # open are start screens. Session-ending and state-changing entries are not.
     hard = ("logout", "log out", "sign out", "delete", "deactivate", "revoke",
-            "disable", "withdraw")
+            "disable", "withdraw",
+            # page chrome, not screens: toggles and contact popovers whose
+            # label flips on click and would otherwise recurse forever
+            "skip to main content", "theme", "call us", "font size",
+            "language", "screen reader")
     return not any(h in low for h in hard) and low not in ("yes", "y")
 
 

@@ -23,6 +23,9 @@ from .guard import DISMISS, denied, in_page_click_ok, menu_click_ok, norm
 
 CLICKABLES_JS = r"""
 (opts) => {
+  // Material icon ligatures render as words inside the label and flip on
+  // open/close (expand_more <-> expand_less); they are not part of the name.
+  const clean = t => t.replace(/\b(expand_more|expand_less|chevron_right|chevron_left|keyboard_arrow_\w+|arrow_drop_\w+|arrow_forward\w*|arrow_back\w*|navigate_next|navigate_before)\b/g, ' ').replace(/\s+/g, ' ').trim();
   const vis = el => {
     const r = el.getBoundingClientRect(), s = getComputedStyle(el);
     return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
@@ -34,7 +37,7 @@ CLICKABLES_JS = r"""
   for (const el of document.querySelectorAll(SEL)) {
     if (!vis(el)) continue;
     const r = el.getBoundingClientRect();
-    const text = (el.innerText || el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    const text = clean(el.innerText || el.getAttribute('aria-label') || '');
     if (!text || text.length > 80) continue;
     if (opts.maxY && r.top > opts.maxY) continue;
     out.push({text, y: Math.round(r.top), x: Math.round(r.left),
@@ -46,6 +49,9 @@ CLICKABLES_JS = r"""
 
 MARK_JS = r"""
 ([label, tabs, prefer]) => {
+  // Material icon ligatures render as words inside the label and flip on
+  // open/close (expand_more <-> expand_less); they are not part of the name.
+  const clean = t => t.replace(/\b(expand_more|expand_less|chevron_right|chevron_left|keyboard_arrow_\w+|arrow_drop_\w+|arrow_forward\w*|arrow_back\w*|navigate_next|navigate_before)\b/g, ' ').replace(/\s+/g, ' ').trim();
   document.querySelectorAll('[data-recon-target]').forEach(e => e.removeAttribute('data-recon-target'));
   const vis = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
     return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
@@ -53,7 +59,7 @@ MARK_JS = r"""
     ? '[role=tab],.mat-tab-label,.mat-mdc-tab,.nav-tabs a,.nav-tabs button,.tab-link'
     : 'a,button,[role=menuitem],[role=button],[role=link],[routerlink],li[tabindex],.mat-menu-item,.dropdown-item,.nav-link';
   const hits = [...document.querySelectorAll(SEL)].filter(el => vis(el) &&
-    (el.innerText || el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim() === label);
+    clean(el.innerText || el.getAttribute('aria-label') || '') === label);
   if (!hits.length) return false;
   // deepest match wins (a menu <li> often wraps the real <a>); among equals,
   // the one nearest the top of the page for header menus
@@ -214,7 +220,7 @@ class Crawler:
             fresh = []
             for c in now:
                 lab = norm(c["text"])
-                if lab and lab not in before and lab not in fresh and menu_click_ok(lab):
+                if lab and lab not in before and lab not in fresh and lab not in path and menu_click_ok(lab):
                     if c.get("target") == "_blank" or (c["href"].startswith("http") and "incometax.gov.in" not in c["href"]):
                         self.external.add(f"{lab} -> {c['href']}")
                         continue

@@ -5,10 +5,10 @@ import { useMemo, useState } from "react";
 import { useClients } from "../hooks/use-clients";
 import { useIngestion } from "../hooks/use-ingestion";
 import { api } from "../lib/api";
-import { JOB_STATUS, panelLabel, plural, runTone } from "../lib/labels";
+import { JOB_STATUS, MODULES, MODULE_LABEL, panelLabel, plural, runTone } from "../lib/labels";
 import { useQuery } from "../lib/query";
 import { href } from "../lib/router";
-import type { IngestionJob, IngestionRun } from "../lib/types";
+import type { IngestionJob, IngestionRun, Module } from "../lib/types";
 import { stamp } from "../ui/dates";
 import Field from "../ui/field";
 import Icon from "../ui/icons";
@@ -105,6 +105,11 @@ export default function IngestionScreen() {
   const clients = useClients("");
   const [scopeKind, setScopeKind] = useState<"all" | "client">("all");
   const [clientId, setClientId] = useState("");
+  // Which modules the next sweep covers; all ticked is the old behaviour.
+  const [picked, setPicked] = useState<Module[]>(MODULES);
+  const toggle = (m: Module, on: boolean) =>
+    setPicked((cur) => (on ? MODULES.filter((x) => x === m || cur.includes(x)) : cur.filter((x) => x !== m)));
+  const only = picked.length === MODULES.length ? undefined : picked;
   const [pace, setPace] = useState("0.4");
   const s = ing.state;
   const running = !!s?.running;
@@ -169,19 +174,26 @@ export default function IngestionScreen() {
                       </Field>
                     ) : null}
                   </div>
+                  <fieldset className="row" aria-label="Modules to sweep">
+                    {MODULES.map((m) => (
+                      <label key={m} className="check">
+                        <input type="checkbox" checked={picked.includes(m)} onChange={(e) => toggle(m, e.target.checked)} /> {MODULE_LABEL[m]}
+                      </label>
+                    ))}
+                  </fieldset>
                   <div className="row">
                     {scopeKind === "all" ? (
                       <>
-                        <button className="btn accent" disabled={!due.data?.length}
+                        <button className="btn accent" disabled={!picked.length || !due.data?.some((m) => picked.includes(m as Module))}
                                 title={due.data?.length ? `due: ${due.data.join(", ")}` : "nothing is due by cadence"}
-                                onClick={() => { void ing.start({ kind: "all" }); }}>
+                                onClick={() => { void ing.start({ kind: "all" }, false, only); }}>
                           Sweep what is due{due.data?.length ? ` (${due.data.join(", ")})` : ""}
                         </button>
-                        <button className="btn" onClick={() => { void ing.start({ kind: "all" }, true); }}>Sweep everything now</button>
+                        <button className="btn" disabled={!picked.length} onClick={() => { void ing.start({ kind: "all" }, true, only); }}>Sweep everything now</button>
                       </>
                     ) : (
-                      <button className="btn accent" disabled={!clientId}
-                              onClick={() => { void ing.start({ kind: "client", client_id: clientId }, true); }}>Start</button>
+                      <button className="btn accent" disabled={!clientId || !picked.length}
+                              onClick={() => { void ing.start({ kind: "client", client_id: clientId }, true, only); }}>Start</button>
                     )}
                     <span className="meta">Last sweep on this device: {stamp(s?.last_run_at)}</span>
                   </div>

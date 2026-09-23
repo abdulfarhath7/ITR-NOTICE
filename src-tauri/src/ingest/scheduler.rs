@@ -94,7 +94,7 @@ pub fn spawn(app: tauri::AppHandle) {
             match decision {
                 Ok(Some(scope)) => {
                     let all_now = scope == "all";
-                    let result = crate::commands::ingestion::launch_scope(app.clone(), &state, crate::repo::queue::Scope::All, all_now);
+                    let result = crate::commands::ingestion::launch_scope(app.clone(), &state, crate::repo::queue::Scope::All, all_now, None);
                     match result {
                         Ok(id) => crate::commands::ingestion::notify(&app, "Scheduled sweep started", &format!("sweep {}", &id[..8.min(id.len())])),
                         Err(e) => crate::commands::ingestion::notify(&app, "Scheduled sweep did not start", &e.to_string()),
