@@ -53,3 +53,9 @@ export function plainDate(iso: string | null | undefined): string {
   const d = parseDate(iso);
   return d ? `${shortDate(d, { y: 0, m: 1, d: 1 })}` : "Not stated";
 }
+
+/** `· 41 days ·` for the quiet stretch between two thread events. It is an
+ *  interval between two past dates, never a countdown (QUESTIONS Q26). */
+export function describeGap(days: number): string {
+  return `· ${days} ${days === 1 ? "day" : "days"} ·`;
+}

@@ -167,6 +167,13 @@ Read the updated `QUESTIONS.md` first. Each task below corresponds to an answer 
 - [x] **12.11** (Q13) Move the offline-litigation scope note out of `QUESTIONS.md` into Phase 13 below so it is not lost.
 - [x] **12.12** Update `docs/` to match every change above, then update `DECISIONS.md` with one entry per reversal (D-002 in particular is now superseded by Q09).
 
+## Phase 14 — Thread flow redesign
+
+Spec: `docs/thread-flow-context.md`. Ahead of Phase 13, which stays deferred.
+
+- [x] **14.1** Replace the flat proceeding thread with the two-lane flow: pairing in `src/lib/thread-pairing.ts` (six vitest cases), `ThreadFlow` in `src/ui/thread-flow.tsx`, `.thread-flow*` CSS in `base.css`, mini-map, repeat folding, adjournment branch and merge, countdown ring.
+  - *Done when:* typecheck, tests and build pass; no horizontal scroll at 1100px with the harness mock; text-hidden screenshot reads by shape and colour. All met. Defaults in Q25–Q29.
+
 ## Phase 13 — Offline litigation (deferred, do not start)
 
 Placeholder only. Q13 answered "later phase". Do not begin this without an explicit instruction.

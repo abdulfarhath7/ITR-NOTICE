@@ -415,3 +415,14 @@ Decision: 413 above `RELAY_MAX_CHANGESET_MB` (32) and
 outside the database connection; the hourly alert pass with its blocking
 SMTP runs on a worker thread.
 Reversible: easily.
+
+## D-037 — The proceeding thread is a two-lane flow
+Date: 2026-09-23
+Context: The thread was a flat stack of cards; nobody could see at a glance
+what was answered, open, overdue or adjourned.
+Decision: `src/ui/thread-flow.tsx` draws department notices on the left,
+firm responses and adjournments on the right, one spine between, per
+`docs/thread-flow-context.md`. Pairing is pure, in
+`src/lib/thread-pairing.ts`, with vitest cases. The Draft button moved from
+the notice card into the empty response slot. Defaults filed as Q25–Q29.
+Reversible: easily; the old `Thread` is in git history.

@@ -13,27 +13,15 @@ import { actionsFor, parseStatus } from "../lib/status";
 import { toast, toastError } from "../lib/toast";
 import type { CommunicationView, ProceedingDetail } from "../lib/types";
 import { DateCell } from "../ui/dates";
-import { DocList, DocPreview, DocRow } from "../ui/doc-list";
+import { DocList, DocPreview } from "../ui/doc-list";
 import DraftDrawer from "../ui/draft-drawer";
 import DueText from "../ui/due-text";
 import EmptyState from "../ui/empty-state";
-import Icon from "../ui/icons";
+import Gap from "../ui/gap";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { StatusPill } from "../ui/pill";
+import ThreadFlow from "../ui/thread-flow";
 import { DemandScreen, FiledFormScreen, ReturnScreen } from "./module-items";
-
-function Gap({ value, gaps, column, mono = false }: { value: string | null | undefined; gaps: string[]; column: string; mono?: boolean }) {
-  if (value) return <span className={mono ? "mono" : undefined}>{value}</span>;
-  return <span className="muted">Not stated{gaps.includes(column) ? <span className="unverified">unverified</span> : null}</span>;
-}
-
-/** `Sec 268 (old 148)` when both statutes are known (docs/09). */
-function sectionText(s2025: string | null, s1961: string | null): string | null {
-  if (s2025 && s1961) return `Sec ${s2025} (old ${s1961})`;
-  if (s1961) return `Sec ${s1961}`;
-  if (s2025) return `Sec ${s2025}`;
-  return null;
-}
 
 function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => void }) {
   const [value, setValue] = useState(p.manual_due_date ?? "");
@@ -52,91 +40,6 @@ function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => voi
       {value !== (p.manual_due_date ?? "") ? <button className="btn small" onClick={() => { void save(); }}>Save</button> : null}
     </div>
   );
-}
-
-function Thread({ p, onDraft, onSuggest, docs }: {
-  p: ProceedingDetail; onDraft: (c: CommunicationView) => void; onSuggest: (c: CommunicationView) => void;
-  docs: ReturnType<typeof useDocuments>;
-}) {
-  const entries: { when: string | null; node: React.ReactNode; key: string }[] = [];
-  for (const c of p.communications) {
-    const effective = c.status === "response_submitted" ? "response_submitted" : p.status;
-    const can = actionsFor(effective);
-    const due = describeDue(c.response_due_date, effective);
-    entries.push({
-      when: c.issued_on, key: `c:${c.id}`,
-      node: (
-        <div className="msg">
-          <div className="head">
-            <span className="pill">{c.type_label}</span>
-            <b>{c.description ?? "Communication"}</b>
-            <StatusPill status={c.status} />
-            <span className="when meta num">issued <DateCell iso={c.issued_on} gap={c.gaps.includes("issued_on")} /></span>
-          </div>
-          <dl className="kv">
-            <dt>Reference</dt><dd className="mono">{c.reference_id}</dd>
-            <dt>DIN</dt><dd><Gap value={c.din} gaps={c.gaps} column="din" mono /></dd>
-            <dt>Section</dt><dd><Gap value={sectionText(c.section_2025, c.section_1961)} gaps={c.gaps} column="section" /></dd>
-            <dt>Served on</dt><dd><DateCell iso={c.served_on} gap={c.gaps.includes("served_on")} /></dd>
-            <dt>Response due</dt><dd><DueText due={due} /></dd>
-            <dt>Viewed by AO</dt><dd><DateCell iso={c.ao_viewed_on} /></dd>
-          </dl>
-          {c.documents.length ? (
-            <table className="table"><tbody>
-              {c.documents.map((d) => <DocRow key={d.id} doc={d} docs={docs} />)}
-            </tbody></table>
-          ) : <span className="meta">No document fetched for this communication.</span>}
-          {can.draft ? (
-            <div className="row">
-              <button className="btn small" onClick={() => onDraft(c)}><Icon name="sparkles" /><span>{c.has_draft ? "Open draft" : "Draft"}</span></button>
-              {!c.response_due_date && !p.suggested_due_date && c.documents.some((d) => d.state === "stored")
-                ? <button className="btn small quiet" onClick={() => onSuggest(c)} title="asks the proxy once; the answer is a suggestion, never a stated date">Suggest a due date</button>
-                : null}
-            </div>
-          ) : null}
-        </div>
-      ),
-    });
-  }
-  for (const r of p.responses) {
-    entries.push({
-      when: r.filed_on, key: `r:${r.id}`,
-      node: (
-        <div className="msg outbound">
-          <div className="head">
-            <span className="pill success">Response · {r.response_mode}</span>
-            <span className="when meta num">filed <DateCell iso={r.filed_on} /></span>
-          </div>
-          <dl className="kv">
-            <dt>Filed by</dt><dd>{r.filed_by ?? <span className="muted">Not stated</span>}</dd>
-            <dt>Transaction</dt><dd className="mono">{r.transaction_id ?? <span className="muted">Not stated</span>}</dd>
-            <dt>Remarks</dt><dd>{r.remarks ?? <span className="muted">none</span>}</dd>
-          </dl>
-        </div>
-      ),
-    });
-  }
-  for (const a of p.adjournments) {
-    entries.push({
-      when: a.filed_on, key: `a:${a.id}`,
-      node: (
-        <div className="msg outbound">
-          <div className="head">
-            <span className="pill warning">Adjournment sought</span>
-            <span className="when meta num">filed <DateCell iso={a.filed_on} /></span>
-          </div>
-          <dl className="kv">
-            <dt>Sought date</dt><dd><DateCell iso={a.sought_date} /></dd>
-            <dt>Reason</dt><dd>{a.reason ?? <span className="muted">Not stated</span>}</dd>
-            <dt>Outcome</dt><dd>{a.outcome ?? <span className="muted">Not stated</span>}</dd>
-          </dl>
-        </div>
-      ),
-    });
-  }
-  entries.sort((x, y) => (x.when ?? "9999").localeCompare(y.when ?? "9999"));
-  if (!entries.length) return <EmptyState title="No communications yet." body="The thread fills as sweeps find notices and filed responses." />;
-  return <div className="thread">{entries.map((e) => <div key={e.key}>{e.node}</div>)}</div>;
 }
 
 function ProceedingScreen({ id }: { id: string }) {
@@ -217,7 +120,7 @@ function ProceedingScreen({ id }: { id: string }) {
         <div className="card">
           <div className="card-head"><h2>Thread</h2><span className="meta">communications, responses and adjournments in date order</span></div>
           <div className="card-body">
-            <Thread p={p} docs={docs} onDraft={(c) => { setDraftSource(c.documents.find((d) => d.state === "stored")?.id ?? null); void draft.open(c.reference_id); }}
+            <ThreadFlow p={p} docs={docs} onDraft={(c) => { setDraftSource(c.documents.find((d) => d.state === "stored")?.id ?? null); void draft.open(c.reference_id); }}
                     onSuggest={(c) => { void suggest(c); }} />
           </div>
         </div>

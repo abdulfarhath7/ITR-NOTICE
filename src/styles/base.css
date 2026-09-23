@@ -14,7 +14,7 @@ body {
   overflow: hidden;
   user-select: none;
 }
-input, textarea, .mono, .path, .log, .kv dd, td, .msg, .settings-control { user-select: text; }
+input, textarea, .mono, .path, .log, .kv dd, td, .settings-control { user-select: text; }
 
 h1, h2, h3, p { margin: 0; }
 h1 { font: 500 20px/28px var(--font-ui); }
@@ -439,11 +439,78 @@ table.table.compact th, table.table.compact td { height: 30px; font-size: 12px; 
 .side-list button[aria-current="true"] { background: var(--surface-2); color: var(--text); }
 .side-list button span:first-child { flex: 1; white-space: nowrap; }
 .split { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: start; }
-.thread { display: flex; flex-direction: column; gap: 8px; }
-.thread .msg { border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
-.thread .msg.outbound { border-left: 2px solid var(--accent); }
-.thread .msg .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.thread .msg .head .when { margin-left: auto; }
+/* Thread flow (docs/thread-flow-context.md): two lanes and a spine. Colour
+   comes only from the tone variable a row sets; nothing here is a literal. */
+.thread-flow { display: flex; flex-direction: column; gap: 16px; }
+.tf-success { --tone: var(--success); }
+.tf-warning { --tone: var(--warning); }
+.tf-danger { --tone: var(--danger); }
+.tf-idle { --tone: var(--border-strong); }
+.tf-map { display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden; }
+.tf-map svg { flex: none; }
+.tf-map-line { stroke: var(--border-strong); stroke-width: 1; }
+.tf-map-dot { fill: var(--tone); stroke: var(--tone); stroke-width: 1.5; }
+.tf-map-dot.open { fill: var(--surface-1); }
+.tf-lanes { position: relative; display: flex; flex-direction: column; }
+/* The spine is drawn once, behind every row, from the first node to the cap. */
+.tf-lanes::before {
+  content: ""; position: absolute; left: calc(50% - 1px); top: 18px; bottom: 8px;
+  border-left: 2px solid var(--border);
+}
+.tf-lane-heads, .tf-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); }
+.tf-lane-heads { font: 400 11px/16px var(--font-ui); color: var(--text-faint); margin-bottom: -8px; }
+.tf-lane-heads span:first-child { text-align: right; }
+.tf-row { padding-bottom: 12px; }
+.tf-left, .tf-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tf-right { padding-top: calc(var(--resp-y, 54px) - 18px); }
+.tf-spine { position: relative; }
+.tf-end { position: relative; height: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); }
+.tf-end .tf-spine { grid-column: 2; }
+.tf-line { position: absolute; border: 0 solid var(--tone, var(--border-strong)); }
+.tf-line.h { border-top-width: 2px; height: 0; }
+.tf-line.v { border-left-width: 2px; width: 0; }
+.tf-line.dashed { border-style: dashed; }
+.tf-line.branch { border-color: var(--border-strong); }
+.tf-curve { position: absolute; overflow: visible; }
+.tf-curve path { fill: none; stroke: var(--border-strong); stroke-width: 2; }
+.tf-node { position: absolute; z-index: 1; overflow: visible; }
+.tf-node .fill { fill: var(--tone, var(--border-strong)); stroke: var(--surface-1); stroke-width: 2; }
+.tf-node .hollow { fill: var(--surface-1); stroke: var(--tone, var(--border-strong)); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.tf-node .arc { fill: none; stroke: var(--tone); stroke-width: 2; }
+/* Stroke only: the fill must stay opaque so the spine never shows through. */
+.tf-node.pulse circle { animation: tf-pulse 2.4s ease-in-out infinite; }
+@keyframes tf-pulse { 50% { stroke-opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .tf-node.pulse circle { animation: none; } }
+.tf-gap { position: relative; display: flex; justify-content: center; padding: 4px 0 16px; }
+.tf-gap > .meta { position: relative; z-index: 1; background: var(--surface-1); padding: 0 6px; }
+.tf-gap-branch { position: absolute; top: 0; bottom: 0; left: calc(50% - 28px); width: 56px; }
+.tf-card {
+  border: 1px solid color-mix(in srgb, var(--tone, var(--border)) 45%, var(--border));
+  border-radius: var(--radius-card); background: var(--surface-1); min-width: 0; user-select: text;
+}
+.tf-slot { border-style: dashed; background: none; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.tf-slot-title { color: var(--text-muted); }
+.tf-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 8px 12px;
+  border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  border-radius: var(--radius-card);
+}
+.tf-head:hover { background: var(--surface-2); }
+.tf-head b { font-weight: 500; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tf-head .meta { flex: none; }
+.tf-chev { flex: none; color: var(--text-faint); }
+.tf-chev.open { transform: rotate(90deg); }
+.tf-chips, .tf-sub { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 0 12px 10px 36px; }
+.tf-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
+.tf-body { display: flex; flex-direction: column; gap: 10px; padding: 4px 12px 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.tf-body .kv { grid-template-columns: 120px 1fr; }
+.tf-body .table td { padding-left: 0; padding-right: 0; }
+.tf-body .actions { flex-wrap: wrap; justify-content: flex-end; }
+.tf-ticks { display: inline-flex; flex: none; color: var(--text-faint); }
+.tf-ticks svg + svg { margin-left: -9px; }
+.tf-ticks.seen { color: var(--accent); }
+.tf-fold { align-self: flex-start; }
+.tf-row .empty { padding: 16px 0; align-items: flex-end; text-align: right; }
 iframe.preview { width: 100%; height: 100%; border: 0; background: #fff; }
 .preview-box { height: 70vh; }
 .pane { min-height: 60vh; }
