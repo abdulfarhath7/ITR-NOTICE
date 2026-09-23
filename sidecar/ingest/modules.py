@@ -27,7 +27,7 @@ from app.portal.scraper import (
 from app.portal.session import dismiss_security_popup, first_visible
 from playwright.async_api import TimeoutError as PWTimeout
 
-from .parse import CARD_JS, _clean
+from .parse import _clean
 from .protocol import emit, log
 from .session import IngestSession, Relay
 
@@ -55,9 +55,11 @@ LABELS: dict[str, dict[str, list[str]]] = {
     "returns": {
         "acknowledgement_number": ["Acknowledgement Number", "Acknowledgment Number", "Ack No", "Acknowledgement No"],
         "assessment_year": ["Assessment Year", "A.Y."],
-        "return_type": ["ITR Form", "Form", "Return Type", "ITR Type"],
-        "filing_type": ["Filing Type", "Type of Filing", "Filing Section"],
-        "filed_on": ["Date of Filing", "Filed On", "Filing Date", "Date of filing"],
+        "return_type": ["ITR", "ITR Form", "Form", "Return Type", "ITR Type"],
+        "filing_type": ["Filing Type", "Type of Filing"],
+        "filing_section": ["Filing Section", "Filed u/s", "Section"],
+        "filed_by": ["Filed By"],
+        "filed_on": ["Filing Date", "Date of Filing", "Filed On", "Date of filing"],
         "verification_status": ["e-Verification Status", "Verification Status", "Verified"],
         "processing_status": ["Current Status", "Processing Status", "Status"],
         "pan": ["PAN"],
@@ -75,6 +77,53 @@ LABELS: dict[str, dict[str, list[str]]] = {
 }
 
 CARD_SELECTORS = "div.card-container, mat-card, .card"
+
+# The module list pages do not use the e-Proceedings card classes that
+# CARD_JS reads (.body1 label -> .heading5 value). Captured live on
+# 2026-09-23 (View Filed Returns, /dashboard/itrStatus): labels are
+# mat-label.rightsideLabel / .contentLabel, values mat-label.fieldVal /
+# .leftSideVal, and a value is not always the label's sibling ("Filing Type"
+# sits in a wrapper div). So labels and values are paired in document order:
+# each label takes the first value that follows it before the next label.
+# The e-Proceedings classes are kept in the lists so either layout reads.
+MODULE_CARD_JS = r"""
+(card) => {
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/\s*:\s*$/, '').trim();
+  const LABEL = ['rightsideLabel', 'contentLabel', 'body1', 'body2', 'dataHeading'];
+  const VALUE = ['fieldVal', 'leftSideVal', 'heading5', 'heading6', 'subtitle1', 'subtitle2'];
+  const has = (el, list) => list.some((c) => el.classList.contains(c));
+  const sel = [...LABEL, ...VALUE].map((c) => '.' + c).join(',');
+  // modal templates live inside the card; their text is not card data
+  const inModal = (el) => !!el.closest('.modal, [role=dialog], mat-dialog-container');
+  const fields = {};
+  let pending = null;
+  for (const el of card.querySelectorAll(sel)) {
+    if (inModal(el)) continue;
+    if (has(el, VALUE) && pending !== null) {
+      if (!(pending in fields)) fields[pending] = norm(el.textContent);
+      pending = null;
+    } else if (has(el, LABEL)) {
+      let own = '';
+      for (const n of el.childNodes) if (n.nodeType === 3) own += n.textContent;
+      pending = norm(own) || null;
+    }
+  }
+  // "A.Y. 2025-26" is the card title, not a label/value pair
+  const head = card.querySelector('.contentHeadingText, mat-card-title');
+  if (head) {
+    const m = norm(head.textContent).match(/^(A\.?Y\.?|F\.?Y\.?|T\.?Y\.?)\s*(\d{4}-\d{2,4})/i);
+    if (m) fields['A.Y.'] = m[2];
+  }
+  // status timeline, newest first as the portal draws it
+  const steps = Array.from(card.querySelectorAll('.matStepStatus')).map((s) => {
+    const d = s.parentElement && s.parentElement.querySelector('.matStepDate');
+    return [norm(d && d.textContent), norm(s.textContent)];
+  });
+  const buttons = Array.from(card.querySelectorAll('button, .hyperLink'))
+    .filter((b) => !inModal(b)).map((b) => norm(b.textContent)).filter(Boolean);
+  return { fields, above: {}, steps, buttons, text: card.innerText || '' };
+}
+"""
 
 
 def map_fields(module: str, raw: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
@@ -188,8 +237,12 @@ async def list_module(session: IngestSession, relay: Relay, module: str) -> None
             if not await card.count():
                 break
             await session.pace()
-            raw: dict[str, Any] = await card.evaluate(CARD_JS)
+            raw: dict[str, Any] = await card.evaluate(MODULE_CARD_JS)
             fields, conf = map_fields(module, raw)
+            if module == "returns" and fields.get("processing_status") is None and raw.get("steps"):
+                # the newest timeline entry is the portal's own current status
+                fields["processing_status"] = _clean(raw["steps"][0][1])
+                conf["processing_status"] = "low"
             buttons = fields.pop("_buttons", [])
             key = fields.get("acknowledgement_number") or fields.get("demand_reference_number")
             if not key:

@@ -22,7 +22,19 @@ pub fn parse_portal_date(text: &str) -> Option<NaiveDate> {
         return Some(d);
     }
     // 17-Aug-2026, 17 Aug 2026, 17/Aug/2026, 17-August-2026
-    let parts: Vec<&str> = raw.split(['-', '/', ' ']).filter(|p| !p.is_empty()).collect();
+    let parts: Vec<&str> = raw.split(['-', '/', ' ', ',']).filter(|p| !p.is_empty()).collect();
+    // Aug 17, 2026: the filed-returns and filed-forms cards write dates
+    // month first (seen live 2026-09-23).
+    if parts.len() == 3 && parts[0].chars().all(|c| c.is_ascii_alphabetic()) {
+        let key = parts[0].to_ascii_lowercase();
+        let month = MONTHS.iter().position(|m| key.starts_with(m)).map(|i| i as u32 + 1);
+        if let (Some(month), Ok(day), Ok(year)) = (month, parts[1].parse::<u32>(), parts[2].parse::<i32>()) {
+            if year >= 1900 {
+                return NaiveDate::from_ymd_opt(year, month, day);
+            }
+        }
+        return None;
+    }
     if parts.len() == 3 {
         let day: Option<u32> = parts[0].parse().ok();
         let year: Option<i32> = parts[2].parse().ok();
@@ -72,6 +84,8 @@ mod tests {
         assert_eq!(parse_portal_date("17-Aug-2026"), NaiveDate::from_ymd_opt(2026, 8, 17));
         assert_eq!(parse_portal_date("2-Sep-2026"), NaiveDate::from_ymd_opt(2026, 9, 2));
         assert_eq!(parse_portal_date("17 August 2026"), NaiveDate::from_ymd_opt(2026, 8, 17));
+        assert_eq!(parse_portal_date("Nov 28, 2023"), NaiveDate::from_ymd_opt(2023, 11, 28));
+        assert_eq!(parse_portal_date("Mar 3, 2026"), NaiveDate::from_ymd_opt(2026, 3, 3));
         assert_eq!(to_iso(Some("17-Aug-2026")).as_deref(), Some("2026-08-17"));
     }
 
