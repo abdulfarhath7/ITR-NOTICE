@@ -250,3 +250,21 @@ tabs and a "view" allowlist; recon/guard.py DENY extends scraper FORBIDDEN.
 Output lives in data/portal-map/ (gitignored: it holds client data).
 Not yet run live: needs credentials via ITR_RECON_USER / ITR_RECON_PASSWORD
 or --ask. GST mode needs a human to log in (captcha).
+
+### Findings from the first live capture (2026-09-23)
+
+- Filed returns and filed forms never worked: the module walk used the
+  e-Proceedings card reader, whose classes do not exist on those pages.
+  Fixed with MODULE_CARD_JS; forms are two levels (form type > View All >
+  filings). Checked offline against the captured HTML only, not in a sweep.
+- Portal cards write dates as "Nov 28, 2023"; dates.rs now reads it.
+- Write controls sit on these cards: Withdraw (filed forms) and a
+  "submit intimation order request? Yes/No" dialog behind "Download
+  Intimation Order" (filed returns). Neither is clicked; the guard refuses
+  both.
+- Demands: still unverified, the captured account had none.
+- TODO(blocked): re-login after ~15 min fails. PortalSession.ensure_alive
+  navigates to the login page while logged in and the User ID page's
+  Continue stays disabled (Timeout on get_by_role("button", name="Continue")).
+  Sweeps longer than ~15 min will hit this. Likely fix: log out or clear
+  cookies before re-login; needs a live check.

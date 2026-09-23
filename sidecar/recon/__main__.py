@@ -98,7 +98,10 @@ async def run_itd(args: argparse.Namespace, run_dir: Path, ev: Events) -> None:
         crawler = Crawler(session.page, run_dir, net, ev.line, session.ensure_alive,
                           home_labels=("Dashboard", "Home"), pace=args.pace,
                           max_screens=args.max_screens)
-        await crawler.crawl()
+        if args.path:
+            await crawler.capture_paths([[x.strip() for x in p.split(">")] for p in args.path])
+        else:
+            await crawler.crawl()
         ev.line(f"done: {len(crawler.screens)} screens, {len(crawler.errors)} errors")
     except WrongPasswordError as e:
         ev.line(f"STOPPED: {e}")
@@ -160,6 +163,8 @@ def main() -> None:
     ap.add_argument("--max-screens", type=int, default=400)
     ap.add_argument("--otp-wait", type=int, default=30, help="minutes to wait for OTP / manual login")
     ap.add_argument("--label", default="", help="suffix for the run folder, e.g. a client tag")
+    ap.add_argument("--path", action="append", default=[],
+                    help='capture one click path instead of crawling, e.g. "e-File > Income Tax Forms > View Filed Forms > View All"; repeatable')
     args = ap.parse_args()
 
     stamp = time.strftime("%Y%m%d-%H%M%S")

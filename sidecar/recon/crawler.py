@@ -32,7 +32,7 @@ CLICKABLES_JS = r"""
   };
   const SEL = opts.tabs
     ? '[role=tab],.mat-tab-label,.mat-mdc-tab,.nav-tabs a,.nav-tabs button,.tab-link'
-    : 'a,button,[role=menuitem],[role=button],[role=link],[routerlink],li[tabindex],.mat-menu-item,.dropdown-item,.nav-link';
+    : 'a,button,[role=menuitem],[role=button],[role=link],[routerlink],li[tabindex],.mat-menu-item,.dropdown-item,.nav-link,.hyperLink';
   const out = [];
   for (const el of document.querySelectorAll(SEL)) {
     if (!vis(el)) continue;
@@ -57,7 +57,7 @@ MARK_JS = r"""
     return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
   const SEL = tabs
     ? '[role=tab],.mat-tab-label,.mat-mdc-tab,.nav-tabs a,.nav-tabs button,.tab-link'
-    : 'a,button,[role=menuitem],[role=button],[role=link],[routerlink],li[tabindex],.mat-menu-item,.dropdown-item,.nav-link';
+    : 'a,button,[role=menuitem],[role=button],[role=link],[routerlink],li[tabindex],.mat-menu-item,.dropdown-item,.nav-link,.hyperLink';
   const hits = [...document.querySelectorAll(SEL)].filter(el => vis(el) &&
     clean(el.innerText || el.getAttribute('aria-label') || '') === label);
   if (!hits.length) return false;
@@ -190,6 +190,26 @@ class Crawler:
         self.log(f"header menu candidates: {top_labels}")
         for lab in top_labels:
             await self._walk_menu([lab], self.menu_tree, depth=0)
+        self._write_index()
+
+    async def capture_paths(self, paths: list[list[str]]) -> None:
+        """Targeted mode: replay each path, capture where it lands, then its
+        tabs. Every label still goes through the menu/in-page guard."""
+        for path in paths:
+            try:
+                await self.go_home()
+                ok = True
+                for i, label in enumerate(path):
+                    allowed = menu_click_ok(label) if i < 3 else in_page_click_ok(label)
+                    if not allowed or not await self._click_label(label, top=(i == 0)):
+                        self.errors.append({"path": " > ".join(path), "error": f"could not click {label!r}"})
+                        ok = False
+                        break
+                if ok:
+                    await self.capture(path)
+                    await self._explore_page(path, [])
+            except Exception as e:  # noqa: BLE001
+                self.errors.append({"path": " > ".join(path), "error": repr(e)[:300]})
         self._write_index()
 
     async def _walk_menu(self, path: list[str], tree: dict[str, Any], depth: int) -> None:

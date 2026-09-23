@@ -1,16 +1,16 @@
 """Modules 2, 3 and 4: outstanding demands, filed returns, filed forms.
 
-No DOM capture of these pages exists in the repository yet, and docs/05
-forbids writing a parser from a screenshot. What is here is the navigation
-(by menu text, the same way the e-Proceedings walk reaches its list) and a
-label-anchored extraction that maps whichever labels the portal renders
-onto the card fields. A label that is not found is a gap; nothing is
-guessed. Every header from these walks is marked confidence "low" until a
-scrubbed capture lands under sidecar/tests/fixtures/ and the mapping is
-pinned by a test.
+Returns and forms are read against live captures taken 2026-09-23 with
+sidecar/recon (data/portal-map/, gitignored): see MODULE_CARD_JS and the
+forms walk below. Headers stay confidence "low" until a scrubbed fixture
+pins the label tables with a test (docs/05).
 
-TODO(blocked): capture outerHTML + HAR of the three list pages from a live
-session, scrub, commit, and tighten the label tables below. See NOTES.md.
+Demands are still unverified: the account captured had no outstanding
+demand, so the demand list's card markup has never been seen. The label
+table below is the old guess.
+
+TODO(blocked): capture Response to Outstanding Demand on a client that has
+a demand (recon --path "Pending Actions > Response to Outstanding Demand").
 """
 import base64
 import re
@@ -67,8 +67,8 @@ LABELS: dict[str, dict[str, list[str]]] = {
     "forms": {
         "form_label": ["Form Name", "Form", "Form No", "Form Type"],
         "acknowledgement_number": ["Acknowledgement Number", "Acknowledgment Number", "Ack No", "Acknowledgement No"],
-        "assessment_year": ["Assessment Year", "A.Y.", "Financial Year"],
-        "filed_on": ["Date of Filing", "Filed On", "Filing Date", "Date of filing"],
+        "assessment_year": ["Assessment Year", "A.Y.", "Tax Year", "Financial Year"],
+        "filed_on": ["Filing Date", "Date of Filing", "Filed On", "Date of filing"],
         "filing_type": ["Filing Type", "Type of Filing"],
         "status": ["Status", "Form Status"],
         "filed_by": ["Filed By", "Submitted By", "Filed by"],
@@ -89,8 +89,10 @@ CARD_SELECTORS = "div.card-container, mat-card, .card"
 MODULE_CARD_JS = r"""
 (card) => {
   const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/\s*:\s*$/, '').trim();
-  const LABEL = ['rightsideLabel', 'contentLabel', 'body1', 'body2', 'dataHeading'];
-  const VALUE = ['fieldVal', 'leftSideVal', 'heading5', 'heading6', 'subtitle1', 'subtitle2'];
+  // View Filed Forms > View All (mat-card.subCard) uses thirdColKey /
+  // thirdColValue, and draws the filing date value above its leftColKey label.
+  const LABEL = ['rightsideLabel', 'contentLabel', 'thirdColKey', 'body1', 'body2', 'dataHeading'];
+  const VALUE = ['fieldVal', 'leftSideVal', 'thirdColValue', 'heading5', 'heading6', 'subtitle1', 'subtitle2'];
   const has = (el, list) => list.some((c) => el.classList.contains(c));
   const sel = [...LABEL, ...VALUE].map((c) => '.' + c).join(',');
   // modal templates live inside the card; their text is not card data
@@ -108,6 +110,15 @@ MODULE_CARD_JS = r"""
       pending = norm(own) || null;
     }
   }
+  for (const key of card.querySelectorAll('.leftColKey')) {
+    // value, <br>, label inside one wrapper div
+    const val = key.parentElement && key.parentElement.querySelector('.leftColVal');
+    const k = norm(key.textContent);
+    if (k && val && !(k in fields)) fields[k] = norm(val.textContent);
+  }
+  // the acknowledgement number on a filed-form card is two bare spans
+  const ack = (card.innerText || '').match(/Acknowledge?ment No\.?\s*:?\s*(\d{10,20})/i);
+  if (ack && !('Acknowledgement No' in fields)) fields['Acknowledgement No'] = ack[1];
   // "A.Y. 2025-26" is the card title, not a label/value pair
   const head = card.querySelector('.contentHeadingText, mat-card-title');
   if (head) {
@@ -208,36 +219,37 @@ async def _download_within(session: IngestSession, relay: Relay, card: Any, labe
         return None
 
 
-async def list_module(session: IngestSession, relay: Relay, module: str) -> None:
+class _Walk:
+    """Counters and the stop flag shared by every list a module walks."""
+
+    def __init__(self) -> None:
+        self.cards = 0
+        self.fetched = 0
+        self.skipped = 0
+        self.stopped = False
+
+
+async def _walk_cards(session: IngestSession, relay: Relay, module: str, selector: str,
+                      walk: _Walk, extra: dict[str, str] | None = None) -> None:
+    """Every card matching `selector` on the current page, all pages."""
     page = session.page
-    if page is None:
-        raise RuntimeError("browser not started")
-    stats = {"cards": 0, "notices": 0, "fetched": 0, "skipped": 0}
-    stopped = False
-    note: str | None = None
-
-    await session.ensure_alive()
-    if not await _open_module(session, relay, module):
-        note = f"the {module} list never rendered"
-        emit("panel_missing", panel=module, msg=note)
-        emit("panel_done", panel=module, cards=0, notices=0, fetched=0, skipped=0, stopped_early=False, note=note)
-        return
-
+    assert page is not None
     await _set_page_size_max(page, relay)
     seen_pages = 0
-    while seen_pages < 50 and not stopped:
-        cards = page.locator(CARD_SELECTORS)
-        total = await cards.count()
+    while seen_pages < 50 and not walk.stopped:
+        total = await page.locator(selector).count()
         log(f"  {module}: page {seen_pages + 1}: {total} card(s)")
         if total == 0:
             break
         for i in range(total):
             await session.ensure_alive()
-            card = page.locator(CARD_SELECTORS).nth(i)
+            card = page.locator(selector).nth(i)
             if not await card.count():
                 break
             await session.pace()
             raw: dict[str, Any] = await card.evaluate(MODULE_CARD_JS)
+            if extra:
+                raw.setdefault("fields", {}).update({k: v for k, v in extra.items() if v})
             fields, conf = map_fields(module, raw)
             if module == "returns" and fields.get("processing_status") is None and raw.get("steps"):
                 # the newest timeline entry is the portal's own current status
@@ -247,28 +259,101 @@ async def list_module(session: IngestSession, relay: Relay, module: str) -> None
             key = fields.get("acknowledgement_number") or fields.get("demand_reference_number")
             if not key:
                 # A card without its identifier is not a record we can keep.
+                log(f"  {module}: card {i + 1} has no identifier; labels seen: {sorted(raw.get('fields', {}))}", "warn")
                 continue
-            stats["cards"] += 1
+            walk.cards += 1
             emit("progress", kind="walk", panel=module, card=i + 1, of=total, name=str(key))
             emit("header", panel=module, proceeding=fields, notice=None,
                  confidence={"proceeding": conf, "notice": {}})
             action = await relay.request_verdict()
             if action == "stop":
-                stopped = True
+                walk.stopped = True
                 break
             if action != "fetch":
-                stats["skipped"] += 1
+                walk.skipped += 1
                 continue
-            pdf = await _download_within(session, relay, card, r"download.*(form|return|itr)|^download$|pdf")
+            # Exact labels: filed-form cards also carry Withdraw, which the
+            # click guard refuses anyway, and these never match it.
+            pdf = await _download_within(session, relay, card, r"^download (form|return|itr)$|^download$|pdf")
             receipt = await _download_within(session, relay, card, r"receipt|acknowledg")
             if pdf or receipt:
-                stats["fetched"] += 1
+                walk.fetched += 1
             emit("item", reference_id=str(key), pdf_b64=pdf, receipt_b64=receipt,
                  filename=f"{key}.pdf", note=None if (pdf or receipt) else f"no file offered; controls: {buttons}")
-        if stopped or not await _next_page(page):
+        if walk.stopped or not await _next_page(page):
             break
         seen_pages += 1
         await page.wait_for_timeout(1500)
 
-    emit("panel_done", panel=module, cards=stats["cards"], notices=0, fetched=stats["fetched"],
-         skipped=stats["skipped"], stopped_early=stopped, note=note)
+
+# View Filed Forms is two levels (seen live 2026-09-23): one summary card per
+# form type (mat-card.eachMatCardStyle, nested in one outer card, with
+# .headFormNameStyle "Form No. 15CA" and "View All"), and behind View
+# All the individual filings as mat-card.subCard. The summary cards are not
+# filings and carry no acknowledgement number.
+FORM_SUMMARY = "mat-card.eachMatCardStyle"
+FORM_FILING = "mat-card.subCard"
+
+
+async def _back_to_form_summary(session: IngestSession, relay: Relay) -> bool:
+    page = session.page
+    assert page is not None
+    for name in ("Back", "Go back to View Filed Forms"):
+        btn = await first_visible(page.get_by_role("button", name=name, exact=True))
+        if btn:
+            await _safe_click(page, btn, name, relay)
+            try:
+                await page.locator(FORM_SUMMARY).first.wait_for(state="visible", timeout=15000)
+                return True
+            except PWTimeout:
+                break
+    return await _open_module(session, relay, "forms")
+
+
+async def _walk_forms(session: IngestSession, relay: Relay, walk: _Walk) -> None:
+    page = session.page
+    assert page is not None
+    kinds = await page.locator(FORM_SUMMARY).count()
+    log(f"  forms: {kinds} form type(s) filed")
+    for i in range(kinds):
+        if walk.stopped:
+            break
+        summary = page.locator(FORM_SUMMARY).nth(i)
+        label = _clean(await summary.locator(".headFormNameStyle").first.inner_text()) or ""
+        view_all = summary.locator(".hyperLink", has_text=re.compile(r"^\s*View All\s*$", re.I)).first
+        if not await view_all.count():
+            log(f"  forms: {label or 'a form type'} has no View All", "warn")
+            continue
+        await _safe_click(page, view_all, "View All", relay)
+        try:
+            await page.locator(FORM_FILING).first.wait_for(state="visible", timeout=20000)
+        except PWTimeout:
+            log(f"  forms: no filings rendered for {label or 'a form type'}", "warn")
+        else:
+            await _walk_cards(session, relay, "forms", FORM_FILING, walk, {"Form Name": label})
+        if not await _back_to_form_summary(session, relay):
+            log("  forms: could not get back to the form list; stopping the forms walk", "error")
+            break
+
+
+async def list_module(session: IngestSession, relay: Relay, module: str) -> None:
+    page = session.page
+    if page is None:
+        raise RuntimeError("browser not started")
+    walk = _Walk()
+    note: str | None = None
+
+    await session.ensure_alive()
+    if not await _open_module(session, relay, module):
+        note = f"the {module} list never rendered"
+        emit("panel_missing", panel=module, msg=note)
+        emit("panel_done", panel=module, cards=0, notices=0, fetched=0, skipped=0, stopped_early=False, note=note)
+        return
+
+    if module == "forms":
+        await _walk_forms(session, relay, walk)
+    else:
+        await _walk_cards(session, relay, module, CARD_SELECTORS, walk)
+
+    emit("panel_done", panel=module, cards=walk.cards, notices=0, fetched=walk.fetched,
+         skipped=walk.skipped, stopped_early=walk.stopped, note=note)
