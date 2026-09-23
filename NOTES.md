@@ -238,3 +238,15 @@ Append as you go. This is where the next session picks up your thread.
   cases, 9 relay tests. `TASKS.md` unchanged: no phase task was opened or
   closed by this pass; Phase 11's three parsers and 11.4 still wait on
   the same inputs as before.
+
+## Portal cartographer (sidecar/recon)
+
+Read-only crawler that maps portal screens for future automation: per screen it
+saves page.html, inventory.json (interactive elements with candidate
+selectors, headings, tables, form fields), aria.yaml, shot.png; plus every
+XHR exchange and a values-free api-catalog.json. Navigation is menu-click
+only (URL changes trip #securityReasonPopup). In-page clicks are limited to
+tabs and a "view" allowlist; recon/guard.py DENY extends scraper FORBIDDEN.
+Output lives in data/portal-map/ (gitignored: it holds client data).
+Not yet run live: needs credentials via ITR_RECON_USER / ITR_RECON_PASSWORD
+or --ask. GST mode needs a human to log in (captcha).
