@@ -28,7 +28,12 @@ export interface PairRow extends RowBase {
   comm: CommunicationView;
   effective: string;
   responses: ResponseRow[];
+  /** The deadline that drives state: the portal's, or the sought date while an adjournment awaits its reissue. */
   due: DueDescription;
+  /** Always the portal's stated due date, for the card's "Response due" row. */
+  statedDue: DueDescription;
+  /** Set while the deadline is an adjournment's sought date. */
+  adjournedTo: string | null;
   state: PairState;
   /** An empty response slot is drawn on the right. */
   slot: boolean;
@@ -89,14 +94,20 @@ export function pairState(answered: boolean, due: DueDescription): PairState {
   return "idle";
 }
 
-/** Elapsed share of `issued_on .. response_due_date`. `due.days` is used as
- *  a ratio only; no number from it is ever printed (QUESTIONS Q25). */
-export function ringRatio(c: CommunicationView, due: DueDescription): number | null {
-  const issued = ymd(c.issued_on), dueOn = ymd(c.response_due_date);
-  if (!issued || !dueOn || due.days === null) return null;
-  const total = Math.max(1, daysBetween(issued, dueOn));
+/** Elapsed share of `from .. to` (issue to due, or to the sought date). `due.days`
+ *  is used as a ratio only; no number from it is ever printed (QUESTIONS Q25). */
+export function ringRatio(from: string | null, to: string | null, due: DueDescription): number | null {
+  const start = ymd(from), end = ymd(to);
+  if (!start || !end || due.days === null) return null;
+  const total = Math.max(1, daysBetween(start, end));
   const elapsed = Math.min(total, Math.max(0, total - due.days));
   return elapsed / total;
+}
+
+/** An adjourned notice awaiting its reissue: warning until the sought date, danger after (Q28). */
+function adjournedState(due: DueDescription): PairState {
+  if (due.days === null) return "idle";
+  return due.days < 0 ? "danger" : "warning";
 }
 
 /** The latest communication issued on or before `when`. */
@@ -146,16 +157,26 @@ export function pairThread(p: ProceedingDetail, today: Ymd = todayIst()): FlowRo
   comms.forEach((c, i) => {
     const key = keyOf.get(c.id) ?? `p${i}`;
     const effective = c.status === "response_submitted" ? "response_submitted" : p.status;
-    const due = describeDue(c.response_due_date, effective, today);
     const responses = repliesTo.get(c.id) ?? [];
-    const slot = !responses.length && actionsFor(effective).draft;
-    const state = pairState(responses.length > 0, due);
+    const adjs = (adjournedFrom.get(c.id) ?? []).map((a) => ({ a, mergeKey: mergeTarget(a, i) }));
+    const latest = adjs[adjs.length - 1];
+    // Q28: once an adjournment has merged into a reissue, the reissue carries
+    // the deadline; the original is settled. Before the reissue arrives, the
+    // sought date is the deadline that matters.
+    const superseded = !responses.length && adjs.some((x) => x.mergeKey);
+    const pending = !responses.length && !superseded && !!latest && !!ymd(latest.a.sought_date);
+    const dueOn = pending ? latest.a.sought_date : c.response_due_date;
+    const due = describeDue(dueOn, effective, today);
+    const slot = !responses.length && !superseded && actionsFor(effective).draft;
+    const state = superseded ? "idle" : pending ? adjournedState(due) : pairState(responses.length > 0, due);
     pairs.push({
       kind: "pair", key, pair: key, comm: c, effective, responses, due, state, slot,
-      ring: slot ? ringRatio(c, due) : null, ...blank,
+      statedDue: pending ? describeDue(c.response_due_date, effective, today) : due,
+      adjournedTo: pending ? latest.a.sought_date : null,
+      ring: slot ? ringRatio(c.issued_on, dueOn, due) : null, ...blank,
     });
-    for (const a of adjournedFrom.get(c.id) ?? []) {
-      pairs.push({ kind: "adjournment", key: `a:${a.id}`, pair: key, adj: a, state, mergeKey: mergeTarget(a, i), ...blank });
+    for (const { a, mergeKey } of adjs) {
+      pairs.push({ kind: "adjournment", key: `a:${a.id}`, pair: key, adj: a, state, mergeKey, ...blank });
     }
   });
 

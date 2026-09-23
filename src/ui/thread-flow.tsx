@@ -206,6 +206,7 @@ export function EmptySlot({ row, h }: { row: PairRow; h: Handlers }) {
   return (
     <div className="tf-card tf-slot">
       <span className="tf-slot-title">Response not yet filed</span>
+      {row.adjournedTo ? <span className="meta">Adjourned to <DateCell iso={row.adjournedTo} /></span> : null}
       <DueText due={row.due} unverified={row.comm.gaps.includes("response_due_date")} />
       <div className="row">
         <button className="btn small" onClick={() => h.onDraft(row.comm)}>
@@ -295,7 +296,7 @@ function PairRowView({ row, h, fold, onToggleRepeat }: {
   return (
     <Row row={row} tone={row.state} respY={respY}
          left={<>
-           <CommCard c={row.comm} effective={row.effective} due={row.due} h={h} />
+           <CommCard c={row.comm} effective={row.effective} due={row.statedDue} h={h} />
            {/* Below the card, so the card head stays level with its node. */}
            {fold ? (
              <button type="button" className="btn small quiet tf-fold" aria-expanded="true" onClick={() => onToggleRepeat(fold.key)}>

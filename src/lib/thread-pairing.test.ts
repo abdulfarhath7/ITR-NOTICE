@@ -90,4 +90,24 @@ describe("pairThread", () => {
     expect(rows).toHaveLength(1);
     expect((rows[0] as RepeatRow).members.map((m) => m.comm.id)).toEqual(["a", "b", "c"]);
   });
+
+  it("settles an adjourned notice once the reissue arrives; the reissue carries the due state", () => {
+    const [original, reissue] = pairs(proceeding({
+      communications: [
+        comm("a", { issued_on: "2026-05-05", response_due_date: "2026-05-20" }),
+        comm("b", { issued_on: "2026-06-12", response_due_date: "2026-06-26" }),
+      ],
+      adjournments: [adj("x", { filed_on: "2026-05-18", sought_date: "2026-06-10" })],
+    }));
+    expect(original).toMatchObject({ state: "idle", slot: false, ring: null });
+    expect(reissue).toMatchObject({ state: "danger", slot: true });
+  });
+
+  it("judges an adjourned notice by the sought date until the reissue arrives", () => {
+    const base = { communications: [comm("a", { issued_on: "2026-08-01", response_due_date: "2026-08-15" })] };
+    const [waiting] = pairs(proceeding({ ...base, adjournments: [adj("x", { filed_on: "2026-08-10", sought_date: "2026-09-20" })] }));
+    expect(waiting).toMatchObject({ state: "warning", slot: true });
+    const [lapsed] = pairs(proceeding({ ...base, adjournments: [adj("x", { filed_on: "2026-08-10", sought_date: "2026-09-05" })] }));
+    expect(lapsed).toMatchObject({ state: "danger", slot: true });
+  });
 });

@@ -173,6 +173,8 @@ Spec: `docs/thread-flow-context.md`. Ahead of Phase 13, which stays deferred.
 
 - [x] **14.1** Replace the flat proceeding thread with the two-lane flow: pairing in `src/lib/thread-pairing.ts` (six vitest cases), `ThreadFlow` in `src/ui/thread-flow.tsx`, `.thread-flow*` CSS in `base.css`, mini-map, repeat folding, adjournment branch and merge, countdown ring.
   - *Done when:* typecheck, tests and build pass; no horizontal scroll at 1100px with the harness mock; text-hidden screenshot reads by shape and colour. All met. Defaults in Q25–Q29.
+- [x] **14.2** (Q28) An adjourned notice whose reissue has arrived is muted with no slot; the reissue carries the due state. With no reissue yet, the sought date is the deadline: warning until it, danger after. The card keeps the portal's stated due date; the slot says "Adjourned to …". Two vitest cases.
+- [ ] **14.3** (Q29) Add `"lint": "eslint src --ext .ts,.tsx"` with a minimal ESLint config. Not urgent.
 
 ## Phase 13 — Offline litigation (deferred, do not start)
 

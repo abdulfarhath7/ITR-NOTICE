@@ -212,37 +212,37 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Options:** A) use `days` as a ratio, never print it. B) compute a second day count in the component. C) no ring.
 - **Default used:** A, as the spec directs. `ringRatio()` in `src/lib/thread-pairing.ts`; the ring never shows a number. No ring when `issued_on` or `response_due_date` is missing.
 - **Blast radius:** one function.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** Keep.
+- **Resolved:** yes
 
 ### Q26 — Gap label "· N days ·" versus "no day count in the thread"
 - **Context:** Spec §2 asks for a spine label "· N days ·" when two events are more than 14 days apart. Acceptance criterion 2 says no day count may appear except through `describeDue().text`.
 - **Options:** A) show the label as §2 specifies. B) drop the label. C) show a month label ("· Jun 2026 ·") instead.
 - **Default used:** A. The label is an interval between two past dates, not a countdown, so it cannot produce the negative-number bug the rule guards against. Its text comes from `describeGap()` in `src/lib/due.ts`, so all day wording still lives in one module.
 - **Blast radius:** one line in `thread-flow.tsx`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** Keep. Past-to-past interval, not a countdown.
+- **Resolved:** yes
 
 ### Q27 — A folded group of repeats shows one empty slot
 - **Context:** Spec §7 folds consecutive unanswered notices of one type into one card; §5 gives every unanswered draftable notice its own slot.
 - **Options:** A) one slot, for the latest notice in the group. B) one slot per member, stacked.
 - **Default used:** A. Reminders chase the same matter, so the reply goes to the latest. Opening the group shows every member with its own slot and Draft button.
 - **Blast radius:** `RepeatRowView` only.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** Keep.
+- **Resolved:** yes
 
 ### Q28 — A notice superseded by an adjournment and reissue still shows overdue
 - **Context:** Pairing (§5) only counts responses. A show-cause notice that was adjourned and then reissued keeps its own empty slot, which goes red once its original due date passes.
 - **Options:** A) as specified: overdue until a response is paired. B) treat a notice whose adjournment has merged into a reissue as settled (idle, no slot).
 - **Default used:** A. The spec is explicit and B would hide a portal date behind an inference.
 - **Blast radius:** `pairState` and the slot rule in `pairThread`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** Fix. If a notice has an adjournment with a merge target (reissue arrived), the original is muted and loses its slot; overdue is judged only on the reissue. With no merge target yet, the original is warning until the sought date and danger after. Applied in TASKS 14.2.
+- **Resolved:** yes
 
 ### Q29 — Spec names a `--muted` token and an `npm run lint` script; neither exists
 - **Context:** Spec §2 lists `--muted`; §12 requires `npm run lint`.
 - **Options:** A) use the existing `--text-muted` / `--border-strong`, skip lint. B) add the token and a linter.
 - **Default used:** A. The idle state uses `--border-strong`, text uses `--text-muted`. No linter was added (no new dependencies, §13); `npm run typecheck`, `npm test` and `vite build` pass.
 - **Blast radius:** none.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** Fine. Add `"lint": "eslint src --ext .ts,.tsx"` later (TASKS 14.3).
+- **Resolved:** yes
