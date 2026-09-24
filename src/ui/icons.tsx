@@ -6,7 +6,8 @@ import type { SVGProps } from "react";
 export type IconName =
   | "inbox" | "users" | "download" | "monitor" | "sliders" | "search" | "chevron-right" | "chevron-down"
   | "check" | "x" | "external" | "sun" | "moon" | "refresh" | "file" | "arrow-left" | "plus"
-  | "upload" | "command" | "alert" | "clock" | "shield" | "info" | "bell" | "database" | "sparkles";
+  | "upload" | "command" | "alert" | "clock" | "shield" | "info" | "bell" | "database" | "sparkles"
+  | "calendar" | "note" | "more" | "activity" | "chevron-left";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   inbox: <><path d="M3 12l2.5-7h13L21 12v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M3 12h5l1.5 3h5L16 12h5" /></>,
@@ -18,6 +19,11 @@ const PATHS: Record<IconName, React.ReactNode> = {
   search: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4-4" /></>,
   "chevron-right": <path d="M9 6l6 6-6 6" />,
   "chevron-down": <path d="M6 9l6 6 6-6" />,
+  "chevron-left": <path d="M15 6l-6 6 6 6" />,
+  calendar: <><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 10h17" /><path d="M8 3v4M16 3v4" /></>,
+  note: <><path d="M5 4h14v11l-5 5H5z" /><path d="M14 20v-5h5" /><path d="M8 9h8M8 12h5" /></>,
+  more: <><circle cx="6" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="18" cy="12" r="1" /></>,
+  activity: <path d="M3 12h4l3-7 4 14 3-7h4" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   x: <><path d="M6 6l12 12" /><path d="M18 6L6 18" /></>,
   external: <><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,

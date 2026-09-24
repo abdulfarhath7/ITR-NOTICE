@@ -59,3 +59,36 @@ export function plainDate(iso: string | null | undefined): string {
 export function describeGap(days: number): string {
   return `· ${days} ${days === 1 ? "day" : "days"} ·`;
 }
+
+export interface DueShort {
+  /** `26 Sep`, or `Not stated`. */
+  date: string;
+  /** `· 2 d`, `· today`, `· overdue 3 d`; empty for a settled item or no date. */
+  suffix: string;
+  tone: Tone;
+}
+
+/** The compact form for dense lists (docs/16 §1.7): the date and a short
+ *  relative suffix. Same rules and tones as `describeDue`, which it reads,
+ *  so the day wording still lives only in this module. */
+export function describeDueShort(
+  due: string | null | undefined,
+  status: Status | string | null | undefined,
+  today: Ymd = todayIst(),
+): DueShort {
+  const full = describeDue(due, status, today);
+  const date = parseDate(due);
+  if (!date) return { date: full.text, suffix: "", tone: full.tone };
+  const label = shortDate(date, today);
+  const days = full.days ?? 0;
+  if (full.tone === "muted") return { date: label, suffix: "", tone: "muted" };
+  if (days < 0) return { date: label, suffix: `· overdue ${-days} d`, tone: full.tone };
+  if (days === 0) return { date: label, suffix: "· today", tone: full.tone };
+  return { date: label, suffix: `· ${days} d`, tone: full.tone };
+}
+
+/** `22 Sep` for a stated date relative to today's year; null otherwise. */
+export function shortDateOf(iso: string | null | undefined, today: Ymd = todayIst()): string | null {
+  const d = parseDate(iso);
+  return d ? shortDate(d, today) : null;
+}
