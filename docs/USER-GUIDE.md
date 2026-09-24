@@ -11,9 +11,11 @@ pays anything.
 
 | Screen | What it is for |
 |---|---|
-| **Attention** | Everything that needs action, ranked: overdue first, then limitation dates within 30 days, then due within 7 days, then open items with no stated date, then everything else open. |
+| **Attention** | Everything that needs action, ranked: overdue first, then limitation dates within 30 days, then due within 7 days, then open items with no stated date, then everything else open. Tiles at the top (Overdue, Due in 48h, No due date, Drafts to review) and the Issued and Due windows narrow the list with one click. |
+| **Updates** | What the last sync found new or changed. |
+| **Calendar** | Due dates on a month grid. |
 | **Clients** | The client book: name, code, PAN, how each client is reached, open and overdue counts, last sweep. |
-| **Client** | One client: years down the left, the four modules across. |
+| **Client** | One client: counts at the top, then tabs for the profile, each module and notes. |
 | **Item** | One proceeding, demand, return or form: its details, its documents, and the notice-and-response thread. |
 | **Ingestion** | Start a sweep, answer the portal's OTP or captcha, watch progress, pause, resume. |
 | **Devices** | The firm's devices, who collects, how far this device is behind, bundles in and out. |
@@ -22,6 +24,51 @@ pays anything.
 Press **Ctrl K** (⌘K on a Mac) anywhere to jump to a screen, find a client
 by name, code or PAN, start a sweep or sync. In the Attention and Clients
 lists the arrow keys move and Enter opens.
+
+## The Attention screen
+
+The line under the title says when the portal was last read and how many
+runs failed; **Retry** takes you to the failed runs. The four tiles are the
+things to act on today. Click one to see only those items; click it again to
+see everything. The **Issued** and **Due** boxes split open items by how long
+ago the notice came and how soon it is due. Pick one to narrow the list; the
+numbers in the other boxes stay put so you can compare. Every filter you
+pick shows as a chip with an ×; **Clear all** resets. Your filters are
+remembered on this computer. **+ Save view** keeps the current filters under
+a name, such as "Rao – scrutiny".
+
+In the list, click the initials (or **Assign**) to give an item an owner.
+Hover a row for **View**, **Draft**, **✦ Date** (ask for the due date in the
+notice) and **Assign**. A small note icon means someone left a note.
+
+## Updates
+
+After every sync, Updates lists what is new: new notices, changed due dates,
+responses filed on the portal, closed proceedings, changed demands, and
+clients the sync could not read (with **Retry**, or **Fix** when the password
+needs attention). **Mark all seen** clears the count in the sidebar on this
+computer; seen items stay under "Seen earlier".
+
+## Calendar
+
+Each day shows how many open items fall due. Red days are past and still
+open; amber is today and tomorrow. Switch to **Issued** to see when notices
+arrived. Use the arrow keys to move and `t` for today. Items with no due date
+are not on the calendar; the link at the top right lists them.
+
+## A client's page
+
+The top shows open notices, overdue items, the demand total, returns filed
+and the last sync. The **Sync** switch leaves a client out of the full sweeps
+(Sync now still works). Tabs hold the profile and password, each module,
+and a notes box for the whole firm.
+
+## Owners, notes and text size
+
+Any item can have an owner and a note; both sync to every device. In a
+draft, **Mark reviewed** tells the team it has been checked. **Settings ›
+General › Text size** makes everything larger or smaller; **Ctrl +**,
+**Ctrl −** and **Ctrl 0** do the same from anywhere.
 
 ## Getting started
 

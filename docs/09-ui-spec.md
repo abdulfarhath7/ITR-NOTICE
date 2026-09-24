@@ -61,17 +61,48 @@ count, last sync, status pill. Toolbar: Add, Import, Export, Sync.
 
 ## 3 — Client detail
 
-Years listed down the left. Selecting a year shows four module panes side by
-side for that year. This is the view a partner uses in a meeting.
+Client 360 (Build 2, `16-dashboard-v2.md` §7). Header: initials avatar,
+name, `PAN · GSTIN · phone` as stored, a **Sync** switch (off keeps the client
+out of whole-book and scheduled sweeps) and **Sync now**. Five tiles: Open
+notices · Overdue · Demands total (₹) · Returns filed (years with a filed
+return / years) · Last synced. Tabs: Profile · Returns · Forms · Demands ·
+e-Proceedings (default) · Notes. A module tab shows that module's list with
+the years down the left ("All years" first). Profile is the read view with
+Edit and the portal-credentials card; Notes is one synced free-text note.
+Export offers the rows on the current tab, or the whole client.
 
 ## 4 — Work item detail
 
 Left: metadata including both statute references, rendered as
 `Sec 268 (old 148)`. Right: documents list. Below: the communication and
-response thread in date order.
+response thread (the two-lane flow, Q40), then **Notes** — one textarea,
+saved on blur. The page head shows the **owner** (avatar, name, Change).
+The draft drawer has **Mark reviewed**; a regenerated draft is unreviewed
+again. Owner and notes apply to all four modules.
 
 Any field in `gap_flags` renders as `not stated` in muted type with a small
 "unverified" marker. Never an empty cell.
+
+## 8 — Updates
+
+What changed since the previous sync, grouped: New notices · Due date
+changed (`old → new`, old struck through) · Response filed on portal ·
+Proceeding closed · Demand changed · Sync failed (always last, danger
+border, reason masked, Retry or Fix). Group cards with count pills; empty
+groups are not drawn. Head line "Compared with sync on <date time>" and
+**Mark all seen**, which sets this device's watermark; older rows fold under
+"Seen earlier". Export writes one sheet per group. The sidebar shows the
+unread count. Detail in `16-dashboard-v2.md` §4.
+
+## 9 — Calendar
+
+A month grid (Monday first, IST) of open items on their effective due date,
+or their issued date with the Due/Issued toggle. Count pills per day: danger
+for a past day still holding open items, warning for today and tomorrow.
+‹ Today ›, arrow keys move the day, `t` jumps to today, Enter focuses the
+day's list. Client and module come from the Attention filters and show as
+chips. Items with no due date never appear on a day; "n without a due date
+→" opens Attention on the No due date tile. Detail in §5 of `16`.
 
 ## 5 — Ingestion monitor
 

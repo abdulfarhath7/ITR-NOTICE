@@ -458,3 +458,73 @@ drawing (positions computed in JS) stay in `px`. The value is cached in
 `localStorage` (`lcc.ui_scale`) so boot applies it before first paint; the
 source of truth is `settings.json`.
 Reversible: easily.
+
+## D-041 — The sync line's window is the sweep holding the newest run
+Date: 2026-09-24
+Context: docs/16 §1.1 counts clients and failures "in that run window";
+runs are per client and panel, each with its own `run_at`.
+Decision: the window runs from the start of the newest sweep that began
+at or before the newest run, to that run. A run with no sweep row is its
+own window.
+Reversible: easily (`repo/runs.rs::sync_line`).
+
+## D-042 — Updates diff each entity once, against its state before `since`
+Date: 2026-09-24
+Context: docs/16 §4.2 compares an entry with "the previous entry for the
+same entity"; an item written twice in one sweep would appear twice.
+Decision: per entity, the newest upsert after `since` is compared with the
+newest at or before `since`. `since` is the previous completed sweep's
+end. Only this device's ledger stream is read (Q39).
+Reversible: easily.
+
+## D-043 — Draft and ✦ Date from a list act on the newest open notice
+Date: 2026-09-24
+Context: Attention rows are proceedings; the detail screen's Draft and
+✦ Date act on one communication.
+Decision: from a list row they act on the proceeding's newest open inbound
+communication. ✦ Date is enabled only when the item has no effective due
+date, as the flow exists to find a missing one.
+Reversible: easily.
+
+## D-044 — A client's Sync switch leaves Sync now working
+Date: 2026-09-24
+Context: docs/16 §7 adds a per-client sync enable.
+Decision: `sync_enabled = 0` removes the client from whole-book and module
+sweeps (and so the scheduler); a client-scoped run started by a person
+still runs, since that is an explicit request.
+Reversible: easily (`queue::create_sweep`).
+
+## D-045 — Build 2 extensions keep existing work in place
+Date: 2026-09-24
+Context: several Build 2 tasks describe replacing something already built:
+the two-lane thread flow (19.1), the client edit dialog (20.4), the
+rank-count row (15.2).
+Decision: the thread flow stays (Q40); Edit opens the existing client form
+dialog rather than a new in-place form; the rank row is removed from the
+UI only, and the ranks still order the list and label its group headers.
+Reversible: yes.
+
+## D-046 — Export widths are computed, capped at 60, and Owner/Note trail
+Date: 2026-09-24
+Context: docs/16 §8.
+Decision: `autofit` is replaced by widths from the longest cell per column
+(header included) capped at 60 characters. Owner and Note are columns 17
+and 18 of the Proceedings sheet; the 16 are untouched (Q01). A fourth
+provenance line names the active filters; it uses row 4, which was blank,
+so the column headers stay on row 5.
+Reversible: easily.
+
+## D-047 — Search is neither persisted nor a chip
+Date: 2026-09-24
+Context: docs/16 §1.3 forbids persisting search text; §1.4 lists the chip
+kinds without search.
+Decision: search lives in component state, is cleared by Clear all and by
+Escape, and is written into an export's filter line when active.
+Reversible: easily.
+
+## D-048 — Calendar tones apply to the Due view only
+Date: 2026-09-24
+Context: docs/16 §5 tones a day danger when it is past and holds open
+items. In the Issued view every counted day is in the past.
+Decision: the Issued view shows neutral pills.
+Reversible: easily.

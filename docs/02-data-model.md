@@ -45,6 +45,8 @@ ingestion_runs  → audit of every sweep
 | source | TEXT | `portal` or `eri` — per client, not global |
 | client_file_no | TEXT NULL | user-entered (Q02) |
 | tags | TEXT NULL | comma separated |
+| sync_enabled | INTEGER | 1 default; 0 skips the client in whole-book and scheduled sweeps (0019) |
+| note | TEXT NULL | firm-authored free text, synced (0020) |
 | created_at, updated_at | TEXT | |
 
 No password column. Ever. See `07-security.md`.
@@ -178,6 +180,23 @@ are evidence; skipping is not.
 
 ### ledger
 See `03-sync-and-ledger.md`.
+
+### work_item_meta  (Build 2, migration 0017)
+| column | type | notes |
+|---|---|---|
+| id | TEXT PK | `module:item_id`, also the ledger entity id (D-038) |
+| module | TEXT | proceedings, demands, returns, forms |
+| item_id | TEXT | the item's id; unique with module |
+| assignee | TEXT NULL | display name, free text, no user table |
+| note | TEXT NULL | plain text |
+| updated_by | TEXT NULL | device id |
+| created_at, updated_at | TEXT | |
+
+Person-authored only; the scraper never writes it. Synced like any table.
+
+### drafts.reviewed_at  (migration 0018)
+Nullable timestamp set by "Mark reviewed"; cleared when the draft is
+generated again. Drives the Attention "Drafts to review" tile.
 
 ## Status state machine
 

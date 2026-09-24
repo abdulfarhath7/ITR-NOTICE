@@ -26,6 +26,9 @@ firm's existing format and must match exactly, in this order.
 | 15 | Response Submitted On | `responses.filed_on`, latest |
 | 16 | Client File # | `clients.client_file_no` (user-entered) |
 
+Build 2 appends **17 Owner** (`work_item_meta.assignee`) and **18 Note**
+(`work_item_meta.note`) after these 16; the 16 keep their positions.
+
 `Created Mode` was dropped from the sheet (Q01); `proceedings.created_mode` stays in the database as provenance.
 
 Columns 2, 14 and 16 never come from the portal. They are firm knowledge,
@@ -60,13 +63,21 @@ so Excel does not mangle leading zeros or apply scientific notation.
 
 ## Header block
 
-Rows 1 to 3 of every sheet, above the column headers:
+Rows 1 to 4 of every sheet, above the column headers:
 
 ```
 Litigation Command Center export · <scope> · generated <timestamp IST>
 Data as of: collector last run <timestamp>, this device cursor <summary>
 Unverified fields in this export: <count>
+Active filters: <the view's filters, or none>
 ```
+
+The column header row (row 5) is bold on a light fill, frozen, with an
+autofilter; column widths follow the longest cell, capped at 60. Files are
+named `LCC-<sheet>-<YYYY-MM-DD>-<HHMM>.xlsx` in IST. Every list with an
+Export button (Attention, a Client 360 module tab, Updates, the Calendar
+day) exports exactly what it shows. The Updates export has one sheet per
+group instead of the module sheets.
 
 A stale export must be self-evident on its face (Q15). Someone will email this
 workbook to a partner; it has to carry its own provenance.

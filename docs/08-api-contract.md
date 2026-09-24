@@ -33,7 +33,15 @@ get_return(id) -> ReturnDetail
 get_filed_form(id) -> FiledFormDetail
 set_manual_due_date(proceeding_id, date | null)
 set_client_file_no(client_id, value)
+get_work_item_meta(module, id) -> WorkItemMeta | null     // Build 2
+set_work_item_meta(module, id, assignee?, note?) -> WorkItemMeta   // "" clears
+list_assignees() -> string[]
+set_client_sync_enabled(client_id, enabled)
+set_client_note(client_id, note)
 ```
+`WorkItemRow` also carries `issued_on`, `assignee`, `has_note`,
+`drafts_to_review` and, for demands, `amount`. `ClientDetail` carries
+`last_sync_at`, `sync_enabled`, `note`.
 
 ### Documents
 ```
@@ -49,6 +57,8 @@ pause_ingestion_run() / resume_ingestion_run()
 get_ingestion_state() -> { current_client, queue_pos, panel, awaiting_operator }
 submit_login_challenge(run_id, kind, value)  // captcha text or OTP
 refresh_client(client_id) -> run_id          // single client, any device
+get_sync_line() -> { last_run_at, window_start, clients, failed }
+list_updates(since?) -> { since, entries: UpdateEntry[] }   // read-only diff of the ledger
 ```
 `submit_login_challenge` never logs `value`.
 
@@ -67,6 +77,8 @@ import_bundle(path, passphrase) -> ImportSummary
 ### Export and AI
 ```
 export_excel(scope, path) -> ()
+export_updates(since?, path) -> count          // one sheet per Updates group
+set_draft_reviewed(notice_id, reviewed) -> ()
 create_draft(notice_id) -> Draft              // cached; never called twice
 suggest_due_date(notice_id) -> Suggestion     // writes suggested_due_date only
 promote_suggested_due_date(proceeding_id) -> ()   // explicit human action
