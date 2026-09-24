@@ -22,8 +22,8 @@
   --radius-card: 10px;
   --radius-pill: 999px;
 
-  --row-h: 40px;
-  --control-h: 32px;
+  --row-h: 2.5rem;
+  --control-h: 2rem;
 
   --ease: 150ms ease-out;
   --ease-overlay: 200ms ease-out;
