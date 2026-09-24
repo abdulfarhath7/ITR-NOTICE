@@ -717,3 +717,8 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
   failed" group (runs are not synced). Entries applied before this build
   were not recorded, so a non-collector's Updates starts filling from its
   next sync.
+
+### Phase 23 — blocked (request 3)
+
+- TODO(blocked): `docs/17-scrape-scopes.md` does not exist in the tree.
+  Phase 23 is a placeholder in `TASKS.md`; work continued with request 4.

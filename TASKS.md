@@ -277,3 +277,9 @@ Q30–Q37 and Q40 confirmed the defaults as built. Two answers differ:
 
 - [x] **22.1** (Q38) `list_work_items` returns `note_preview` (first 120 characters of `work_item_meta.note`) beside `has_note`; the Attention note icon's tooltip shows it. Files: `src-tauri/src/repo/work_items.rs`, `src/lib/types.ts`, `src/screens/attention.tsx`.
 - [x] **22.2** (Q39) Migration `ledger_received`: every foreign ledger entry `ledger::apply` writes is also recorded there. `repo/updates.rs` diffs `ledger` and `ledger_received` together, and when this device has no local sweep rows (it is not the collector) takes `since` from the received sweep-source entries. Files: `migrations/0021_ledger_received.sql`, `src-tauri/src/migrate.rs`, `src-tauri/src/ledger.rs`, `src-tauri/src/repo/updates.rs`, `docs/02-data-model.md`, `docs/03-sync-and-ledger.md`.
+
+## Phase 23 — Scrape scopes (waiting for its spec)
+
+Spec: `docs/17-scrape-scopes.md`, to be supplied by the user. The file is
+not in the repository as of 2026-09-24, so no tasks are written yet.
+Add them from the spec when it lands, then work them top to bottom.
