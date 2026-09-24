@@ -133,7 +133,7 @@ fn header_block(ws: &mut Worksheet, styles: &Styles, provenance: &Provenance, sc
     ws.write_string_with_format(0, 0, &line1, &styles.title).map_err(|e| AppError::state(e.to_string()))?;
     ws.write_string_with_format(1, 0, &line2, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
     ws.write_string_with_format(2, 0, &line3, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
-    ws.write_string_with_format(3, 0, &format!("Active filters: {filters}"), &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
+    ws.write_string_with_format(3, 0, format!("Active filters: {filters}"), &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
     Ok(())
 }
 

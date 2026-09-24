@@ -269,7 +269,7 @@ next milestone with a broken tree.
 - [x] **21.2** Every list screen's Export exports the filtered, visible set (Attention, module-items, Updates, Calendar day list).
 - [x] **21.3** Update `docs/09-ui-spec.md` (screens 1, 3, 4, and new 8, 9), `docs/08-api-contract.md` (new commands), `docs/02-data-model.md` (new tables and columns), `docs/11-exports.md` (new columns, filename). Update `docs/USER-GUIDE.md` with one short section per new screen.
 - [x] **21.4** `DECISIONS.md`: one entry per non-obvious choice made in Phases 14–21, each linked to its Qnn where one was filed.
-- [ ] **21.5** Final `NOTES.md` entry: what was built, what was skipped with a `TODO(blocked)`, and a one-paragraph "how to test this build" pointer list for the user. Run `./scripts/check.sh`; it must exit 0. Commit.
+- [x] **21.5** Final `NOTES.md` entry: what was built, what was skipped with a `TODO(blocked)`, and a one-paragraph "how to test this build" pointer list for the user. Run `./scripts/check.sh`; it must exit 0. Commit.
 
 ## Phase 22 — Apply the answered questions (do not start until answers exist)
 

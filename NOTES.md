@@ -623,3 +623,51 @@ positions are computed in JS). Media-query breakpoints stay px.
   `ClientForm` (a dialog, not an in-place swap: the form is only built as
   a dialog). Credentials card sits on Profile; `#/clients/<id>/credentials`
   opens Profile scrolled to it.
+
+### Milestone 8 — Export polish, docs, close of Build 2 (2026-09-24)
+
+- 21.1–21.2 Export: `LCC-<sheet>-<YYYY-MM-DD>-<HHMM>.xlsx` (IST), bold
+  filled frozen header with autofilter, widths from the longest cell capped
+  at 60, Owner and Note after the 16, "Active filters" provenance line.
+  Attention, Client 360 module tabs, Updates and the Calendar day export
+  what they show.
+- 21.3–21.4 Docs 02, 08, 09, 11 and the user guide updated; D-041 to D-048.
+- Errors hit in 21.5: clippy `needless_borrows_for_generic_args` on the
+  new provenance line and `type_complexity` in `repo/updates.rs`; fixed
+  (owned `format!`, a `ProceedingBits` alias). `./scripts/check.sh` then
+  exits 0. The desktop app builds and ran 20 s against a scratch data dir.
+
+#### What was built (Phases 14–21)
+
+Attention v2 (sync line, needs-action strip, owner and search, chips,
+Issued/Due lanes, saved views, list card with owners, notes and hover
+actions), text size (settings stepper and Ctrl +/−/0, whole app in rem),
+Updates (diff since the last sync, seen watermark, export, badge), Calendar,
+owner/notes/Mark reviewed on every work item, Client 360 (sync switch,
+tiles, tabs, client note), and export polish. Migrations 0017–0020.
+
+#### Skipped or changed, with the question to answer
+
+- No `TODO(blocked)` in this build.
+- Detail thread kept as the two-lane flow (Q40); list note tooltip does not
+  quote the note (Q38); Updates reads only this device's ledger (Q39);
+  saved views built despite §9 (Q36); phase numbering (Q35); `--radius`
+  (Q37). Q30–Q34 were built on their defaults.
+
+#### How to test this build
+
+Run `npm run tauri dev`, then: **Attention** — check the sync line, click
+each strip tile and each Issued/Due bucket (counts elsewhere should not
+move), add filters and watch the chips, save and rename a view, restart
+the app and confirm the filters came back, hover a row (height must not
+change) and try View, Draft, ✦ Date, Assign. **Settings › General** — step
+the text size, try Ctrl + / − / 0, open ⌘K and a dialog at 125%.
+**Updates** — after a sweep, check each group, Mark all seen, the sidebar
+badge, Retry/Fix, Export. **Calendar** — arrows, `t`, Enter, Due/Issued,
+the "without a due date" link, a client chip set on Attention. **Item** —
+owner Change, notes (save on blur), Mark reviewed in a draft and the
+Drafts to review tile. **Client** — Sync switch then a whole-book sweep
+(the client is skipped), Sync now, the tiles, each tab, Profile → Edit,
+Notes. **Export** — any list; check the file name, header row, widths,
+Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
+`QUESTIONS.md`.

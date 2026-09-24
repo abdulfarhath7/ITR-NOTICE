@@ -96,8 +96,11 @@ fn context_for_year(con: &Connection, year_context_id: &str) -> AppResult<Option
                          assessment_year: r.get(3)? })).optional()?)
 }
 
+/// (year_context_id, section_2025, section_1961)
+type ProceedingBits = (String, Option<String>, Option<String>);
+
 /// The proceeding's year context and sections, from the live row.
-fn proceeding_bits(con: &Connection, id: &str) -> AppResult<Option<(String, Option<String>, Option<String>)>> {
+fn proceeding_bits(con: &Connection, id: &str) -> AppResult<Option<ProceedingBits>> {
     Ok(con.query_row("SELECT year_context_id, section_2025, section_1961 FROM proceedings WHERE id = ?1", [id],
                      |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?)
 }
