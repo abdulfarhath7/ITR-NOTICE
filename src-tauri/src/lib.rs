@@ -103,7 +103,7 @@ pub fn run() {
             commands::sync::remove_device, commands::sync::transfer_admin, commands::sync::get_sync_state,
             commands::sync::sync_now, commands::sync::leave_firm,
             commands::sync::set_alert_email, commands::sync::get_alert_email,
-            commands::export::export_excel, commands::export::export_preview,
+            commands::export::export_excel, commands::export::export_preview, commands::export::export_updates,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,
@@ -111,7 +111,7 @@ pub fn run() {
             commands::ingestion::resume_ingestion_run, commands::ingestion::stop_ingestion_run,
             commands::ingestion::get_ingestion_state, commands::ingestion::submit_login_challenge,
             commands::ingestion::set_ingestion_pace, commands::ingestion::list_ingestion_jobs,
-            commands::ingestion::list_ingestion_runs, commands::ingestion::get_sync_line,
+            commands::ingestion::list_ingestion_runs, commands::ingestion::get_sync_line, commands::ingestion::list_updates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the desktop app");

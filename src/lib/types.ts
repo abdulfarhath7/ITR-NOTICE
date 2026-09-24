@@ -430,6 +430,32 @@ export interface IngestionJob {
   finished_at: string | null;
 }
 
+export type UpdateGroup = "new_notice" | "due_changed" | "response_filed" | "closed" | "demand_changed" | "sync_failed";
+
+/** One change since the previous sync (docs/16 §4). */
+export interface UpdateEntry {
+  group: UpdateGroup;
+  at: string;
+  client_id: string | null;
+  client_name: string | null;
+  pan_masked: string | null;
+  assessment_year: string | null;
+  module: Module | null;
+  item_id: string | null;
+  reference: string | null;
+  section: string | null;
+  section_1961: string | null;
+  due_date: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  filed_on: string | null;
+  reason: string | null;
+  status: string | null;
+  run_status: string | null;
+}
+
+export interface UpdatesReport { since: string | null; entries: UpdateEntry[] }
+
 /** The Attention screen's sync line (docs/16 §1.1). */
 export interface SyncLine {
   last_run_at: string | null;

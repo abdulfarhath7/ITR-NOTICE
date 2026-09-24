@@ -30,3 +30,11 @@ pub fn export_preview(state: State<AppState>, scope: ExportScope) -> AppResult<V
     }
     Ok(out)
 }
+
+/// Export the Updates screen: one sheet per group (task 17.4).
+#[tauri::command]
+pub fn export_updates(state: State<AppState>, since: Option<String>, path: String) -> AppResult<usize> {
+    let con = lock_db(&state)?;
+    let report = crate::repo::updates::list(&con, since)?;
+    export::export_updates(&con, &report, &path)
+}

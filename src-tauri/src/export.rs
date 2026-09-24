@@ -422,3 +422,41 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+
+/// The Updates screen's export (docs/16 §4, task 17.4): one sheet per
+/// non-empty group, in the screen's order.
+pub fn export_updates(con: &Connection, report: &crate::repo::updates::UpdatesReport, path: &str) -> AppResult<usize> {
+    const GROUPS: [(&str, &str); 6] = [
+        ("new_notice", "New notices"), ("due_changed", "Due date changed"), ("response_filed", "Response filed"),
+        ("closed", "Proceeding closed"), ("demand_changed", "Demand changed"), ("sync_failed", "Sync failed"),
+    ];
+    const COLUMNS: [&str; 11] = ["S.No", "When", "Client", "PAN", "AY", "Section", "Due Date", "Old", "New", "Reference / Filed On", "Reason"];
+    let styles = Styles::new();
+    let prov = provenance(con)?;
+    let since = report.since.as_deref().map(ist_of).unwrap_or_else(|| "nothing (no sync yet)".into());
+    let mut wb = Workbook::new();
+    let mut written = 0;
+    for (key, name) in GROUPS {
+        let entries: Vec<_> = report.entries.iter().filter(|e| e.group == key).collect();
+        if entries.is_empty() { continue; }
+        let ws = wb.add_worksheet();
+        ws.set_name(name).map_err(|e| AppError::state(e.to_string()))?;
+        header_block(ws, &styles, &prov, &format!("updates since {since} · {name}"), 0)?;
+        let rows: Vec<Vec<Cell>> = entries.iter().enumerate().map(|(i, e)| vec![
+            Cell::Int(i as i64 + 1), text(Some(&ist_of(&e.at))), text(e.client_name.as_deref()), text(e.pan_masked.as_deref()),
+            text(e.assessment_year.as_deref()), text(e.section.as_deref()), date(e.due_date.as_deref()),
+            text(e.old_value.as_deref()), text(e.new_value.as_deref()),
+            text(e.reference.as_deref().or(e.filed_on.as_deref())), text(e.reason.as_deref()),
+        ]).collect();
+        written += rows.len();
+        finish_sheet(ws, &COLUMNS, &styles, &rows)?;
+    }
+    if written == 0 {
+        let ws = wb.add_worksheet();
+        ws.set_name("Updates").map_err(|e| AppError::state(e.to_string()))?;
+        header_block(ws, &styles, &prov, &format!("updates since {since}"), 0)?;
+        finish_sheet(ws, &COLUMNS, &styles, &[])?;
+    }
+    wb.save(path).map_err(|e| AppError::Io { message: e.to_string() })?;
+    Ok(written)
+}

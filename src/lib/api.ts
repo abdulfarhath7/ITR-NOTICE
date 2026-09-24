@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
-  RelayConfig, Roster, SyncLine, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
+  RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
 } from "./types";
@@ -67,6 +67,8 @@ export const api = {
   ingestionJobs: (sweepId?: string) => invoke<IngestionJob[]>("list_ingestion_jobs", { sweepId: sweepId ?? null }),
   ingestionRuns: (limit?: number) => invoke<IngestionRun[]>("list_ingestion_runs", { limit: limit ?? null }),
   syncLine: () => invoke<SyncLine>("get_sync_line"),
+  updates: (since?: string) => invoke<UpdatesReport>("list_updates", { since: since ?? null }),
+  exportUpdates: (path: string, since?: string) => invoke<number>("export_updates", { since: since ?? null, path }),
 
   deviceInfo: () => invoke<DeviceInfo>("get_device_info"),
   exportBundle: (path: string, passphrase: string, includeCredentials: boolean, includeDocuments = true) =>

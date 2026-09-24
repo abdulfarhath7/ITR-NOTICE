@@ -273,3 +273,10 @@ pub fn get_sync_line(state: State<AppState>) -> AppResult<runs::SyncLine> {
     let con = lock_db(&state)?;
     runs::sync_line(&con)
 }
+
+/// The Updates screen (docs/16 §4): what changed since the previous run.
+#[tauri::command]
+pub fn list_updates(state: State<AppState>, since: Option<String>) -> AppResult<crate::repo::updates::UpdatesReport> {
+    let con = lock_db(&state)?;
+    crate::repo::updates::list(&con, since)
+}

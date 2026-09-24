@@ -1,0 +1,188 @@
+/** Screen 8 — Updates (docs/16 §4): what changed since the previous sync,
+ *  grouped. Rows newer than this device's "seen" watermark are shown open;
+ *  older ones fold under "Seen earlier". No filters in this build. */
+import { save } from "@tauri-apps/plugin-dialog";
+import { useMemo, useState } from "react";
+import { useDraft } from "../hooks/use-draft";
+import { useSeenUntil, useUpdates } from "../hooks/use-updates";
+import { api, describeError } from "../lib/api";
+import { shortDateOf } from "../lib/due";
+import { plural } from "../lib/labels";
+import { invalidate } from "../lib/query";
+import { href, navigate } from "../lib/router";
+import { sectionTone } from "../lib/section-tone";
+import { toast, toastError } from "../lib/toast";
+import type { UpdateEntry, UpdateGroup } from "../lib/types";
+import { stamp } from "../ui/dates";
+import DraftDrawer from "../ui/draft-drawer";
+import EmptyState from "../ui/empty-state";
+import Icon, { type IconName } from "../ui/icons";
+import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
+
+const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
+  { key: "new_notice", label: "New notices", icon: "inbox" },
+  { key: "due_changed", label: "Due date changed", icon: "clock" },
+  { key: "response_filed", label: "Response filed on portal", icon: "check" },
+  { key: "closed", label: "Proceeding closed", icon: "shield" },
+  { key: "demand_changed", label: "Demand changed", icon: "activity" },
+  { key: "sync_failed", label: "Sync failed", icon: "alert" },
+];
+
+function SectionPill({ e }: { e: UpdateEntry }) {
+  if (!e.section) return null;
+  const tone = sectionTone({ section: e.section, section_1961: e.section_1961, section_2025: null, type_label: "" });
+  return <span className={`pill ${tone}`}>{e.section}</span>;
+}
+
+function Detail({ e }: { e: UpdateEntry }) {
+  const d = (iso: string | null) => shortDateOf(iso) ?? iso;
+  switch (e.group) {
+    case "new_notice":
+      return e.due_date ? <span className="num">Due {d(e.due_date)}</span>
+        : <span className="due warning">No due date<span className="unverified">unverified</span></span>;
+    case "due_changed":
+      return <span className="num"><s className="muted">{d(e.old_value) ?? "Not stated"}</s> → {d(e.new_value) ?? "Not stated"}</span>;
+    case "response_filed":
+      return <span className="num">Filed {d(e.filed_on) ?? "(date not stated)"}{e.reference ? <span className="mono muted"> · {e.reference}</span> : null}</span>;
+    case "closed":
+      return <span className="num">{e.filed_on ? `Closed ${d(e.filed_on)}` : "Closed"}</span>;
+    case "demand_changed":
+      return <span className="num"><s className="muted">{e.old_value ?? "—"}</s> → {e.new_value ?? "—"}</span>;
+    case "sync_failed":
+      return <span className="wrap">{e.reason ?? (e.run_status === "credentials_parked" ? "Credentials need attention" : "The run failed")}</span>;
+  }
+}
+
+function Actions({ e, onDraft, onDate }: { e: UpdateEntry; onDraft: () => void; onDate: () => void }) {
+  const view = e.module && e.item_id ? href({ name: "item", module: e.module, id: e.item_id }) : null;
+  const retry = async () => {
+    if (!e.client_id) return;
+    try { await api.refreshClient(e.client_id); toast("Queued a sweep for this client."); invalidate("work_items"); }
+    catch (err) { toastError(describeError(err)); }
+  };
+  switch (e.group) {
+    case "new_notice":
+      return <span className="actions">
+        {view ? <a className="btn small" href={view}>View</a> : null}
+        {e.reference ? (e.due_date
+          ? <button className="btn small" onClick={onDraft}>Draft</button>
+          : <button className="btn small" onClick={onDate}>✦ Date</button>) : null}
+      </span>;
+    case "response_filed":
+      return view ? <a className="btn small" href={view}>Open</a> : null;
+    case "sync_failed":
+      return e.client_id ? (e.run_status === "credentials_parked"
+        ? <button className="btn small" onClick={() => navigate({ name: "client", id: e.client_id!, tab: "credentials" })}>Fix</button>
+        : <button className="btn small" onClick={() => { void retry(); }}>Retry</button>) : null;
+    default:
+      return view ? <a className="btn small" href={view}>View</a> : null;
+  }
+}
+
+function GroupCard({ group, entries, onDraft, onDate }: {
+  group: (typeof GROUPS)[number]; entries: UpdateEntry[];
+  onDraft: (e: UpdateEntry) => void; onDate: (e: UpdateEntry) => void;
+}) {
+  return (
+    <section className={`card upd-card${group.key === "sync_failed" ? " danger" : ""}`}>
+      <div className="card-head">
+        <Icon name={group.icon} />
+        <h2>{group.label}</h2>
+        <span className={`pill ${group.key === "sync_failed" ? "danger" : ""}`}>{entries.length}</span>
+      </div>
+      <div className="upd-rows">
+        {entries.map((e, i) => (
+          <div key={`${e.group}:${e.item_id ?? e.client_id}:${e.at}:${i}`} className="upd-row">
+            <div className="upd-client">
+              <span>{e.client_name ?? <span className="muted">Client not in the book</span>}</span>
+              <span className="sub mono">{[e.pan_masked, e.assessment_year ? `AY ${e.assessment_year}` : null].filter(Boolean).join(" · ")}</span>
+            </div>
+            <div><SectionPill e={e} /></div>
+            <div><Detail e={e} /></div>
+            <div className="upd-actions"><Actions e={e} onDraft={() => onDraft(e)} onDate={() => onDate(e)} /></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Groups({ entries, onDraft, onDate }: { entries: UpdateEntry[]; onDraft: (e: UpdateEntry) => void; onDate: (e: UpdateEntry) => void }) {
+  return (
+    <>
+      {GROUPS.map((g) => {
+        const rows = entries.filter((e) => e.group === g.key);
+        return rows.length ? <GroupCard key={g.key} group={g} entries={rows} onDraft={onDraft} onDate={onDate} /> : null;
+      })}
+    </>
+  );
+}
+
+export default function UpdatesScreen() {
+  const q = useUpdates();
+  const [seen, markSeen] = useSeenUntil();
+  const [showSeen, setShowSeen] = useState(false);
+  const draft = useDraft();
+  const entries = useMemo(() => q.data?.entries ?? [], [q.data]);
+  const fresh = entries.filter((e) => e.at > seen);
+  const old = entries.filter((e) => e.at <= seen);
+
+  if (q.error) return <ErrorPage message={q.error} />;
+  if (!q.data) return <LoadingPage />;
+
+  const markAll = () => {
+    const newest = entries.reduce((m, e) => (e.at > m ? e.at : m), new Date().toISOString());
+    markSeen(newest);
+    toast("All updates marked seen.");
+  };
+  const exportAll = async () => {
+    try {
+      const path = await save({ defaultPath: `LCC-Updates-${new Date().toISOString().slice(0, 10)}.xlsx`, filters: [{ name: "Excel", extensions: ["xlsx"] }] });
+      if (!path) return;
+      const n = await api.exportUpdates(path, q.data?.since ?? undefined);
+      toast(`Exported ${plural(n, "update")}.`);
+    } catch (e) { toastError(describeError(e)); }
+  };
+  const onDate = async (e: UpdateEntry) => {
+    if (!e.reference) return;
+    try {
+      const a = await api.suggestDueDate(e.reference);
+      toast(a.due_date ? `Suggested ${a.due_date}${a.basis ? `: ${a.basis}` : ""}` : (a.basis ?? "No deadline was found in this notice."));
+      invalidate("work_items");
+    } catch (err) { toastError(describeError(err)); }
+  };
+
+  return (
+    <Page>
+      <PageHead title="Updates" meta={q.data.since ? `Compared with sync on ${stamp(q.data.since)}` : "Nothing synced yet"}>
+        {fresh.length ? <button className="btn quiet" onClick={markAll}>Mark all seen</button> : null}
+        <button className="btn" onClick={() => { void exportAll(); }} disabled={!entries.length}><Icon name="upload" /><span>Export</span></button>
+      </PageHead>
+      <PageBody>
+        {!entries.length ? (
+          <div className="card">
+            <EmptyState title={q.data.since ? "Nothing changed since the last sync." : "No sync has run yet."}
+                        body={q.data.since ? "New notices, date changes, filed responses, closures, demand changes and failed runs appear here after each sweep."
+                          : "Once a sweep has run, what it found new or changed shows here."}
+                        action={q.data.since ? undefined : <a className="btn" href={href({ name: "ingestion" })}>Go to ingestion</a>} />
+          </div>
+        ) : (
+          <>
+            {fresh.length ? <Groups entries={fresh} onDraft={(e) => { if (e.reference) void draft.open(e.reference); }} onDate={(e) => { void onDate(e); }} />
+              : <p className="muted">Everything here has been seen.</p>}
+            {old.length ? (
+              <div className="stack">
+                <button className="btn quiet upd-seen-toggle" onClick={() => setShowSeen((v) => !v)} aria-expanded={showSeen}>
+                  <Icon name={showSeen ? "chevron-down" : "chevron-right"} /><span>Seen earlier</span><span className="count">{old.length}</span>
+                </button>
+                {showSeen ? <Groups entries={old} onDraft={(e) => { if (e.reference) void draft.open(e.reference); }} onDate={(e) => { void onDate(e); }} /> : null}
+              </div>
+            ) : null}
+          </>
+        )}
+      </PageBody>
+      {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} sourceDocumentId={null} onClose={draft.close}
+                                  onSave={(t) => { void draft.saveText(t); }} /> : null}
+    </Page>
+  );
+}

@@ -18,4 +18,5 @@ pub mod queue;
 pub mod registry;
 pub mod rows;
 pub mod runs;
+pub mod updates;
 pub mod work_items;

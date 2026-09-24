@@ -8,6 +8,7 @@ import { useQuery } from "./lib/query";
 import { href, navigate, section, useRoute, type Route } from "./lib/router";
 import { useTheme } from "./lib/theme";
 import type { SetupState } from "./lib/types";
+import { useUnreadUpdates } from "./hooks/use-updates";
 import AttentionScreen from "./screens/attention";
 import ClientDetailScreen from "./screens/client-detail";
 import ClientsScreen from "./screens/clients";
@@ -15,6 +16,7 @@ import DevicesScreen from "./screens/devices";
 import IngestionScreen from "./screens/ingestion";
 import SettingsScreen from "./screens/settings";
 import SetupScreen from "./screens/setup";
+import UpdatesScreen from "./screens/updates";
 import WorkItemScreen from "./screens/work-item";
 import CommandPalette, { useCommandPalette } from "./ui/command-palette";
 import Icon, { type IconName } from "./ui/icons";
@@ -23,6 +25,7 @@ import Toasts from "./ui/toasts";
 
 const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "attention" }, label: "Attention", icon: "inbox" },
+  { route: { name: "updates" }, label: "Updates", icon: "bell" },
   { route: { name: "clients" }, label: "Clients", icon: "users" },
   { route: { name: "ingestion" }, label: "Ingestion", icon: "download" },
   { route: { name: "devices" }, label: "Devices", icon: "monitor" },
@@ -37,6 +40,11 @@ function AttentionBadge() {
   return overdue
     ? <span className="count danger" title={`${overdue} overdue of ${open} open`}>{overdue}</span>
     : <span className="count">{open}</span>;
+}
+
+function UpdatesBadge() {
+  const n = useUnreadUpdates();
+  return n ? <span className="count" title={`${n} new since you last marked them seen`}>{n}</span> : null;
 }
 
 function Brand() {
@@ -77,13 +85,14 @@ export default function App() {
   switch (route.name) {
     case "attention": screen = <AttentionScreen />; break;
     case "clients": screen = <ClientsScreen />; break;
-    case "client": screen = <ClientDetailScreen key={route.id} id={route.id} />; break;
+    case "client": screen = <ClientDetailScreen key={route.id} id={route.id} tab={route.tab} />; break;
     case "item": screen = <WorkItemScreen key={route.id} module={route.module} id={route.id} />; break;
     case "ingestion": screen = <IngestionScreen filter={route.filter} />; break;
     case "devices": screen = <DevicesScreen />; break;
     case "settings": screen = <SettingsScreen section={route.section} theme={theme} />; break;
     case "setup": screen = <SetupScreen />; break;
-    case "updates": case "calendar":
+    case "updates": screen = <UpdatesScreen />; break;
+    case "calendar":
       // Built in Phases 17 and 18; until then the route exists for links.
       screen = <div className="page"><div className="loading">Coming in this build.</div></div>; break;
   }
@@ -103,7 +112,7 @@ export default function App() {
             <a key={n.label} href={href(n.route)} aria-current={active === n.route.name ? "page" : undefined}>
               <Icon name={n.icon} />
               <span>{n.label}</span>
-              {n.route.name === "attention" ? <AttentionBadge /> : null}
+              {n.route.name === "attention" ? <AttentionBadge /> : n.route.name === "updates" ? <UpdatesBadge /> : null}
             </a>
           ))}
         </div>

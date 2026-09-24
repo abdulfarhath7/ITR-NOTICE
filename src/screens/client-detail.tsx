@@ -1,7 +1,7 @@
 /** Screen 3 — Client detail. Years down the side, modules across
  *  (task 3.6). Credentials live in the keychain; this screen only knows
  *  whether one exists (task 3.3). */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useClient } from "../hooks/use-clients";
 import { useWorkItems } from "../hooks/use-work-items";
 import { api, describeError } from "../lib/api";
@@ -83,7 +83,7 @@ function CredentialCard({ clientId, hasCredential, loginRef, ownLogin }: {
   };
 
   return (
-    <div className="card">
+    <div className="card" id="credentials">
       <div className="card-head">
         <h2>Portal access</h2>
         {hasCredential ? <span className="pill success">Password in keychain</span> : <span className="pill warning">No password stored</span>}
@@ -125,8 +125,12 @@ function Value({ v, mono = false, none = "Not set" }: { v: string | null | undef
   return v ? <span className={mono ? "mono" : undefined}>{v}</span> : <span className="muted">{none}</span>;
 }
 
-export default function ClientDetailScreen({ id }: { id: string }) {
+export default function ClientDetailScreen({ id, tab }: { id: string; tab?: string }) {
   const q = useClient(id);
+  // "Fix" on a parked sync lands here with the credentials card in view.
+  useEffect(() => {
+    if (tab === "credentials" && q.data) document.getElementById("credentials")?.scrollIntoView({ block: "center" });
+  }, [tab, q.data]);
   const items = useWorkItems({ client_ids: [id] });
   const [year, setYear] = useState<string | null | undefined>(undefined);   // undefined = not chosen yet
   const [editing, setEditing] = useState(false);

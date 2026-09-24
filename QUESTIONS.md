@@ -318,3 +318,11 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** one column in the four list queries, one field in `WorkItemRow`, the `title` attribute in `attention.tsx`.
 - **Answer:**
 - **Resolved:** no
+
+### Q39 — Updates only sees this device's ledger stream
+- **Context:** docs/16 §4.1 diffs "the ledger". Locally, `ledger` holds only entries this device wrote; changes replayed from the collector are applied to rows but not re-logged.
+- **Options:** A read the local ledger as is (complete on the collector) / B also record applied foreign entries in a local "received" table and diff that
+- **Default used:** A. No schema change; the collector is the device that sweeps and the one a CA watches for new notices.
+- **Blast radius:** B needs a migration, one insert in `ledger::apply`, and the query in `repo/updates.rs` reading both tables.
+- **Answer:**
+- **Resolved:** no

@@ -235,12 +235,12 @@ next milestone with a broken tree.
 
 ## Phase 17 — Updates screen (milestone 4)
 
-- [ ] **17.1** Rust command `list_updates(since: Option<String>) -> Vec<UpdateEntry>`: reads the ledger and `ingestion_runs`, computes `since` per §4.1 when not supplied, classifies per §4.2 by comparing each entry's payload with the previous entry for the same entity. Payloads are JSON; do the diff in Rust, return typed entries. PII in `reason` fields is masked with `mask.rs`.
+- [x] **17.1** Rust command `list_updates(since: Option<String>) -> Vec<UpdateEntry>`: reads the ledger and `ingestion_runs`, computes `since` per §4.1 when not supplied, classifies per §4.2 by comparing each entry's payload with the previous entry for the same entity. Payloads are JSON; do the diff in Rust, return typed entries. PII in `reason` fields is masked with `mask.rs`.
   - *Done when:* a fixture database with two runs returns one entry per §4.2 rule.
-- [ ] **17.2** Route `updates`, nav entry after Attention, screen per §4.3. Grouped cards, count pills, danger border on Sync failed, "Mark all seen" writing `lcc.updates.seen_until`, seen entries collapsed under "Seen earlier".
-- [ ] **17.3** Row actions: View / Draft / ✦ Date / Open / Retry / Fix, each reusing the existing navigation or command. `Fix` opens the client's credentials form.
-- [ ] **17.4** Export button on the screen: one sheet per group, via the export module (§8 rules apply once Phase 21 lands; until then use the current header style).
-- [ ] **17.5** Unread badge: the sidebar "Updates" label shows a small count of entries newer than the seen watermark. Recomputed on ingestion events (`onIngestion`) and on screen open. `NOTES.md` entry. Commit.
+- [x] **17.2** Route `updates`, nav entry after Attention, screen per §4.3. Grouped cards, count pills, danger border on Sync failed, "Mark all seen" writing `lcc.updates.seen_until`, seen entries collapsed under "Seen earlier".
+- [x] **17.3** Row actions: View / Draft / ✦ Date / Open / Retry / Fix, each reusing the existing navigation or command. `Fix` opens the client's credentials form.
+- [x] **17.4** Export button on the screen: one sheet per group, via the export module (§8 rules apply once Phase 21 lands; until then use the current header style).
+- [x] **17.5** Unread badge: the sidebar "Updates" label shows a small count of entries newer than the seen watermark. Recomputed on ingestion events (`onIngestion`) and on screen open. `NOTES.md` entry. Commit.
 
 ## Phase 18 — Calendar screen (milestone 5)
 

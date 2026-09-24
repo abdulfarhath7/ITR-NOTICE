@@ -542,3 +542,26 @@ positions are computed in JS). Media-query breakpoints stay px.
   window; no change was needed beyond the rem move in 14.4.
 - Error hit: after an HMR update the harness page threw "stepScale is not
   defined" from a stale module; a full reload cleared it. Not a code bug.
+
+### Milestone 4 — Updates screen (2026-09-24)
+
+- 17.1 `repo/updates.rs`, command `list_updates(since?)`. `since` defaults
+  to the previous completed sweep's end (one sweep: its start; runs with
+  no sweep row: the start of the newest run's day). Per entity the newest
+  ledger upsert after `since` is diffed against the newest at or before
+  it, so an item touched twice in a sweep is one update. Rule order per
+  §4.2; a proceeding whose due date changed and which closed in the same
+  window lands in "Due date changed" only. `mask::text` masks PAN-shaped
+  words and long digit runs in run notes. Rust test: two sweeps, one entry
+  per rule.
+- Limitation (Q39): the local `ledger` holds this device's own stream
+  only — entries replayed from other devices are applied, not re-logged —
+  so Updates is complete on the collector and near-empty elsewhere.
+- 17.2–17.3 `screens/updates.tsx`, nav entry after Attention. Actions:
+  View, Draft (notice with a due date) or ✦ Date (no due date), Open,
+  Retry (`refresh_client`), Fix (client detail at the credentials card,
+  route `#/clients/<id>/credentials`).
+- 17.4 `export_updates`: one sheet per non-empty group, current header
+  style.
+- 17.5 Sidebar badge counts entries newer than `lcc.updates.seen_until`;
+  the query sits under `work_items:` so ingestion events refresh it.

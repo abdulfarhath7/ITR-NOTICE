@@ -7,7 +7,7 @@ export type Route =
   | { name: "updates" }
   | { name: "calendar" }
   | { name: "clients" }
-  | { name: "client"; id: string }
+  | { name: "client"; id: string; tab?: string }
   | { name: "item"; module: string; id: string }
   | { name: "ingestion"; filter?: "failed" }
   | { name: "devices" }
@@ -20,7 +20,7 @@ export function href(route: Route): string {
     case "updates": return "#/updates";
     case "calendar": return "#/calendar";
     case "clients": return "#/clients";
-    case "client": return `#/clients/${encodeURIComponent(route.id)}`;
+    case "client": return `#/clients/${encodeURIComponent(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "item": return `#/items/${route.module}/${encodeURIComponent(route.id)}`;
     case "ingestion": return route.filter ? `#/ingestion/${route.filter}` : "#/ingestion";
     case "devices": return "#/devices";
@@ -33,7 +33,7 @@ export function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   switch (parts[0]) {
     case "clients":
-      return parts[1] ? { name: "client", id: parts[1] } : { name: "clients" };
+      return parts[1] ? { name: "client", id: parts[1], ...(parts[2] ? { tab: parts[2] } : {}) } : { name: "clients" };
     case "items":
       return parts[1] && parts[2] ? { name: "item", module: parts[1], id: parts[2] } : { name: "attention" };
     case "ingestion": return parts[1] === "failed" ? { name: "ingestion", filter: "failed" } : { name: "ingestion" };
