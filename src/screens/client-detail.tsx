@@ -6,7 +6,7 @@ import { useClient } from "../hooks/use-clients";
 import { useWorkItems } from "../hooks/use-work-items";
 import { api, describeError } from "../lib/api";
 import { describeDue } from "../lib/due";
-import { MODULES, MODULE_LABEL, plural } from "../lib/labels";
+import { MODULE_LABEL } from "../lib/labels";
 import { invalidate } from "../lib/query";
 import { navigate } from "../lib/router";
 import { isSettled, parseStatus } from "../lib/status";
@@ -19,6 +19,7 @@ import ExportDialog from "../ui/export-dialog";
 import Field from "../ui/field";
 import Icon from "../ui/icons";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
+import { Avatar } from "../ui/owner-select";
 import { StatusPill } from "../ui/pill";
 import ClientForm from "./client-form";
 
@@ -39,7 +40,7 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
                 <tr key={r.id} className="row-link" tabIndex={0}
                     onClick={() => navigate({ name: "item", module: r.module, id: r.id })}
                     onKeyDown={(e) => { if (e.key === "Enter") navigate({ name: "item", module: r.module, id: r.id }); }}>
-                  <td className="wrap">{r.title}<div className="sub">{r.type_label}{r.section ? ` · ${r.section}` : ""}</div></td>
+                  <td className="wrap">{r.title}<div className="sub">{r.type_label}{r.section ? ` · ${r.section}` : ""}{r.assessment_year ? ` · AY ${r.assessment_year}` : ""}</div></td>
                   <td className="right"><DueText due={due} /></td>
                   <td><StatusPill status={r.status} /></td>
                 </tr>
@@ -48,7 +49,7 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
           </tbody>
         </table>
       ) : (
-        <div className="card-body muted">Nothing recorded for this year.</div>
+        <div className="card-body muted">Nothing recorded here.</div>
       )}
     </div>
   );
@@ -125,44 +126,110 @@ function Value({ v, mono = false, none = "Not set" }: { v: string | null | undef
   return v ? <span className={mono ? "mono" : undefined}>{v}</span> : <span className="muted">{none}</span>;
 }
 
-export default function ClientDetailScreen({ id, tab }: { id: string; tab?: string }) {
+const TABS = [
+  { key: "profile", label: "Profile" },
+  { key: "returns", label: "Returns" },
+  { key: "forms", label: "Forms" },
+  { key: "demands", label: "Demands" },
+  { key: "proceedings", label: "e-Proceedings" },
+  { key: "notes", label: "Notes" },
+] as const;
+type TabKey = (typeof TABS)[number]["key"];
+
+function tabOf(route: string | undefined): TabKey {
+  if (route === "credentials") return "profile";
+  return (TABS.find((t) => t.key === route)?.key) ?? "proceedings";
+}
+
+/** ₹1,23,456 — whole rupees in the Indian grouping. */
+function rupees(n: number): string {
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+function Tile({ label, value, tone = "" }: { label: string; value: React.ReactNode; tone?: "" | "danger" }) {
+  return (
+    <div className={`c360-tile${tone ? ` ${tone}` : ""}`}>
+      <span className="label">{label}</span>
+      <span className="value">{value}</span>
+    </div>
+  );
+}
+
+function ClientNotes({ clientId, saved }: { clientId: string; saved: string }) {
+  const [text, setText] = useState(saved);
+  useEffect(() => setText(saved), [saved]);
+  const save = async () => {
+    if (text === saved) return;
+    try {
+      await api.setClientNote(clientId, text);
+      toast("Saved");
+      invalidate(`clients:${clientId}`);
+    } catch (e) { toastError(describeError(e)); }
+  };
+  return (
+    <div className="card">
+      <div className="card-head"><h2>Notes</h2><span className="meta">plain text · saves when you leave the box · synced to the firm</span></div>
+      <div className="card-body">
+        <textarea className="textarea notes" rows={8} value={text} aria-label="Client notes"
+                  placeholder="Engagement terms, contacts, what the client prefers…"
+                  onChange={(e) => setText(e.target.value)} onBlur={() => { void save(); }} />
+      </div>
+    </div>
+  );
+}
+
+/** Client detail — Client 360 (docs/16 §7): header with the sync switch,
+ *  five summary tiles, then tabs. The module tabs reuse the per-module
+ *  list, filtered to the chosen year. */
+export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; tab?: string }) {
   const q = useClient(id);
-  // "Fix" on a parked sync lands here with the credentials card in view.
-  useEffect(() => {
-    if (tab === "credentials" && q.data) document.getElementById("credentials")?.scrollIntoView({ block: "center" });
-  }, [tab, q.data]);
   const items = useWorkItems({ client_ids: [id] });
+  const [tab, setTab] = useState<TabKey>(() => tabOf(routeTab));
+  useEffect(() => setTab(tabOf(routeTab)), [routeTab]);
+  // "Fix" on a parked sync lands on Profile with the credentials card in view.
+  useEffect(() => {
+    if (routeTab === "credentials" && q.data) document.getElementById("credentials")?.scrollIntoView({ block: "center" });
+  }, [routeTab, q.data]);
   const [year, setYear] = useState<string | null | undefined>(undefined);   // undefined = not chosen yet
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fileNo, setFileNo] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
 
   const years = q.data?.years ?? [];
-  const selectedYear = year === undefined ? (years[0]?.id ?? null) : year;
+  const selectedYear = year === undefined ? null : year;   // null = every year
+  const all = useMemo(() => items.data ?? [], [items.data]);
   const openByYear = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of items.data ?? []) if (!isSettled(parseStatus(r.status))) m.set(r.year_context_id, (m.get(r.year_context_id) ?? 0) + 1);
+    const module = tab === "profile" || tab === "notes" ? null : tab;
+    for (const r of all) if ((!module || r.module === module) && !isSettled(parseStatus(r.status))) m.set(r.year_context_id, (m.get(r.year_context_id) ?? 0) + 1);
     return m;
-  }, [items.data]);
-  const byYear = useMemo(() => {
-    const rows = (items.data ?? []).filter((r) => r.year_context_id === selectedYear);
-    return Object.fromEntries(MODULES.map((m) => [m, rows.filter((r) => r.module === m)])) as Record<Module, WorkItemRow[]>;
-  }, [items.data, selectedYear]);
-  const totals = useMemo(() => {
-    const all = items.data ?? [];
-    const open = all.filter((r) => !isSettled(parseStatus(r.status)));
-    const overdue = open.filter((r) => { const d = describeDue(r.manual_due_date ?? r.due_date, r.status).days; return d !== null && d < 0; });
-    return { open: open.length, overdue: overdue.length };
-  }, [items.data]);
+  }, [all, tab]);
+  const tiles = useMemo(() => {
+    const openNotices = all.filter((r) => r.module === "proceedings" && !isSettled(parseStatus(r.status)));
+    const overdue = all.filter((r) => { const d = describeDue(r.manual_due_date ?? r.due_date, r.status).days; return !isSettled(parseStatus(r.status)) && d !== null && d < 0; });
+    const demands = all.filter((r) => r.module === "demands" && !isSettled(parseStatus(r.status)));
+    const demandTotal = demands.reduce((sum, r) => sum + (r.amount ?? 0), 0);
+    const demandsUnstated = demands.some((r) => r.amount === null);
+    const filedYears = new Set(all.filter((r) => r.module === "returns").map((r) => r.year_context_id)).size;
+    return { open: openNotices.length, overdue: overdue.length, demandTotal, demandsUnstated, demandCount: demands.length, filedYears };
+  }, [all]);
 
-  const refreshNow = async () => {
+  const syncNow = async () => {
     try {
       await api.refreshClient(id);
-      toast("Refresh queued. Watch it on the Ingestion screen.");
-      navigate({ name: "ingestion" });
+      toast("Sync queued for this client. Watch it on the Ingestion screen.");
     } catch (e) { toastError(describeError(e)); }
   };
-
+  const toggleSync = async (on: boolean) => {
+    setSyncBusy(true);
+    try {
+      await api.setClientSyncEnabled(id, on);
+      toast(on ? "Included in sweeps again." : "Left out of whole-book and scheduled sweeps. Sync now still works.");
+      invalidate(`clients:${id}`);
+    } catch (e) { toastError(describeError(e)); }
+    finally { setSyncBusy(false); }
+  };
   const saveFileNo = async () => {
     if (fileNo === null) return;
     try {
@@ -176,67 +243,103 @@ export default function ClientDetailScreen({ id, tab }: { id: string; tab?: stri
   if (q.error) return <ErrorPage message={q.error} />;
   if (!q.data) return <LoadingPage />;
   const c = q.data;
+  const syncOn = c.sync_enabled !== 0;
+  const pick = (t: TabKey) => { setTab(t); navigate({ name: "client", id, tab: t }); };
+  const moduleRows = (m: Module) => all.filter((r) => r.module === m && (selectedYear === null || r.year_context_id === selectedYear));
 
   return (
     <Page>
-      <PageHead title={c.name} back={{ route: { name: "clients" }, label: "Clients" }}
-                meta={<span className="row">
-                  <span className="mono">{c.pan_masked}</span>
-                  {totals.overdue ? <span className="pill danger">{plural(totals.overdue, "overdue item")}</span>
-                    : totals.open ? <span className="pill normal">{plural(totals.open, "open item")}</span>
-                    : items.data ? <span className="pill success">Clear</span> : null}
-                </span>}>
-        {c.source === "portal" ? <button className="btn" onClick={() => { void refreshNow(); }}><Icon name="refresh" /><span>Refresh from portal</span></button> : null}
+      <PageHead title={c.name} back={{ route: { name: "clients" }, label: "Clients" }}>
         <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export</span></button>
-        <button className="btn" onClick={() => setEditing(true)}>Edit</button>
       </PageHead>
       <PageBody>
-        <div className="grid-2">
-          <div className="card">
-            <div className="card-head"><h2>Client</h2><span className={`pill ${c.source === "eri" ? "accent" : ""}`}>{c.source === "eri" ? "ERI" : "portal"}</span></div>
-            <div className="card-body">
-              <dl className="kv">
-                <dt>Client code</dt><dd><Value v={c.client_code} mono /></dd>
-                <dt>Entity</dt><dd>{c.entity_type}</dd>
-                <dt>GSTIN</dt><dd><Value v={c.gstin} mono /></dd>
-                <dt>Group</dt><dd><Value v={c.client_group} none="None" /></dd>
-                <dt>Phone</dt><dd className="num"><Value v={c.phone ? `${c.phone_cc} ${c.phone}` : null} /></dd>
-                <dt>Email</dt><dd><Value v={c.email} /></dd>
-                <dt>Tags</dt><dd><Value v={c.tags} none="None" /></dd>
-                <dt>Client file no.</dt>
-                <dd>
-                  <div className="row">
-                    <input className="input short" value={fileNo ?? c.client_file_no ?? ""}
-                           onChange={(e) => setFileNo(e.target.value)} aria-label="Client file number" />
-                    {fileNo !== null && fileNo !== (c.client_file_no ?? "")
-                      ? <button className="btn small" onClick={() => { void saveFileNo(); }}>Save</button> : null}
-                  </div>
-                </dd>
-                <dt>Added</dt><dd className="num">{stamp(c.created_at)}</dd>
-              </dl>
-            </div>
+        <div className="c360-head">
+          <Avatar name={c.name} size={38} />
+          <div className="c360-id">
+            <span className="c360-name">{c.name}</span>
+            <span className="c360-line">{[<span key="p" className="mono">{c.pan_masked}</span>, c.gstin ? <span key="g" className="mono">{c.gstin}</span> : null,
+              c.phone ? <span key="ph" className="num">{`${c.phone_cc} ${c.phone}`}</span> : null].filter(Boolean).reduce<React.ReactNode[]>((acc, x, i) => (i ? [...acc, " · ", x] : [x]), [])}</span>
           </div>
-          <CredentialCard clientId={c.id} hasCredential={c.has_credential}
-                          loginRef={c.login_ref_effective} ownLogin={!c.portal_login_ref} />
+          <span className="grow" />
+          {c.source === "portal" ? (
+            <>
+              <label className="c360-sync" title="Off: whole-book and scheduled sweeps skip this client">
+                <span>Sync</span>
+                <span className="switch"><input type="checkbox" checked={syncOn} disabled={syncBusy} onChange={(e) => { void toggleSync(e.target.checked); }} aria-label="Include in sweeps" /><span className="track" /></span>
+              </label>
+              <button className="btn" onClick={() => { void syncNow(); }}><Icon name="refresh" /><span>Sync now</span></button>
+            </>
+          ) : <span className="pill accent">ERI</span>}
         </div>
 
-        <div className="split">
-          <div className="side-list" role="tablist" aria-label="Assessment years">
-            {years.length ? years.map((y) => {
-              const n = openByYear.get(y.id) ?? 0;
-              return (
-                <button key={y.id} role="tab" aria-selected={y.id === selectedYear} aria-current={y.id === selectedYear}
-                        onClick={() => setYear(y.id)}>
-                  <span>{y.assessment_year ? `AY ${y.assessment_year}` : "Year not stated"}</span>
-                  {n ? <span className="count">{n}</span> : null}
-                </button>
-              );
-            }) : <span className="meta">No years yet. A sweep creates them.</span>}
-          </div>
-          <div className="grid-2">
-            {MODULES.map((m) => <ModulePane key={m} module={m} rows={byYear[m] ?? []} />)}
-          </div>
+        <div className="c360-tiles">
+          <Tile label="Open notices" value={items.data ? tiles.open : "—"} />
+          <Tile label="Overdue" value={items.data ? tiles.overdue : "—"} tone={tiles.overdue ? "danger" : ""} />
+          <Tile label="Demands total" value={!items.data ? "—" : tiles.demandCount ? <>{rupees(tiles.demandTotal)}{tiles.demandsUnstated ? <span className="unverified" title="some demands state no amount">+ unstated</span> : null}</> : "None"} />
+          <Tile label="Returns filed" value={<span className="num">{tiles.filedYears} / {years.length}</span>} />
+          <Tile label="Last synced" value={<span className="c360-small">{c.last_sync_at ? stamp(c.last_sync_at) : "Never"}</span>} />
         </div>
+
+        <div className="tabs" role="tablist" aria-label="Client sections">
+          {TABS.map((t) => <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => pick(t.key)}>{t.label}</button>)}
+        </div>
+
+        {tab === "profile" ? (
+          <div className="grid-2">
+            <div className="card">
+              <div className="card-head">
+                <h2>Profile</h2>
+                <span className={`pill ${c.source === "eri" ? "accent" : ""}`}>{c.source === "eri" ? "ERI" : "portal"}</span>
+                <button className="btn small" onClick={() => setEditing(true)}>Edit</button>
+              </div>
+              <div className="card-body">
+                <dl className="kv">
+                  <dt>Client code</dt><dd><Value v={c.client_code} mono /></dd>
+                  <dt>Entity</dt><dd>{c.entity_type}</dd>
+                  <dt>GSTIN</dt><dd><Value v={c.gstin} mono /></dd>
+                  <dt>Group</dt><dd><Value v={c.client_group} none="None" /></dd>
+                  <dt>Phone</dt><dd className="num"><Value v={c.phone ? `${c.phone_cc} ${c.phone}` : null} /></dd>
+                  <dt>Email</dt><dd><Value v={c.email} /></dd>
+                  <dt>Tags</dt><dd><Value v={c.tags} none="None" /></dd>
+                  <dt>Client file no.</dt>
+                  <dd>
+                    <div className="row">
+                      <input className="input short" value={fileNo ?? c.client_file_no ?? ""}
+                             onChange={(e) => setFileNo(e.target.value)} aria-label="Client file number" />
+                      {fileNo !== null && fileNo !== (c.client_file_no ?? "")
+                        ? <button className="btn small" onClick={() => { void saveFileNo(); }}>Save</button> : null}
+                    </div>
+                  </dd>
+                  <dt>Added</dt><dd className="num">{stamp(c.created_at)}</dd>
+                </dl>
+              </div>
+            </div>
+            <CredentialCard clientId={c.id} hasCredential={c.has_credential}
+                            loginRef={c.login_ref_effective} ownLogin={!c.portal_login_ref} />
+          </div>
+        ) : tab === "notes" ? (
+          <ClientNotes clientId={c.id} saved={c.note ?? ""} />
+        ) : (
+          <div className="split">
+            <div className="side-list" role="tablist" aria-label="Assessment years">
+              <button role="tab" aria-selected={selectedYear === null} aria-current={selectedYear === null} onClick={() => setYear(null)}>
+                <span>All years</span>
+              </button>
+              {years.map((y) => {
+                const n = openByYear.get(y.id) ?? 0;
+                return (
+                  <button key={y.id} role="tab" aria-selected={y.id === selectedYear} aria-current={y.id === selectedYear}
+                          onClick={() => setYear(y.id)}>
+                    <span>{y.assessment_year ? `AY ${y.assessment_year}` : "Year not stated"}</span>
+                    {n ? <span className="count">{n}</span> : null}
+                  </button>
+                );
+              })}
+              {!years.length ? <span className="meta">No years yet. A sweep creates them.</span> : null}
+            </div>
+            <ModulePane module={tab} rows={moduleRows(tab)} />
+          </div>
+        )}
       </PageBody>
       {editing ? <ClientForm existing={c} onClose={() => setEditing(false)}
                              onSaved={() => { setEditing(false); invalidate(`clients:${id}`); }} /> : null}

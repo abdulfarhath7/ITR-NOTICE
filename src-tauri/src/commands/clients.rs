@@ -91,6 +91,7 @@ pub fn create_client(state: State<AppState>, input: ClientInput) -> AppResult<Cl
     }
     let ts = now();
     let c = Client {
+        sync_enabled: None, note: None,
         id: crate::ids::new_id(),
         client_code: clean(input.client_code),
         name,
@@ -202,4 +203,25 @@ pub fn forget_client_credential(state: State<AppState>, client_id: String) -> Ap
         c.portal_login_ref.unwrap_or(c.pan)
     };
     keychain::forget_portal_password(&login_ref).map_err(|e| AppError::Keychain { message: e })
+}
+
+/// Client 360 "Sync" switch (docs/16 §7): off keeps the client out of
+/// whole-book and scheduled sweeps.
+#[tauri::command]
+pub fn set_client_sync_enabled(state: State<AppState>, client_id: String, enabled: bool) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    let mut c = clients::get(&con, &client_id)?.ok_or_else(|| AppError::not_found("client"))?;
+    c.sync_enabled = Some(i64::from(enabled));
+    c.updated_at = now();
+    clients::save(&con, &c)
+}
+
+/// Client 360 Notes tab: a free-text note on the client, synced with it.
+#[tauri::command]
+pub fn set_client_note(state: State<AppState>, client_id: String, note: String) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    let mut c = clients::get(&con, &client_id)?.ok_or_else(|| AppError::not_found("client"))?;
+    c.note = Some(note);
+    c.updated_at = now();
+    clients::save(&con, &c)
 }

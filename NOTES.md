@@ -598,3 +598,28 @@ positions are computed in JS). Media-query breakpoints stay px.
   mark in the core (14.3). Invalidating `work_items` refreshes the strip
   tile on return. Wired in the detail screen, the Attention list and
   Updates.
+
+### Milestone 7 — Client 360 (2026-09-24)
+
+- 20.1 No per-client flag existed. Migration 0019 `clients.sync_enabled`
+  (default 1); `queue::create_sweep` skips disabled clients for whole-book
+  and module scopes, which covers the scheduler; `Sync now` (client scope,
+  `refresh_client`) still runs a disabled client on request. Command
+  `set_client_sync_enabled`.
+- 20.2 Migration 0020 `clients.note`; command `set_client_note` writes the
+  client row, so the note syncs through the ledger. Both new `Client`
+  fields skip serialising when unset (D-039 pattern) and `from_row` reads
+  them tolerantly, because the 0009 backfill reads and writes clients
+  before these columns exist. A cleared note is stored as "".
+- 20.3 `client-detail.tsx`: header (38px avatar, name, PAN · GSTIN · phone
+  as the screen already showed them, Sync switch, Sync now), five tiles
+  (Open notices, Overdue, Demands total from the new `WorkItemRow.amount`,
+  Returns filed "years with a filed return / years", Last synced from the
+  new `ClientDetail.last_sync_at`), tabs Profile · Returns · Forms ·
+  Demands · e-Proceedings · Notes, default e-Proceedings, tab in the route
+  (`#/clients/<id>/<tab>`). Module tabs reuse the existing `ModulePane`
+  with the year side list (now with "All years", the default).
+- 20.4 Profile is the read view with Edit, which opens the existing
+  `ClientForm` (a dialog, not an in-place swap: the form is only built as
+  a dialog). Credentials card sits on Profile; `#/clients/<id>/credentials`
+  opens Profile scrolled to it.

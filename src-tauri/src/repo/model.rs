@@ -22,6 +22,13 @@ pub struct Client {
     pub tags: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Migrations 0019/0020. Skipped when unset so writers that predate the
+    /// columns (the legacy backfill, 0009) still work (D-039). A cleared
+    /// note is stored as an empty string so the clear is written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_enabled: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

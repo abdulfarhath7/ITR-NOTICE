@@ -258,10 +258,10 @@ next milestone with a broken tree.
 
 ## Phase 20 — Client 360 (milestone 7)
 
-- [ ] **20.1** Per-client sync enable: if no flag exists, migration `clients.sync_enabled INTEGER NOT NULL DEFAULT 1`; ingestion queue and scheduler skip disabled clients; `Sync now` enqueues one client.
-- [ ] **20.2** Migration `clients.note TEXT`; command to read/write it through the ledger.
-- [ ] **20.3** `client-detail.tsx` restructure per §7: header with avatar, identifiers (masked), sync toggle, Sync now; five summary tiles; tabs Profile · Returns · Forms · Demands · e-Proceedings · Notes; default tab e-Proceedings. Tabs reuse the module-items list filtered to the client — do not fork the list component.
-- [ ] **20.4** Profile tab is the client form in read mode with an Edit button that swaps to the existing edit form in place. `NOTES.md` entry. Commit.
+- [x] **20.1** Per-client sync enable: if no flag exists, migration `clients.sync_enabled INTEGER NOT NULL DEFAULT 1`; ingestion queue and scheduler skip disabled clients; `Sync now` enqueues one client.
+- [x] **20.2** Migration `clients.note TEXT`; command to read/write it through the ledger.
+- [x] **20.3** `client-detail.tsx` restructure per §7: header with avatar, identifiers (masked), sync toggle, Sync now; five summary tiles; tabs Profile · Returns · Forms · Demands · e-Proceedings · Notes; default tab e-Proceedings. Tabs reuse the module-items list filtered to the client — do not fork the list component.
+- [x] **20.4** Profile tab is the client form in read mode with an Edit button that swaps to the existing edit form in place. `NOTES.md` entry. Commit.
 
 ## Phase 21 — Export polish and docs (milestone 8)
 

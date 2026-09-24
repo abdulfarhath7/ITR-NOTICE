@@ -58,6 +58,10 @@ export interface ClientDetail {
   years: YearContext[];
   has_credential: boolean;
   login_ref_effective: string;
+  /** 0 keeps the client out of whole-book sweeps (docs/16 §7). */
+  sync_enabled?: number | null;
+  note?: string | null;
+  last_sync_at: string | null;
 }
 
 export interface ClientInput {
@@ -130,6 +134,8 @@ export interface WorkItemRow {
   has_note: boolean;
   /** Drafts on this item not yet marked reviewed. */
   drafts_to_review: number;
+  /** Demands: current outstanding, else the demand amount. */
+  amount: number | null;
 }
 
 /** Owner and note a person authored for one item (docs/16 §2.2). */

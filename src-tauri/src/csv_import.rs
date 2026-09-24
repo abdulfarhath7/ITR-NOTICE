@@ -130,6 +130,7 @@ pub fn preview(con: &Connection, path: &str) -> AppResult<ImportPreview> {
         };
         let ts = now();
         let client = Client {
+            sync_enabled: None, note: None,
             id: new_id(),
             client_code,
             name: name.clone(),

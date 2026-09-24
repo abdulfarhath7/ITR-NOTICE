@@ -24,6 +24,8 @@ export const api = {
   setClientCredential: (clientId: string, password: string) =>
     invoke<void>("set_client_credential", { clientId, password }),
   forgetClientCredential: (clientId: string) => invoke<void>("forget_client_credential", { clientId }),
+  setClientSyncEnabled: (clientId: string, enabled: boolean) => invoke<void>("set_client_sync_enabled", { clientId, enabled }),
+  setClientNote: (clientId: string, note: string) => invoke<void>("set_client_note", { clientId, note }),
 
   workItems: (filter?: WorkItemFilter) => invoke<WorkItemRow[]>("list_work_items", { filter: filter ?? null }),
   proceeding: (id: string) => invoke<ProceedingDetail>("get_proceeding", { id }),

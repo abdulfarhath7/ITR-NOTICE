@@ -82,7 +82,7 @@ fn sweep_row(r: &Row) -> rusqlite::Result<Sweep> {
 pub fn create_sweep(con: &Connection, device_id: &str, scope: &Scope, modules: &[&str]) -> AppResult<Sweep> {
     let (sql, bind): (&str, Option<String>) = match scope {
         Scope::All | Scope::Module { .. } =>
-            ("SELECT id, pan, portal_login_ref FROM clients WHERE source = 'portal' ORDER BY name COLLATE NOCASE", None),
+            ("SELECT id, pan, portal_login_ref FROM clients WHERE source = 'portal' AND sync_enabled = 1 ORDER BY name COLLATE NOCASE", None),
         Scope::Client { client_id } =>
             ("SELECT id, pan, portal_login_ref FROM clients WHERE id = ?1", Some(client_id.clone())),
     };

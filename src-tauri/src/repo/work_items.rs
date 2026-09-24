@@ -54,6 +54,8 @@ pub struct WorkItemRow {
     pub has_note: bool,
     /// Drafts on this item's communications not yet marked reviewed.
     pub drafts_to_review: i64,
+    /// Demands: current outstanding, else the demand amount. None elsewhere.
+    pub amount: Option<f64>,
 }
 
 fn gaps(json: Option<String>) -> Vec<String> {
@@ -140,7 +142,7 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
             limitation_date: r.get(15)?, status: r.get(16)?, source_panel: r.get(17)?,
             verified_flag: r.get(18)?, gap_flags: gaps(r.get(19)?), document_count: r.get(20)?,
             open_communications: r.get(21)?, last_seen_at: r.get(22)?,
-            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, drafts_to_review: r.get(26)?,
+            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, drafts_to_review: r.get(26)?, amount: None,
         })
     })?;
     let mut out: Vec<WorkItemRow> = rows.collect::<Result<Vec<_>, _>>()?;
@@ -185,6 +187,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
             issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0,
+            amount: outstanding.or(r.get::<_, Option<f64>>(9)?),
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -224,7 +227,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
             document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
-            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, drafts_to_review: 0,
+            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, drafts_to_review: 0, amount: None,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -256,7 +259,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
-            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0,
+            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0, amount: None,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -428,6 +431,8 @@ pub struct ClientDetail {
     pub years: Vec<crate::repo::model::YearContext>,
     pub has_credential: bool,
     pub login_ref_effective: String,
+    /// Newest ingestion run for this client (Client 360 "Last synced").
+    pub last_sync_at: Option<String>,
 }
 
 pub fn client_detail(con: &Connection, id: &str, has_credential: impl Fn(&str) -> bool) -> AppResult<Option<ClientDetail>> {
@@ -438,6 +443,7 @@ pub fn client_detail(con: &Connection, id: &str, has_credential: impl Fn(&str) -
         years: clients::year_contexts(con, id)?,
         has_credential: has_credential(&login_ref),
         login_ref_effective: login_ref,
+        last_sync_at: con.query_row("SELECT max(run_at) FROM ingestion_runs WHERE client_id = ?1", [id], |r| r.get(0))?,
         row: c,
     }))
 }

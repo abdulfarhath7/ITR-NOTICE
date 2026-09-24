@@ -14,6 +14,9 @@ pub fn from_row(r: &Row) -> rusqlite::Result<Client> {
         email: r.get("email")?, portal_login_ref: r.get("portal_login_ref")?, source: r.get("source")?,
         client_file_no: r.get("client_file_no")?, tags: r.get("tags")?,
         created_at: r.get("created_at")?, updated_at: r.get("updated_at")?,
+        // Tolerant: read before 0019/0020 exist (the legacy backfill).
+        sync_enabled: r.get("sync_enabled").unwrap_or(None),
+        note: r.get("note").unwrap_or(None),
     })
 }
 
@@ -51,6 +54,7 @@ pub fn create_minimal(con: &Connection, pan: &str, name: Option<&str>) -> AppRes
     let pan = pan.trim().to_ascii_uppercase();
     let ts = now();
     let c = Client {
+        sync_enabled: None, note: None,
         id: new_id(),
         client_code: None,
         name: name.map(str::trim).filter(|n| !n.is_empty()).unwrap_or(&pan).to_string(),

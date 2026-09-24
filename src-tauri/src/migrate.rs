@@ -54,6 +54,8 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(16, "ledger_source", "0016_ledger_source.sql"),
     sql!(17, "work_item_meta", "0017_work_item_meta.sql"),
     sql!(18, "drafts_reviewed_at", "0018_drafts_reviewed_at.sql"),
+    sql!(19, "clients_sync_enabled", "0019_clients_sync_enabled.sql"),
+    sql!(20, "clients_note", "0020_clients_note.sql"),
 ];
 
 #[derive(Debug, Error)]
