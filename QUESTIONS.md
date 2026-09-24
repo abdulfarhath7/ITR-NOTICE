@@ -342,3 +342,43 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** B deletes about 20 Rust tests, 10 vitest cases and 9 relay tests.
 - **Answer:**
 - **Resolved:** no
+
+### Q42 — Probe depth: two pages or the whole listing
+- **Context:** docs/17 §2.2 hashes the first two pages of each panel. (Seeded as "Q41" in the Build 3 install notes; renumbered because Q41 was already taken.)
+- **Options:** A two pages / B whole listing
+- **Default used:** A — new and changed rows appear at the top; two pages cover a month of activity for any client and keep the probe near 5 s.
+- **Blast radius:** one constant in the probe command.
+- **Answer:**
+- **Resolved:** no
+
+### Q43 — Lookback window default
+- **Context:** docs/17 §2.3, `lookback_days`. The dashboard's widest Issued bucket is 30 days.
+- **Options:** A 30 / B 90 as a safety margin
+- **Default used:** A — matches the lanes; open items are re-checked regardless, so nothing actionable is missed.
+- **Blast radius:** one default in settings.
+- **Answer:**
+- **Resolved:** no
+
+### Q44 — New client: sweep only or deep fetch by default
+- **Context:** docs/17 §4.
+- **Options:** A sweep only, checkbox for full / B deep fetch always
+- **Default used:** A — fast first picture; history on request.
+- **Blast radius:** the add-client form default.
+- **Answer:**
+- **Resolved:** no
+
+### Q45 — Deep fetch document policy default
+- **Context:** docs/17 §6.3.
+- **Options:** A index only, download on click / B download every PDF
+- **Default used:** A — 200 clients × full history is gigabytes on the collector; item fetch and warm cache cover the ones that matter.
+- **Blast radius:** the dialog default.
+- **Answer:**
+- **Resolved:** no
+
+### Q46 — Warm cache on by default
+- **Context:** docs/17 §2.6.
+- **Options:** A on, due ≤ 7 days / B off
+- **Default used:** A — morning previews of urgent notices are instant; runs only with spare budget.
+- **Blast radius:** one settings default.
+- **Answer:**
+- **Resolved:** no

@@ -121,6 +121,7 @@ docs/                 the specification you are building from
 | `14-glossary.md` | whenever a tax term is unfamiliar |
 | `15-known-bugs.md` | Phase 2 |
 | `16-dashboard-v2.md` | Build 2 — Phases 14 to 22, read in full before Phase 14 |
+| `17-scrape-scopes.md` | Build 3 — Phase 23, read in full before it; re-read `05` and `protocol.py` too |
 
 ---
 

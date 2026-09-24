@@ -278,8 +278,56 @@ Q30–Q37 and Q40 confirmed the defaults as built. Two answers differ:
 - [x] **22.1** (Q38) `list_work_items` returns `note_preview` (first 120 characters of `work_item_meta.note`) beside `has_note`; the Attention note icon's tooltip shows it. Files: `src-tauri/src/repo/work_items.rs`, `src/lib/types.ts`, `src/screens/attention.tsx`.
 - [x] **22.2** (Q39) Migration `ledger_received`: every foreign ledger entry `ledger::apply` writes is also recorded there. `repo/updates.rs` diffs `ledger` and `ledger_received` together, and when this device has no local sweep rows (it is not the collector) takes `since` from the received sweep-source entries. Files: `migrations/0021_ledger_received.sql`, `src-tauri/src/migrate.rs`, `src-tauri/src/ledger.rs`, `src-tauri/src/repo/updates.rs`, `docs/02-data-model.md`, `docs/03-sync-and-ledger.md`.
 
-## Phase 23 — Scrape scopes (waiting for its spec)
 
-Spec: `docs/17-scrape-scopes.md`, to be supplied by the user. The file is
-not in the repository as of 2026-09-24, so no tasks are written yet.
-Add them from the spec when it lands, then work them top to bottom.
+---
+
+# Build 3 — Scrape scopes and the overnight run
+
+Specification: `docs/17-scrape-scopes.md`. Read it, then re-read
+`docs/05-ingestion.md` and `sidecar/ingest/protocol.py`, before Phase 23.
+
+Same operating rules as Builds 1 and 2. Phase 22 (answers to Q30–Q40)
+must be complete before Phase 23 starts. Phase 24 is reserved for the
+answers to the questions this build files.
+
+## Phase 23 — Scrape scopes (one milestone per lettered group)
+
+### 23.A Data and protocol
+
+- [ ] **23.1** Migrations: `probe_state`, `deep_fetch_requests`, the six `clients` columns plus `cadence_pinned INTEGER NOT NULL DEFAULT 0`, `ingestion_runs.scope`, `ingestion_sweeps.sweep_summary TEXT`. Forward-only, numbered after Build 2's last migration.
+- [ ] **23.2** `ingestion_sweeps.scope` JSON: add `kind` (`sweep` | `deep` | `item`) beside the existing selector; every code path that creates a sweep sets it. Default `sweep` for rows that predate the column.
+- [ ] **23.3** Sidecar protocol v3: add `probe` command and `probe_done` event; add `next` action `index`, which records the header and emits an `item` event with `pdf_b64: null` and the document reference. Bump `PROTOCOL_VERSION`; the Rust side accepts v2 and v3 and logs which one it got. Update the docstring in `protocol.py` and `docs/06-source-interface.md`.
+  - *Done when:* a v3 sidecar answers `probe` with a stable hash for an unchanged fixture listing and a different hash when one row's status changes.
+- [ ] **23.4** Sweep settings: extend the scheduler settings KV per §6.5 (window start/end, lookback, dormant days and cadence, timeout, docs policy, warm cache, auto item fetch). Migrate the stored `time` into `run_window_start`. Commands `get_sweep_settings` / `set_sweep_settings`.
+
+### 23.B Runner
+
+- [ ] **23.5** Ordering (§2.1): compute the frozen order at run start and write it into `ingestion_jobs.position`. Dormant clients included only on their cadence day; paused clients excluded.
+- [ ] **23.6** Probe step (§2.2): per client, per panel; skip the client when every hash matches; write the zero-count `ingestion_runs` row; treat any probe failure as changed; never skip a first sweep.
+- [ ] **23.7** Header decision table (§2.3) in the runner: `skip` / `index` / `fetch` / `stop` exactly per the table, with `lookback_days` from settings; documents for indexed headers stored as `pending`. Keep the existing early-stop streak.
+  - *Done when:* against the fixture listing, a row issued 45 days ago that is not stored is skipped; a stored open row with a changed hash is re-indexed; a stored settled row is skipped.
+- [ ] **23.8** Deep fetch execution (§2.4): `tonight` requests drained after the sweep, one at a time, respecting the window; `now` requests through the attended path; depth `all` / `years` / `since`; docs policy `index` / `download`; client `history_*` columns updated on completion; `history_fetched` ledger entry; failure leaves depth unchanged.
+- [ ] **23.9** Dormant tier (§2.5): evaluate after each client's sweep; move to `weekly` on the three conditions; back to `nightly` on any change; honour `cadence_pinned`.
+- [ ] **23.10** Time budget and checkpoint (§2.7): window end check between clients and panels; per-client timeout → `incomplete` with cursor; sweep `stopped · window closed`; resume next night from the first non-done job.
+  - *Done when:* the existing resumability test still passes and a run started 10 minutes before `run_window_end` stops cleanly with a saved cursor.
+- [ ] **23.11** Warm cache (§2.6): after the deep queue, only with ≥ 20% budget left, download `pending` docs for open items due within `warm_cache_days`, soonest first, as background item fetches.
+- [ ] **23.12** Item fetch (§3): `fetch_item` command, session lock handling with "queue after sweep" fallback, `ingestion_runs.scope = 'item'`, progress on the ingestion event stream with a `scope` field on every event.
+- [ ] **23.13** Summary (§2.8) and estimates (§2.9): `sweep_summary` written on finish/stop; toast on the collector; `sweep_estimate` and `deep_estimate` commands.
+- [ ] **23.14** Amend `docs/05-ingestion.md` (§5 invariant, the probe, the window, the tiers) and `docs/02-data-model.md` (new tables and columns). Update `docs/08-api-contract.md` with the commands in §7. `NOTES.md` entry. Commit.
+
+### 23.C UI
+
+- [ ] **23.15** Sync screen (§6.1) replacing the Ingestion screen's layout: head with `Sweep all now · ≈ n min` and `Pause`, run card with progress bar and legend, queue table with scope pills and the exact status strings, segmented filter persisted like Attention's, hover `Sync now` / `Retry`. Nav label "Sync".
+- [ ] **23.16** Deep fetch dialog (§6.3) in `ui/deep-fetch-dialog.tsx`; opened from Client 360 `Fetch history` / `Fetch more`; estimate line; Queue for tonight (primary), Run now, Cancel; replaces an existing queued request for the same client.
+- [ ] **23.17** Client 360 additions (§6.2): history line, pause reason prompt on the sync toggle, tier on the Last synced tile, `cadence` pin control in the header overflow menu.
+- [ ] **23.18** Rows and badges (§6.4): `cloud-down` icon on every list that shows work items when any document is `pending`; History and dormant pills on the Clients list; work-item banner `Documents not fetched yet · Fetch` with inline progress and auto-start when `auto_item_fetch` is on.
+- [ ] **23.19** Settings → Sweeps rows (§6.5) using the existing `Section` / `Row` / `Segmented` vocabulary; read-only rows rendered as text with a hint.
+- [ ] **23.20** Add-client checkbox (§4) creating the `all` / `index` / `tonight` request.
+- [ ] **23.21** Updates screen: "Last night" summary card first (from `sweep_summary`), and a `History fetched` group from the `history_fetched` ledger entries. Unread badge counts the summary.
+- [ ] **23.22** Empty and error states for the Sync screen: no clients, no run yet, all paused, window closed mid-run. Copy per `09-ui-spec.md`.
+- [ ] **23.23** Update `docs/09-ui-spec.md` (screen 5 → Sync, client detail, work item, settings), `docs/USER-GUIDE.md` (one section: "What the nightly run fetches, and how to fetch more"), `DECISIONS.md` one entry per non-obvious choice. Final `NOTES.md` entry with the manual test list for this build. `./scripts/check.sh` exits 0. Commit.
+
+## Phase 24 — Apply the answered questions (do not start until answers exist)
+
+Placeholder, same rules as Phase 22: one task per answer that differs
+from its default, from Q41 onward (Build 3 questions are Q42–Q46).
