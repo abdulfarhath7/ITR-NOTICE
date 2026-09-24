@@ -267,3 +267,9 @@ pub fn list_ingestion_runs(state: State<AppState>, limit: Option<i64>) -> AppRes
     let rows = st.query_map([limit.unwrap_or(60)], runs::from_row)?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
+
+#[tauri::command]
+pub fn get_sync_line(state: State<AppState>) -> AppResult<runs::SyncLine> {
+    let con = lock_db(&state)?;
+    runs::sync_line(&con)
+}

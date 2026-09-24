@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 
 export type Route =
   | { name: "attention" }
+  | { name: "updates" }
+  | { name: "calendar" }
   | { name: "clients" }
   | { name: "client"; id: string }
   | { name: "item"; module: string; id: string }
-  | { name: "ingestion" }
+  | { name: "ingestion"; filter?: "failed" }
   | { name: "devices" }
   | { name: "settings"; section?: string }
   | { name: "setup" };
@@ -15,10 +17,12 @@ export type Route =
 export function href(route: Route): string {
   switch (route.name) {
     case "attention": return "#/attention";
+    case "updates": return "#/updates";
+    case "calendar": return "#/calendar";
     case "clients": return "#/clients";
     case "client": return `#/clients/${encodeURIComponent(route.id)}`;
     case "item": return `#/items/${route.module}/${encodeURIComponent(route.id)}`;
-    case "ingestion": return "#/ingestion";
+    case "ingestion": return route.filter ? `#/ingestion/${route.filter}` : "#/ingestion";
     case "devices": return "#/devices";
     case "settings": return route.section ? `#/settings/${route.section}` : "#/settings";
     case "setup": return "#/setup";
@@ -32,7 +36,9 @@ export function parse(hash: string): Route {
       return parts[1] ? { name: "client", id: parts[1] } : { name: "clients" };
     case "items":
       return parts[1] && parts[2] ? { name: "item", module: parts[1], id: parts[2] } : { name: "attention" };
-    case "ingestion": return { name: "ingestion" };
+    case "ingestion": return parts[1] === "failed" ? { name: "ingestion", filter: "failed" } : { name: "ingestion" };
+    case "updates": return { name: "updates" };
+    case "calendar": return { name: "calendar" };
     case "devices": return { name: "devices" };
     case "settings": return parts[1] ? { name: "settings", section: parts[1] } : { name: "settings" };
     case "setup": return { name: "setup" };

@@ -430,6 +430,14 @@ export interface IngestionJob {
   finished_at: string | null;
 }
 
+/** The Attention screen's sync line (docs/16 §1.1). */
+export interface SyncLine {
+  last_run_at: string | null;
+  window_start: string | null;
+  clients: number;
+  failed: number;
+}
+
 export interface IngestionRun {
   id: string;
   run_at: string;

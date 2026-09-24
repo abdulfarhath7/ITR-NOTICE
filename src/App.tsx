@@ -77,10 +77,13 @@ export default function App() {
     case "clients": screen = <ClientsScreen />; break;
     case "client": screen = <ClientDetailScreen key={route.id} id={route.id} />; break;
     case "item": screen = <WorkItemScreen key={route.id} module={route.module} id={route.id} />; break;
-    case "ingestion": screen = <IngestionScreen />; break;
+    case "ingestion": screen = <IngestionScreen filter={route.filter} />; break;
     case "devices": screen = <DevicesScreen />; break;
     case "settings": screen = <SettingsScreen section={route.section} theme={theme} />; break;
     case "setup": screen = <SetupScreen />; break;
+    case "updates": case "calendar":
+      // Built in Phases 17 and 18; until then the route exists for links.
+      screen = <div className="page"><div className="loading">Coming in this build.</div></div>; break;
   }
   const active = section(route);
 

@@ -1,7 +1,7 @@
 /** Screen 5 — Ingestion monitor (docs/09). Current client, queue position,
  *  panel, counts; a prominent challenge card when the run needs a human;
  *  pause and resume. The run never fails while it waits. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useClients } from "../hooks/use-clients";
 import { useIngestion } from "../hooks/use-ingestion";
 import { api } from "../lib/api";
@@ -79,8 +79,10 @@ function runNote(r: IngestionRun): string {
   return parts.filter(Boolean).join(" · ");
 }
 
-function Runs({ runs, clientsById }: { runs: IngestionRun[]; clientsById: Map<string, string> }) {
-  if (!runs.length) return <div className="card-body muted">No sweep has run on this device yet.</div>;
+function Runs({ runs, clientsById, empty = "No sweep has run on this device yet." }: {
+  runs: IngestionRun[]; clientsById: Map<string, string>; empty?: string;
+}) {
+  if (!runs.length) return <div className="card-body muted">{empty}</div>;
   return (
     <table className="table">
       <thead><tr><th>When</th><th>Client</th><th>Panel</th><th className="num">Found</th><th>Status</th><th>Note</th></tr></thead>
@@ -100,8 +102,11 @@ function Runs({ runs, clientsById }: { runs: IngestionRun[]; clientsById: Map<st
   );
 }
 
-export default function IngestionScreen() {
+export default function IngestionScreen({ filter }: { filter?: "failed" }) {
   const ing = useIngestion();
+  // "Retry" on the Attention sync line lands here with failed runs only.
+  const [failedOnly, setFailedOnly] = useState(filter === "failed");
+  useEffect(() => setFailedOnly(filter === "failed"), [filter]);
   const clients = useClients("");
   const [scopeKind, setScopeKind] = useState<"all" | "client">("all");
   const [clientId, setClientId] = useState("");
@@ -244,8 +249,16 @@ export default function IngestionScreen() {
           <Jobs jobs={jobs.data ?? []} clientsById={clientsById} />
         </div>
         <div className="card">
-          <div className="card-head"><h2>Sweep history</h2><span className="meta">every panel, zero counts included</span></div>
-          <Runs runs={runs.data ?? []} clientsById={clientsById} />
+          <div className="card-head">
+            <h2>Sweep history</h2>
+            <span className="meta">every panel, zero counts included</span>
+            <div className="segmented" role="radiogroup" aria-label="Which runs">
+              <button type="button" role="radio" aria-checked={!failedOnly} onClick={() => setFailedOnly(false)}>All</button>
+              <button type="button" role="radio" aria-checked={failedOnly} onClick={() => setFailedOnly(true)}>Failed</button>
+            </div>
+          </div>
+          <Runs runs={failedOnly ? (runs.data ?? []).filter((r) => r.status === "failed" || r.status === "credentials_parked") : (runs.data ?? [])}
+                clientsById={clientsById} empty={failedOnly ? "No failed runs in the last 60." : undefined} />
         </div>
       </PageBody>
     </Page>
