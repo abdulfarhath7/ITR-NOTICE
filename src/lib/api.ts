@@ -5,7 +5,7 @@ import type {
   BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
   RelayConfig, Roster, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
-  ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemRow,
+  ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
 } from "./types";
 
 export const api = {
@@ -33,6 +33,11 @@ export const api = {
   setManualDueDate: (proceedingId: string, date: string | null) =>
     invoke<void>("set_manual_due_date", { proceedingId, date }),
   registry: (registryName: string) => invoke<TypeEntry[]>("list_registry", { registryName }),
+  workItemMeta: (module: Module, id: string) => invoke<WorkItemMeta | null>("get_work_item_meta", { module, id }),
+  /** A field left undefined is unchanged; an empty string clears it. */
+  setWorkItemMeta: (module: Module, id: string, patch: { assignee?: string; note?: string }) =>
+    invoke<WorkItemMeta>("set_work_item_meta", { module, id, assignee: patch.assignee ?? null, note: patch.note ?? null }),
+  assignees: () => invoke<string[]>("list_assignees"),
 
   openDocument: (documentId: string) => invoke<void>("open_document", { documentId }),
   saveDocumentAs: (documentId: string, path: string) => invoke<void>("save_document_as", { documentId, path }),
@@ -42,6 +47,7 @@ export const api = {
   saveDraftText: (refId: string, draftText: string) => invoke<void>("save_draft_text", { refId, draftText }),
   suggestDueDate: (refId: string) => invoke<DueDateAnswer>("suggest_due_date", { refId }),
   createDraft: (refId: string) => invoke<Draft>("create_draft", { refId }),
+  setDraftReviewed: (refId: string, reviewed: boolean) => invoke<void>("set_draft_reviewed", { refId, reviewed }),
   promoteSuggestedDueDate: (proceedingId: string) => invoke<void>("promote_suggested_due_date", { proceedingId }),
 
   startIngestion: (scope: Scope, allNow = false, modules?: Module[]) => invoke<string>("start_ingestion_run", { scope, allNow, modules: modules ?? null }),

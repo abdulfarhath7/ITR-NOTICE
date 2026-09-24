@@ -2,7 +2,8 @@ use crate::commands::lock_db;
 use crate::error::{AppError, AppResult};
 use crate::repo::model::Status;
 use crate::repo::work_items::{self, DemandDetail, FiledFormDetail, ProceedingDetail, ReturnDetail, WorkItemFilter, WorkItemRow};
-use crate::repo::{proceedings, registry};
+use crate::repo::meta::{self, MetaPatch, WorkItemMeta};
+use crate::repo::{local, proceedings, registry};
 use crate::AppState;
 use tauri::State;
 
@@ -60,4 +61,27 @@ pub fn get_return(state: State<AppState>, id: String) -> AppResult<ReturnDetail>
 pub fn get_filed_form(state: State<AppState>, id: String) -> AppResult<FiledFormDetail> {
     let con = lock_db(&state)?;
     work_items::filed_form_detail(&con, &id)?.ok_or_else(|| AppError::not_found("form"))
+}
+
+#[tauri::command]
+pub fn get_work_item_meta(state: State<AppState>, module: String, id: String) -> AppResult<Option<WorkItemMeta>> {
+    let con = lock_db(&state)?;
+    meta::get(&con, &module, &id)
+}
+
+/// Owner and note (docs/16 §2.2). A field left out is unchanged; an empty
+/// string clears it. User-authored, so any device may write it.
+#[tauri::command]
+pub fn set_work_item_meta(state: State<AppState>, module: String, id: String,
+                          assignee: Option<String>, note: Option<String>) -> AppResult<WorkItemMeta> {
+    let con = lock_db(&state)?;
+    let device = local::device_id(&con)?;
+    meta::set(&con, &module, &id, MetaPatch { assignee, note }, &device)
+}
+
+/// Every owner name in use, for the owner select.
+#[tauri::command]
+pub fn list_assignees(state: State<AppState>) -> AppResult<Vec<String>> {
+    let con = lock_db(&state)?;
+    meta::assignees(&con)
 }

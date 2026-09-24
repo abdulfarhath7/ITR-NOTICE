@@ -26,7 +26,7 @@ pub type IdMap = HashMap<(String, String), String>;
 pub const ORDER: &[&str] = &[
     "type_registry", "clients", "year_contexts", "proceedings", "communications", "responses",
     "adjournment_requests", "demands", "demand_responses", "payments", "returns", "filed_forms",
-    "documents", "drafts",
+    "documents", "drafts", "work_item_meta",
 ];
 
 /// Foreign-key columns per table and the table they point at.

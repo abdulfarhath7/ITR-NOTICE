@@ -157,6 +157,11 @@ pub struct Draft {
     pub draft_text: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Migration 0018. Skipped when unset so the legacy backfill (0009),
+    /// which runs before the column exists, still writes; `db::save_draft`
+    /// clears it explicitly on regenerate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

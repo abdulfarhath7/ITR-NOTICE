@@ -88,7 +88,8 @@ pub async fn create_draft(state: State<'_, AppState>, ref_id: String) -> AppResu
                row.assessment_year.as_deref()).await
         .map_err(|e| AppError::Proxy { message: e })?;
     let d = Draft { ref_id: ref_id.clone(), generated_at: None,
-                    summary: a.summary, checklist: a.checklist, draft_text: a.draft_reply };
+                    summary: a.summary, checklist: a.checklist, draft_text: a.draft_reply,
+                    reviewed_at: None };
     let con = lock_db(&state)?;
     db::save_draft(&con, &d, None)?;
     db::get_draft(&con, &ref_id)?.ok_or_else(|| AppError::not_found("draft"))
@@ -107,4 +108,14 @@ pub fn promote_suggested_due_date(state: State<AppState>, proceeding_id: String)
     }
     let suggested = p.suggested_due_date.clone().ok_or_else(|| AppError::state("there is no suggested date to promote"))?;
     crate::repo::proceedings::set_manual_due_date(&con, &proceeding_id, Some(&suggested))
+}
+
+/// "Mark reviewed" in the draft drawer (docs/16 §2.3): sets or clears
+/// `reviewed_at` on the notice's draft.
+#[tauri::command]
+pub fn set_draft_reviewed(state: State<AppState>, ref_id: String, reviewed: bool) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    let comm = crate::repo::proceedings::communication_by_reference(&con, &ref_id)?
+        .ok_or_else(|| AppError::not_found("notice"))?;
+    crate::repo::drafts::set_reviewed(&con, &comm.id, reviewed)
 }

@@ -141,6 +141,8 @@ pub struct Draft {
     pub summary: String,
     pub checklist: Vec<String>,
     pub draft_text: String,
+    #[serde(default)]
+    pub reviewed_at: Option<String>,
 }
 
 pub fn get_draft(con: &Connection, ref_id: &str) -> AppResult<Option<Draft>> {
@@ -151,6 +153,7 @@ pub fn get_draft(con: &Connection, ref_id: &str) -> AppResult<Option<Draft>> {
         summary: d.summary.unwrap_or_default(),
         checklist: d.checklist_json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default(),
         draft_text: d.draft_text.unwrap_or_default(),
+        reviewed_at: d.reviewed_at,
     }))
 }
 
@@ -169,8 +172,10 @@ pub fn save_draft(con: &Connection, d: &Draft, model: Option<&str>) -> AppResult
         draft_text: Some(d.draft_text.clone()),
         created_at: existing.map(|x| x.created_at).unwrap_or_else(|| ts.clone()),
         updated_at: ts,
+        reviewed_at: None,
     };
-    drafts::save(con, &row)
+    // Generating (or regenerating) a draft clears any review mark (docs/16 §2.3).
+    drafts::save_unreviewed(con, &row)
 }
 
 pub fn update_draft_text(con: &Connection, ref_id: &str, text: &str) -> AppResult<()> {

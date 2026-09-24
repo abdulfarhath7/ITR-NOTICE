@@ -102,7 +102,7 @@ pub fn run(tx: &Transaction) -> Result<(), MigrateError> {
                 id: crate::ids::new_id(), communication_id: cid.clone(),
                 generated_at: generated_at.as_deref().and_then(sqlite_stamp).or(generated_at),
                 model: None, summary, checklist_json, draft_text,
-                created_at: ts.clone(), updated_at: ts,
+                created_at: ts.clone(), updated_at: ts, reviewed_at: None,
             }).map_err(app_err)?;
         }
     }

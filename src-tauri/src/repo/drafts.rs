@@ -11,6 +11,7 @@ pub fn from_row(r: &Row) -> rusqlite::Result<Draft> {
         generated_at: r.get("generated_at")?, model: r.get("model")?, summary: r.get("summary")?,
         checklist_json: r.get("checklist_json")?, draft_text: r.get("draft_text")?,
         created_at: r.get("created_at")?, updated_at: r.get("updated_at")?,
+        reviewed_at: r.get("reviewed_at")?,
     })
 }
 
@@ -29,4 +30,27 @@ pub fn communications_with_draft(con: &Connection, proceeding_id: &str) -> AppRe
 
 pub fn save(con: &Connection, draft: &Draft) -> AppResult<()> {
     rows::upsert(con, "drafts", draft)
+}
+
+/// A regenerated draft is unreviewed again: the row is written with an
+/// explicit null so the clear travels through the ledger too.
+pub fn save_unreviewed(con: &Connection, draft: &Draft) -> AppResult<()> {
+    let mut v = serde_json::to_value(draft)?;
+    v["reviewed_at"] = serde_json::Value::Null;
+    rows::write_value(con, "drafts", &v, rows::Origin::Local)
+}
+
+/// Mark reviewed (a timestamp) or clear it (None).
+pub fn set_reviewed(con: &Connection, communication_id: &str, reviewed: bool) -> AppResult<()> {
+    let mut d = for_communication(con, communication_id)?
+        .ok_or_else(|| crate::error::AppError::not_found("draft"))?;
+    let ts = crate::ids::now();
+    d.updated_at = ts.clone();
+    if reviewed {
+        d.reviewed_at = Some(ts);
+        save(con, &d)
+    } else {
+        d.reviewed_at = None;
+        save_unreviewed(con, &d)
+    }
 }

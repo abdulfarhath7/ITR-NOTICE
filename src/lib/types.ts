@@ -6,6 +6,8 @@ export interface Settings {
   firm_token: string;
   remember_password: boolean;
   last_user_id: string;
+  /** Text size in percent: 85, 92, 100, 112 or 125 (docs/16 §2.4). */
+  ui_scale: number;
 }
 
 export interface ClientSummary {
@@ -121,6 +123,25 @@ export interface WorkItemRow {
   document_count: number;
   open_communications: number;
   last_seen_at: string;
+  /** Latest inbound communication's date (proceedings) or the item's own
+   *  raised/filed date; null when none is stated. Never guessed. */
+  issued_on: string | null;
+  assignee: string | null;
+  has_note: boolean;
+  /** Drafts on this item not yet marked reviewed. */
+  drafts_to_review: number;
+}
+
+/** Owner and note a person authored for one item (docs/16 §2.2). */
+export interface WorkItemMeta {
+  id: string;
+  module: Module;
+  item_id: string;
+  assignee: string | null;
+  note: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Document {
@@ -355,6 +376,7 @@ export interface Draft {
   summary: string;
   checklist: string[];
   draft_text: string;
+  reviewed_at: string | null;
 }
 
 export interface DueDateAnswer { due_date: string | null; basis: string | null }

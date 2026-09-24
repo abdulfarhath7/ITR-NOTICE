@@ -10,6 +10,7 @@ pub mod clients;
 pub mod documents;
 pub mod drafts;
 pub mod local;
+pub mod meta;
 pub mod model;
 pub mod modules;
 pub mod proceedings;

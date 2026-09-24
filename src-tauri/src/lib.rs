@@ -91,6 +91,8 @@ pub fn run() {
             commands::work_items::list_work_items, commands::work_items::get_proceeding,
             commands::work_items::set_manual_due_date, commands::work_items::list_registry,
             commands::work_items::get_demand, commands::work_items::get_return, commands::work_items::get_filed_form,
+            commands::work_items::get_work_item_meta, commands::work_items::set_work_item_meta,
+            commands::work_items::list_assignees, commands::ai::set_draft_reviewed,
             commands::ingestion::get_sweep_cadence, commands::ingestion::set_sweep_cadence,
             commands::ingestion::modules_due,
             commands::ingestion::get_sweep_schedule, commands::ingestion::set_sweep_schedule,

@@ -45,6 +45,15 @@ pub struct WorkItemRow {
     pub document_count: i64,
     pub open_communications: i64,
     pub last_seen_at: String,
+    /// Latest inbound communication's `issued_on` for a proceeding; the
+    /// item's own raised/filed date elsewhere. NULL when none is stated
+    /// (docs/16 §2.1) — never guessed.
+    pub issued_on: Option<String>,
+    /// From `work_item_meta` (docs/16 §2.2).
+    pub assignee: Option<String>,
+    pub has_note: bool,
+    /// Drafts on this item's communications not yet marked reviewed.
+    pub drafts_to_review: i64,
 }
 
 fn gaps(json: Option<String>) -> Vec<String> {
@@ -103,11 +112,16 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
                   WHERE d.parent_type = 'communication' AND c2.proceeding_id = x.id AND d.state = 'stored'),
                 (SELECT count(*) FROM communications c3 WHERE c3.proceeding_id = x.id
                   AND c3.status IN ('open','adjournment_sought','unknown')),
-                x.last_seen_at
+                x.last_seen_at,
+                (SELECT max(c4.issued_on) FROM communications c4 WHERE c4.proceeding_id = x.id AND c4.direction = 'inbound'),
+                m.assignee, coalesce(m.note, '') <> '',
+                (SELECT count(*) FROM drafts dr JOIN communications c5 ON c5.id = dr.communication_id
+                  WHERE c5.proceeding_id = x.id AND dr.reviewed_at IS NULL)
          FROM proceedings x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
          JOIN type_registry t ON t.id = x.proceeding_type_id
+         LEFT JOIN work_item_meta m ON m.id = 'proceedings:' || x.id
          WHERE 1 = 1");
     let mut binds: Vec<rusqlite::types::Value> = Vec::new();
     sql.push_str(&common_filter(f, "x.display_name", "x.din_reference", &mut binds));
@@ -126,6 +140,7 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
             limitation_date: r.get(15)?, status: r.get(16)?, source_panel: r.get(17)?,
             verified_flag: r.get(18)?, gap_flags: gaps(r.get(19)?), document_count: r.get(20)?,
             open_communications: r.get(21)?, last_seen_at: r.get(22)?,
+            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, drafts_to_review: r.get(26)?,
         })
     })?;
     let mut out: Vec<WorkItemRow> = rows.collect::<Result<Vec<_>, _>>()?;
@@ -140,10 +155,12 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
         "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
                 x.demand_reference_number, x.section_or_demand_type, x.demand_amount, x.current_outstanding,
                 x.raised_on, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
-                (SELECT count(*) FROM demand_responses r WHERE r.demand_id = x.id)
+                (SELECT count(*) FROM demand_responses r WHERE r.demand_id = x.id),
+                m.assignee, coalesce(m.note, '') <> ''
          FROM demands x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
+         LEFT JOIN work_item_meta m ON m.id = 'demands:' || x.id
          WHERE 1 = 1");
     let mut binds: Vec<rusqlite::types::Value> = Vec::new();
     sql.push_str(&common_filter(f, "x.section_or_demand_type", "x.demand_reference_number", &mut binds));
@@ -167,6 +184,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
+            issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -177,10 +195,12 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
         "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
                 x.acknowledgement_number, x.return_type, x.filing_type, x.filed_on, x.verification_status,
                 x.processing_status, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
-                (SELECT count(*) FROM documents d WHERE d.parent_type = 'return' AND d.parent_id = x.id AND d.state = 'stored')
+                (SELECT count(*) FROM documents d WHERE d.parent_type = 'return' AND d.parent_id = x.id AND d.state = 'stored'),
+                m.assignee, coalesce(m.note, '') <> ''
          FROM returns x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
+         LEFT JOIN work_item_meta m ON m.id = 'returns:' || x.id
          WHERE NOT EXISTS (SELECT 1 FROM returns s WHERE s.supersedes_id = x.id)");
     // One thread per chain: a revised or updated return replaces its
     // predecessor in every list (task 11.2); the detail shows the chain and
@@ -204,6 +224,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
             document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
+            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, drafts_to_review: 0,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -214,11 +235,13 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
         "SELECT x.id, cl.id, cl.name, cl.client_code, cl.pan, yc.id, yc.assessment_year,
                 x.acknowledgement_number, coalesce(x.form_label, t.label), t.label, x.filed_on, x.portal_status,
                 x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
-                (SELECT count(*) FROM documents d WHERE d.parent_type = 'filed_form' AND d.parent_id = x.id AND d.state = 'stored')
+                (SELECT count(*) FROM documents d WHERE d.parent_type = 'filed_form' AND d.parent_id = x.id AND d.state = 'stored'),
+                m.assignee, coalesce(m.note, '') <> ''
          FROM filed_forms x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
          JOIN type_registry t ON t.id = x.form_type_id
+         LEFT JOIN work_item_meta m ON m.id = 'forms:' || x.id
          WHERE 1 = 1");
     let mut binds: Vec<rusqlite::types::Value> = Vec::new();
     sql.push_str(&common_filter(f, "x.form_label", "x.acknowledgement_number", &mut binds));
@@ -233,6 +256,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
+            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -540,4 +564,50 @@ pub fn filed_form_detail(con: &Connection, id: &str) -> AppResult<Option<FiledFo
         type_category: t.and_then(|t| t.category),
         gaps: gaps(f.gap_flags.clone()), documents: documents::for_parent(con, "filed_form", id)?, context, row: f,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repo::{clients, local, meta};
+
+    /// A client, a year, one open proceeding with two inbound notices.
+    fn fixture() -> (Connection, String) {
+        let mut con = Connection::open_in_memory().unwrap();
+        crate::migrate::run(&mut con).unwrap();
+        local::set(&con, local::DEVICE_ID, "dev_a").unwrap();
+        let c = clients::create_minimal(&con, "ABCDE1234F", Some("Example")).unwrap();
+        let t: String = con.query_row("SELECT id FROM type_registry LIMIT 1", [], |r| r.get(0)).unwrap();
+        con.execute_batch(&format!(
+            "INSERT INTO year_contexts (id, client_id, assessment_year) VALUES ('yc1', '{cid}', '2024-25');
+             INSERT INTO proceedings (id, year_context_id, proceeding_type_id, natural_key, status, source_panel,
+                                      row_hash, first_seen_at, last_seen_at)
+               VALUES ('p1', 'yc1', '{t}', 'nk1', 'open', 'self:action', 'h', '2026-09-01', '2026-09-01');
+             INSERT INTO communications (id, proceeding_id, communication_type_id, reference_id, issued_on,
+                                         row_hash, first_seen_at, last_seen_at)
+               VALUES ('c1', 'p1', '{t}', 'r1', '2026-08-01', 'h', '2026-09-01', '2026-09-01'),
+                      ('c2', 'p1', '{t}', 'r2', '2026-09-10', 'h', '2026-09-01', '2026-09-01');",
+            cid = c.id)).unwrap();
+        (con, "p1".into())
+    }
+
+    /// Task 14.2: the later of two inbound communications is the issued date.
+    #[test]
+    fn issued_on_is_the_latest_inbound_communication() {
+        let (con, id) = fixture();
+        let rows = list(&con, &WorkItemFilter::default()).unwrap();
+        let row = rows.iter().find(|r| r.id == id).unwrap();
+        assert_eq!(row.issued_on.as_deref(), Some("2026-09-10"));
+    }
+
+    /// Task 14.1: an assignee set through the meta path shows on the row.
+    #[test]
+    fn assignee_and_note_show_on_the_row() {
+        let (con, id) = fixture();
+        meta::set(&con, "proceedings", &id, meta::MetaPatch { assignee: Some("Rao".into()), note: Some("x".into()) }, "dev_a").unwrap();
+        let rows = list(&con, &WorkItemFilter::default()).unwrap();
+        let row = rows.iter().find(|r| r.id == id).unwrap();
+        assert_eq!(row.assignee.as_deref(), Some("Rao"));
+        assert!(row.has_note);
+    }
 }

@@ -52,6 +52,8 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(14, "ledger", "0014_ledger.sql"),
     code!(15, "ledger_backfill", crate::ledger::backfill_existing_rows),
     sql!(16, "ledger_source", "0016_ledger_source.sql"),
+    sql!(17, "work_item_meta", "0017_work_item_meta.sql"),
+    sql!(18, "drafts_reviewed_at", "0018_drafts_reviewed_at.sql"),
 ];
 
 #[derive(Debug, Error)]
