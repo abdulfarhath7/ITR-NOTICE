@@ -184,3 +184,97 @@ Placeholder only. Q13 answered "later phase". Do not begin this without an expli
 - [ ] **13.2** Counsel notes and briefs against a proceeding.
 - [ ] **13.3** Paper filings with no portal source, manually recorded.
 - [ ] **13.4** These are firm-authored records: they sync two-way and never come from ingestion.
+
+---
+
+# Build 2 — Dashboard v2, Updates, Calendar, Client 360
+
+Specification: `docs/16-dashboard-v2.md`. Read it in full before Phase 14.
+
+Same rules as Build 1: work top to bottom, one milestone at a time, never
+stop to ask, never test beyond what a task's *Done when* names (the user
+tests everything after the whole build), commit after each task, file
+unknowns in `QUESTIONS.md` and continue. Phase 22 is reserved for the
+user's answers and stays empty until they are given.
+
+Each milestone ends with the app building and starting. Do not begin the
+next milestone with a broken tree.
+
+## Phase 14 — Foundations (milestone 1)
+
+- [x] **14.1** Migration `00nn_work_item_meta.sql` per §2.2. Rust commands `get_work_item_meta`, `set_work_item_meta`; ledger entity type `work_item_meta`; `list_work_items` LEFT JOINs and returns `assignee`, `has_note`. Add the fields to `WorkItemRow` and `api.ts`.
+  - *Done when:* setting an assignee from a Tauri command round-trips through the ledger and shows on the row.
+- [x] **14.2** `issued_on` on `list_work_items` per §2.1, added to `WorkItemRow`.
+  - *Done when:* a proceeding with two inbound communications reports the later `issued_on`.
+- [x] **14.3** Migration: `drafts.reviewed_at TEXT NULL`. Command to set/clear it. Clear it in the regenerate path.
+- [x] **14.4** `ui_scale` in `Settings` (§2.4) with clamp on read. Apply on boot in `main.tsx`. Audit `styles/base.css` and `styles/tokens.css`: text sizes, line heights, row heights, paddings and gaps that should scale move to `rem`; borders, radii, icon strokes and shadows stay in `px`. Record every value you changed in `NOTES.md` in one table.
+  - *Done when:* setting `ui_scale` to 125 in `settings.json` visibly scales the whole app with no clipped controls on a 1366×768 window.
+- [x] **14.5** `lib/persisted-filters.ts`: read/write one JSON object per screen in `localStorage` (`lcc.filters.<screen>`), following `lib/theme.ts`. Wire the Attention screen's existing four selects to it. Search text is never persisted.
+- [x] **14.6** `lib/buckets.ts`: pure functions `issuedBucket(row, today)` and `dueBucket(row, today)` returning a bucket id or `null`, plus `countBuckets(rows, today)`. Predicates from §1.5. `lib/section-tone.ts`: the section→tone map from §1.6.
+  - *Done when:* the functions are pure, take `today` as a parameter, and never read the clock themselves.
+- [x] **14.7** `NOTES.md` session entry for milestone 1. Commit.
+
+## Phase 15 — Attention screen v2 (milestone 2)
+
+- [ ] **15.1** Sync line under the page head (§1.1). Add a "failed" filter to the Ingestion screen if it lacks one; "Retry" navigates there.
+- [ ] **15.2** Needs-action strip (§1.2). Tiles filter the list; clicking a tile clears bucket selection. Remove the old rank-count row from the UI only; keep `rankRows` and `RANK_LABEL` for sorting and the detail screen.
+- [ ] **15.3** Owner select and search input in the filter bar (§1.3). Owner names from `work_item_meta` distinct values plus the local user.
+- [ ] **15.4** Active chips row with per-chip × and "Clear all" (§1.4).
+- [ ] **15.5** Issued and Due lanes (§1.5) in the 3fr/5fr grid, including the fifth Due tile "Calendar → Open" that navigates to the Calendar route (the route can be a stub until Phase 18). Counts computed after filter bar, before tile/bucket selection. One active bucket per lane. Stack under 900px.
+- [ ] **15.5a** Views row (§1.6): All · saved views · + Save view; `lib/saved-views.ts` on `localStorage`; save dialog, rename, delete; active tab underline.
+- [ ] **15.6** List card and additions (§1.7): card chrome, count/sort line, six columns in the stated order, section pill with tone, owner avatar with inline assign, note icon with tooltip, hover actions View / Draft / ✦ Date / Assign, relative due suffix. Row height must not change when hover actions appear.
+- [ ] **15.7** Bucket-aware sort (§1.7 last paragraph). Reset pagination (`limit`) when tile or bucket changes, as the existing effect does for filters.
+- [ ] **15.8** Empty states: no open items at all; filters match nothing (with "Clear all"); a selected bucket is empty. Copy per `09-ui-spec.md` "Empty and error states".
+- [ ] **15.9** Update `docs/09-ui-spec.md` screen 1 to describe the new layout. `NOTES.md` entry. Commit.
+
+## Phase 16 — Settings: text size (milestone 3)
+
+- [ ] **16.1** Stepper control in `ui/stepper.tsx` (A− · five dots · A+ · %) with the live preview line under it. Row in `settings/general.tsx` (§3). Persists immediately via `write_settings`, no save bar.
+- [ ] **16.2** Keyboard shortcuts Ctrl/Cmd `+` `−` `0` registered once in the shell; ignored when focus is inside `input`, `textarea`, `select` or a `contenteditable`. Toast "Text size 112%" on change.
+- [ ] **16.3** Verify the command palette (⌘K) and every dialog still fit at 125%; fix any that overflow by using `rem` and `max-height: 90vh`. `NOTES.md` entry. Commit.
+
+## Phase 17 — Updates screen (milestone 4)
+
+- [ ] **17.1** Rust command `list_updates(since: Option<String>) -> Vec<UpdateEntry>`: reads the ledger and `ingestion_runs`, computes `since` per §4.1 when not supplied, classifies per §4.2 by comparing each entry's payload with the previous entry for the same entity. Payloads are JSON; do the diff in Rust, return typed entries. PII in `reason` fields is masked with `mask.rs`.
+  - *Done when:* a fixture database with two runs returns one entry per §4.2 rule.
+- [ ] **17.2** Route `updates`, nav entry after Attention, screen per §4.3. Grouped cards, count pills, danger border on Sync failed, "Mark all seen" writing `lcc.updates.seen_until`, seen entries collapsed under "Seen earlier".
+- [ ] **17.3** Row actions: View / Draft / ✦ Date / Open / Retry / Fix, each reusing the existing navigation or command. `Fix` opens the client's credentials form.
+- [ ] **17.4** Export button on the screen: one sheet per group, via the export module (§8 rules apply once Phase 21 lands; until then use the current header style).
+- [ ] **17.5** Unread badge: the sidebar "Updates" label shows a small count of entries newer than the seen watermark. Recomputed on ingestion events (`onIngestion`) and on screen open. `NOTES.md` entry. Commit.
+
+## Phase 18 — Calendar screen (milestone 5)
+
+- [ ] **18.1** `lib/calendar.ts`: pure month-grid builder (Monday-first, IST, leading/trailing days flagged) and `groupByDay(rows, field, today)`.
+- [ ] **18.2** Route `calendar`, nav entry after Updates, screen per §5: month grid, day count pills with tone, `‹ Today ›`, `Due`/`Issued` toggle, selected-day list with View on hover, "n without a due date →" link.
+- [ ] **18.3** Read client and module filters from the persisted Attention filter object; show as chips only. Changing them here writes back to the same object.
+- [ ] **18.4** Keyboard: arrow keys move the selected day, `t` jumps to today, `Enter` on a day focuses its list. `NOTES.md` entry. Commit.
+
+## Phase 19 — Work item detail: thread, owner, notes (milestone 6)
+
+- [ ] **19.1** Thread layout for communications and responses (§6), newest first, reusing the existing document list per entry.
+- [ ] **19.2** Owner row in the detail header with the shared owner select (extract the select into `ui/owner-select.tsx` and reuse it in the list from 15.6).
+- [ ] **19.3** Notes section: textarea, save on blur via `set_work_item_meta`, "Saved" toast, loads from `get_work_item_meta` on open.
+- [ ] **19.4** "Mark reviewed" in the draft drawer; clears on regenerate; the Attention strip tile updates on return. `NOTES.md` entry. Commit.
+
+## Phase 20 — Client 360 (milestone 7)
+
+- [ ] **20.1** Per-client sync enable: if no flag exists, migration `clients.sync_enabled INTEGER NOT NULL DEFAULT 1`; ingestion queue and scheduler skip disabled clients; `Sync now` enqueues one client.
+- [ ] **20.2** Migration `clients.note TEXT`; command to read/write it through the ledger.
+- [ ] **20.3** `client-detail.tsx` restructure per §7: header with avatar, identifiers (masked), sync toggle, Sync now; five summary tiles; tabs Profile · Returns · Forms · Demands · e-Proceedings · Notes; default tab e-Proceedings. Tabs reuse the module-items list filtered to the client — do not fork the list component.
+- [ ] **20.4** Profile tab is the client form in read mode with an Edit button that swaps to the existing edit form in place. `NOTES.md` entry. Commit.
+
+## Phase 21 — Export polish and docs (milestone 8)
+
+- [ ] **21.1** `export.rs` per §8: timestamped filename, bold filled frozen header with autofilter, fitted column widths, `Owner` and `Note` appended after the existing 16 columns, provenance block lists active filters.
+- [ ] **21.2** Every list screen's Export exports the filtered, visible set (Attention, module-items, Updates, Calendar day list).
+- [ ] **21.3** Update `docs/09-ui-spec.md` (screens 1, 3, 4, and new 8, 9), `docs/08-api-contract.md` (new commands), `docs/02-data-model.md` (new tables and columns), `docs/11-exports.md` (new columns, filename). Update `docs/USER-GUIDE.md` with one short section per new screen.
+- [ ] **21.4** `DECISIONS.md`: one entry per non-obvious choice made in Phases 14–21, each linked to its Qnn where one was filed.
+- [ ] **21.5** Final `NOTES.md` entry: what was built, what was skipped with a `TODO(blocked)`, and a one-paragraph "how to test this build" pointer list for the user. Run `./scripts/check.sh`; it must exit 0. Commit.
+
+## Phase 22 — Apply the answered questions (do not start until answers exist)
+
+Placeholder. When `QUESTIONS.md` has `Answer:` lines filled for Q30 onward,
+add one task here per answer that differs from the default used, in the
+same style as Phase 12, then work them top to bottom. Every task must name
+the Qnn it applies and the files it touches. Do not begin any task in this
+phase while its question is still `Resolved: no`.

@@ -268,3 +268,236 @@ or --ask. GST mode needs a human to log in (captcha).
   Continue stays disabled (Timeout on get_by_role("button", name="Continue")).
   Sweeps longer than ~15 min will hit this. Likely fix: log out or clear
   cookies before re-login; needs a live check.
+
+## Build 2 — Dashboard v2 (docs/16-dashboard-v2.md)
+
+### Milestone 1 — Foundations (2026-09-24)
+
+- Context installed from `files.zip`: `docs/16-dashboard-v2.md`, Build 2
+  phases appended to `TASKS.md`, Q30–Q34 in `QUESTIONS.md`, reading-order
+  row and rule 9 in `CLAUDE.md`. Phase-number collision with the
+  thread-flow Phase 14 filed as Q35; saved views vs §9 as Q36; the missing
+  `--radius` token as Q37.
+- 14.1 Migration 0017 `work_item_meta` (id `module:item_id`, D-038),
+  `repo/meta.rs`, commands `get_work_item_meta`, `set_work_item_meta`,
+  `list_assignees`; `list_work_items` LEFT JOINs it and returns
+  `assignee`, `has_note`. Rust tests: ledger round trip to a second device,
+  and the assignee on the list row.
+- 14.2 `issued_on` on every work-item row (proceedings: max inbound
+  `communications.issued_on`; demands `raised_on`; returns and forms
+  `filed_on`). Rust test with two inbound notices.
+- 14.3 Migration 0018 `drafts.reviewed_at`; command `set_draft_reviewed`;
+  `db::save_draft` (the generate/regenerate path) clears it (D-039). Rows
+  also carry `drafts_to_review` for the strip tile.
+- 14.4 `Settings.ui_scale` (serde default 100, clamped to 85/92/100/112/125
+  on read and write). `main.tsx` applies the cached value before first
+  paint, then the saved one. CSS audit below (D-040). Not checked on a
+  1366×768 window in the real app (no display in this session); checked
+  in the browser harness at milestone 2.
+- 14.5 `lib/persisted-filters.ts` (`lcc.filters.<screen>`); Attention's four
+  selects persist.
+- 14.6 `lib/buckets.ts` (issued, due and strip-tile predicates, all take
+  `today`), `lib/section-tone.ts` (section → tone map, data only).
+
+#### px → rem changes (task 14.4)
+
+Kept in px on purpose: every `border*`, `border-radius`, `box-shadow`,
+`outline*`, 1px/2px hairlines, `.switch` geometry (its knob moves by a px
+`translateX`), and the thread-flow block except its font sizes (its
+positions are computed in JS). Media-query breakpoints stay px.
+
+| File | Line | Selector | Property | Was | Now |
+|---|---|---|---|---|---|
+| tokens.css | 25 | `(cont.)` | --row-h | `40px` | `2.5rem` |
+| tokens.css | 26 | `(cont.)` | --control-h | `32px` | `2rem` |
+| base.css | 12 | `(cont.)` | font | `400 13px/20px var(--font-ui)` | `400 0.8125rem/1.25rem var(--font-ui)` |
+| base.css | 20 | `h1` | font | `500 20px/28px var(--font-ui)` | `500 1.25rem/1.75rem var(--font-ui)` |
+| base.css | 21 | `h2` | font | `500 15px/22px var(--font-ui)` | `500 0.9375rem/1.375rem var(--font-ui)` |
+| base.css | 22 | `h3` | font | `500 13px/20px var(--font-ui)` | `500 0.8125rem/1.25rem var(--font-ui)` |
+| base.css | 24 | `.meta` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 40 | `(cont.)` | height | `18px` | `1.125rem` |
+| base.css | 40 | `(cont.)` | padding | `0 5px` | `0 0.3125rem` |
+| base.css | 43 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 45 | `.keys` | gap | `4px` | `0.25rem` |
+| base.css | 48 | `.shell` | grid-template-columns | `224px 1fr` | `14rem 1fr` |
+| base.css | 53 | `(cont.)` | padding | `12px 10px` | `0.75rem 0.625rem` |
+| base.css | 54 | `(cont.)` | gap | `8px` | `0.5rem` |
+| base.css | 58 | `(cont.)` | gap | `8px` | `0.5rem` |
+| base.css | 59 | `(cont.)` | padding | `4px 6px 8px` | `0.25rem 0.375rem 0.5rem` |
+| base.css | 63 | `(cont.)` | width | `22px` | `1.375rem` |
+| base.css | 63 | `(cont.)` | height | `22px` | `1.375rem` |
+| base.css | 66 | `(cont.)` | font | `500 10px var(--font-mono)` | `500 0.625rem var(--font-mono)` |
+| base.css | 70 | `(cont.)` | gap | `8px` | `0.5rem` |
+| base.css | 71 | `(cont.)` | height | `30px` | `1.875rem` |
+| base.css | 71 | `(cont.)` | padding | `0 8px` | `0 0.5rem` |
+| base.css | 81 | `(cont.)` | gap | `10px` | `0.625rem` |
+| base.css | 82 | `(cont.)` | height | `32px` | `2rem` |
+| base.css | 82 | `(cont.)` | padding | `0 8px` | `0 0.5rem` |
+| base.css | 91 | `(cont.)` | min-width | `20px` | `1.25rem` |
+| base.css | 91 | `(cont.)` | height | `18px` | `1.125rem` |
+| base.css | 91 | `(cont.)` | padding | `0 6px` | `0 0.375rem` |
+| base.css | 94 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 99 | `.nav-foot` | gap | `6px` | `0.375rem` |
+| base.css | 100 | `.nav-foot .btn` | font-size | `12px` | `0.75rem` |
+| base.css | 100 | `.nav-foot .btn` | height | `30px` | `1.875rem` |
+| base.css | 101 | `.nav-sync` | gap | `4px` | `0.25rem` |
+| base.css | 103 | `(cont.)` | gap | `6px` | `0.375rem` |
+| base.css | 103 | `(cont.)` | padding | `2px 6px` | `2px 0.375rem` |
+| base.css | 104 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 109 | `.nav-note` | padding-top | `8px` | `0.5rem` |
+| base.css | 114 | `(cont.)` | gap | `10px` | `0.625rem` |
+| base.css | 115 | `(cont.)` | padding | `14px 24px 12px` | `0.875rem 1.5rem 0.75rem` |
+| base.css | 115 | `(cont.)` | min-height | `58px` | `3.625rem` |
+| base.css | 120 | `.page-meta` | gap | `8px` | `0.5rem` |
+| base.css | 123 | `(cont.)` | gap | `4px` | `0.25rem` |
+| base.css | 123 | `(cont.)` | height | `26px` | `1.625rem` |
+| base.css | 123 | `(cont.)` | padding | `0 8px 0 4px` | `0 0.5rem 0 0.25rem` |
+| base.css | 128 | `.page-body` | padding | `16px 24px 32px` | `1rem 1.5rem 2rem` |
+| base.css | 128 | `.page-body` | gap | `16px` | `1rem` |
+| base.css | 129 | `.page-body.narrow` | max-width | `760px` | `47.5rem` |
+| base.css | 133 | `(cont.)` | padding | `0 12px` | `0 0.75rem` |
+| base.css | 137 | `(cont.)` | gap | `6px` | `0.375rem` |
+| base.css | 144 | `.btn.danger` | padding | `0 8px` | `0 0.5rem` |
+| base.css | 146 | `.btn.small` | height | `26px` | `1.625rem` |
+| base.css | 146 | `.btn.small` | padding | `0 8px` | `0 0.5rem` |
+| base.css | 146 | `.btn.small` | font-size | `12px` | `0.75rem` |
+| base.css | 146 | `.btn.small` | gap | `4px` | `0.25rem` |
+| base.css | 148 | `.btn.icon` | width | `26px` | `1.625rem` |
+| base.css | 152 | `(cont.)` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 159 | `.input.short` | max-width | `220px` | `13.75rem` |
+| base.css | 160 | `.textarea` | padding | `8px 10px` | `0.5rem 0.625rem` |
+| base.css | 160 | `.textarea` | line-height | `20px` | `1.25rem` |
+| base.css | 163 | `.select` | padding-right | `26px` | `1.625rem` |
+| base.css | 165 | `(cont.)` | background-position | `calc(100% - 14px) 13px, calc(100% - 9px) 13px` | `calc(100% - 0.875rem) 0.8125rem, calc(100% - 0.5625rem) 0.8125rem` |
+| base.css | 167 | `(cont.)` | gap | `8px` | `0.5rem` |
+| base.css | 167 | `(cont.)` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 167 | `(cont.)` | width | `260px` | `16.25rem` |
+| base.css | 175 | `.field` | gap | `4px` | `0.25rem` |
+| base.css | 176 | `.field > label` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 177 | `.field .hint` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 178 | `.field .error` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 179 | `.form-grid` | gap | `12px 16px` | `0.75rem 1rem` |
+| base.css | 181 | `.check` | gap | `8px` | `0.5rem` |
+| base.css | 182 | `.input.cc` | width | `64px` | `4rem` |
+| base.css | 185 | `.toolbar` | gap | `8px` | `0.5rem` |
+| base.css | 186 | `.filters` | gap | `8px` | `0.5rem` |
+| base.css | 191 | `(cont.)` | height | `26px` | `1.625rem` |
+| base.css | 191 | `(cont.)` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 192 | `(cont.)` | gap | `6px` | `0.375rem` |
+| base.css | 203 | `.chips` | gap | `6px` | `0.375rem` |
+| base.css | 205 | `(cont.)` | height | `26px` | `1.625rem` |
+| base.css | 205 | `(cont.)` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 206 | `(cont.)` | font-size | `12px` | `0.75rem` |
+| base.css | 214 | `(cont.)` | height | `20px` | `1.25rem` |
+| base.css | 214 | `(cont.)` | padding | `0 8px` | `0 0.5rem` |
+| base.css | 216 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 231 | `.unverified` | font-size | `11px` | `0.6875rem` |
+| base.css | 231 | `.unverified` | margin-left | `4px` | `0.25rem` |
+| base.css | 235 | `.stats` | gap | `8px` | `0.5rem` |
+| base.css | 237 | `(cont.)` | padding | `10px 14px` | `0.625rem 0.875rem` |
+| base.css | 243 | `.stat .value` | font | `500 20px/28px var(--font-ui)` | `500 1.25rem/1.75rem var(--font-ui)` |
+| base.css | 244 | `.stat .label` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 248 | `.dot` | width | `6px` | `0.375rem` |
+| base.css | 248 | `.dot` | height | `6px` | `0.375rem` |
+| base.css | 248 | `.dot` | margin-right | `8px` | `0.5rem` |
+| base.css | 257 | `(cont.)` | padding | `0 12px` | `0 0.75rem` |
+| base.css | 260 | `(cont.)` | font-size | `13px` | `0.8125rem` |
+| base.css | 260 | `(cont.)` | line-height | `18px` | `1.125rem` |
+| base.css | 266 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 269 | `.th-sort` | gap | `4px` | `0.25rem` |
+| base.css | 280 | `table.table td .sub` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 283 | `(cont.)` | height | `30px` | `1.875rem` |
+| base.css | 283 | `(cont.)` | padding | `0 12px` | `0 0.75rem` |
+| base.css | 284 | `(cont.)` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 286 | `table.table tr.group th .count` | margin-left | `8px` | `0.5rem` |
+| base.css | 287 | `table.table.compact th, table.table.compact td` | height | `30px` | `1.875rem` |
+| base.css | 287 | `table.table.compact th, table.table.compact td` | font-size | `12px` | `0.75rem` |
+| base.css | 288 | `.actions` | gap | `6px` | `0.375rem` |
+| base.css | 289 | `.table-foot` | gap | `8px` | `0.5rem` |
+| base.css | 289 | `.table-foot` | padding | `8px 12px` | `0.5rem 0.75rem` |
+| base.css | 293 | `.card .card-head` | gap | `8px` | `0.5rem` |
+| base.css | 293 | `.card .card-head` | padding | `12px 16px` | `0.75rem 1rem` |
+| base.css | 295 | `.card .card-body` | padding | `16px` | `1rem` |
+| base.css | 297 | `.captcha` | max-width | `320px` | `20rem` |
+| base.css | 298 | `.stack` | gap | `8px` | `0.5rem` |
+| base.css | 300 | `.row` | gap | `8px` | `0.5rem` |
+| base.css | 301 | `.grid-2` | gap | `16px` | `1rem` |
+| base.css | 302 | `.grid-4` | gap | `16px` | `1rem` |
+| base.css | 303 | `.kv` | grid-template-columns | `160px 1fr` | `10rem 1fr` |
+| base.css | 303 | `.kv` | gap | `6px 16px` | `0.375rem 1rem` |
+| base.css | 304 | `.kv dt` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 306 | `.path` | font | `400 12px/18px var(--font-mono)` | `400 0.75rem/1.125rem var(--font-mono)` |
+| base.css | 307 | `.step .card-head` | gap | `12px` | `0.75rem` |
+| base.css | 309 | `(cont.)` | width | `22px` | `1.375rem` |
+| base.css | 309 | `(cont.)` | height | `22px` | `1.375rem` |
+| base.css | 312 | `(cont.)` | font | `500 11px var(--font-ui)` | `500 0.6875rem var(--font-ui)` |
+| base.css | 317 | `.empty` | padding | `40px 24px` | `2.5rem 1.5rem` |
+| base.css | 317 | `.empty` | gap | `8px` | `0.5rem` |
+| base.css | 319 | `.empty p` | max-width | `420px` | `26.25rem` |
+| base.css | 320 | `.loading` | padding | `24px` | `1.5rem` |
+| base.css | 331 | `(cont.)` | width | `min(680px, calc(100vw - 48px))` | `min(42.5rem, calc(100vw - 3rem))` |
+| base.css | 331 | `(cont.)` | max-height | `calc(100vh - 48px)` | `calc(100vh - 3rem)` |
+| base.css | 336 | `.dialog.wide` | width | `min(960px, calc(100vw - 48px))` | `min(60rem, calc(100vw - 3rem))` |
+| base.css | 337 | `.dialog .dialog-head` | gap | `8px` | `0.5rem` |
+| base.css | 337 | `.dialog .dialog-head` | padding | `14px 16px` | `0.875rem 1rem` |
+| base.css | 339 | `.dialog .dialog-body` | padding | `16px` | `1rem` |
+| base.css | 339 | `.dialog .dialog-body` | gap | `12px` | `0.75rem` |
+| base.css | 340 | `.dialog .dialog-foot` | gap | `8px` | `0.5rem` |
+| base.css | 340 | `.dialog .dialog-foot` | padding | `12px 16px` | `0.75rem 1rem` |
+| base.css | 343 | `(cont.)` | width | `min(560px, 100vw)` | `min(35rem, 100vw)` |
+| base.css | 354 | `(cont.)` | width | `min(640px, calc(100vw - 48px))` | `min(40rem, calc(100vw - 3rem))` |
+| base.css | 359 | `.palette-input` | gap | `10px` | `0.625rem` |
+| base.css | 359 | `.palette-input` | padding | `0 14px` | `0 0.875rem` |
+| base.css | 359 | `.palette-input` | height | `48px` | `3rem` |
+| base.css | 360 | `.palette-input input` | font-size | `14px` | `0.875rem` |
+| base.css | 362 | `.palette-list` | padding | `6px` | `0.375rem` |
+| base.css | 363 | `.palette-group` | padding | `8px 10px 4px` | `0.5rem 0.625rem 0.25rem` |
+| base.css | 363 | `.palette-group` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 365 | `(cont.)` | gap | `10px` | `0.625rem` |
+| base.css | 365 | `(cont.)` | height | `34px` | `2.125rem` |
+| base.css | 365 | `(cont.)` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 370 | `.palette-item .hint` | font-size | `11px` | `0.6875rem` |
+| base.css | 371 | `.palette-empty` | padding | `24px` | `1.5rem` |
+| base.css | 373 | `.toasts` | gap | `8px` | `0.5rem` |
+| base.css | 375 | `(cont.)` | padding | `10px 12px` | `0.625rem 0.75rem` |
+| base.css | 377 | `(cont.)` | gap | `12px` | `0.75rem` |
+| base.css | 377 | `(cont.)` | max-width | `420px` | `26.25rem` |
+| base.css | 386 | `(cont.)` | padding | `10px 14px` | `0.625rem 0.875rem` |
+| base.css | 388 | `(cont.)` | gap | `10px` | `0.625rem` |
+| base.css | 396 | `.settings` | grid-template-columns | `220px minmax(0, 720px)` | `13.75rem minmax(0, 45rem)` |
+| base.css | 396 | `.settings` | gap | `32px` | `2rem` |
+| base.css | 397 | `.settings-nav` | top | `74px` | `4.625rem` |
+| base.css | 399 | `(cont.)` | gap | `10px` | `0.625rem` |
+| base.css | 399 | `(cont.)` | padding | `6px 10px` | `0.375rem 0.625rem` |
+| base.css | 399 | `(cont.)` | min-height | `44px` | `2.75rem` |
+| base.css | 406 | `.settings-nav .hint` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 407 | `.settings-body` | gap | `24px` | `1.5rem` |
+| base.css | 409 | `.settings-section > header` | padding | `14px 16px` | `0.875rem 1rem` |
+| base.css | 409 | `.settings-section > header` | gap | `4px` | `0.25rem` |
+| base.css | 410 | `.settings-section > footer` | padding | `10px 16px` | `0.625rem 1rem` |
+| base.css | 410 | `.settings-section > footer` | gap | `8px` | `0.5rem` |
+| base.css | 412 | `.settings-row` | gap | `16px` | `1rem` |
+| base.css | 412 | `.settings-row` | padding | `12px 16px` | `0.75rem 1rem` |
+| base.css | 412 | `.settings-row` | min-height | `52px` | `3.25rem` |
+| base.css | 414 | `.settings-row.stacked` | gap | `8px` | `0.5rem` |
+| base.css | 416 | `.settings-label .hint` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 417 | `.settings-control` | gap | `8px` | `0.5rem` |
+| base.css | 421 | `.settings-control .select` | min-width | `160px` | `10rem` |
+| base.css | 422 | `.save-bar` | gap | `8px` | `0.5rem` |
+| base.css | 422 | `.save-bar` | font-size | `12px` | `0.75rem` |
+| base.css | 425 | `.log` | font | `400 12px/18px var(--font-mono)` | `400 0.75rem/1.125rem var(--font-mono)` |
+| base.css | 426 | `(cont.)` | padding | `8px 10px` | `0.5rem 0.625rem` |
+| base.css | 426 | `(cont.)` | max-height | `260px` | `16.25rem` |
+| base.css | 434 | `.tabs button` | height | `32px` | `2rem` |
+| base.css | 434 | `.tabs button` | padding | `0 12px` | `0 0.75rem` |
+| base.css | 437 | `.side-list button` | height | `32px` | `2rem` |
+| base.css | 437 | `.side-list button` | padding | `0 10px` | `0 0.625rem` |
+| base.css | 437 | `.side-list button` | gap | `8px` | `0.5rem` |
+| base.css | 441 | `.split` | grid-template-columns | `180px 1fr` | `11.25rem 1fr` |
+| base.css | 441 | `.split` | gap | `16px` | `1rem` |
+| base.css | 461 | `.tf-lane-heads` | font | `400 11px/16px var(--font-ui)` | `400 0.6875rem/1rem var(--font-ui)` |
+| base.css | 504 | `.tf-chip` | font-size | `12px` | `0.75rem` |
+| base.css | 518 | `.code-big` | font | `400 18px/28px var(--font-mono)` | `400 1.125rem/1.75rem var(--font-mono)` |
+| base.css | 519 | `.list` | padding-left | `18px` | `1.125rem` |
+| base.css | 524 | `.settings` | gap | `16px` | `1rem` |
+| base.css | 527 | `.settings-nav a` | min-height | `32px` | `2rem` |

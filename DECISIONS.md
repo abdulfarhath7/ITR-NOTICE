@@ -426,3 +426,35 @@ firm responses and adjournments on the right, one spine between, per
 `src/lib/thread-pairing.ts`, with vitest cases. The Draft button moved from
 the notice card into the empty response slot. Defaults filed as Q25–Q29.
 Reversible: easily; the old `Thread` is in git history.
+
+## D-038 — `work_item_meta` keys on `module:item_id`
+Date: 2026-09-24
+Context: docs/16 §2.2 gives the table a composite primary key; every
+synced table's write and ledger path (`rows::write_value`, merge,
+snapshots) keys on an `id` column.
+Decision: the table keeps `module` and `item_id` (unique together) and
+adds `id = 'module:item_id'`, which is also the ledger entity id the spec
+asks for. Two devices writing the same item's meta name the same row, so
+last-write-wins settles it with no natural-key rule.
+Reversible: yes, with a migration.
+
+## D-039 — New nullable columns on synced rows are skipped when unset
+Date: 2026-09-24
+Context: `drafts.reviewed_at` (0018) is newer than the legacy backfill
+(0009), which writes drafts through the same struct; serialising the new
+field would make 0009 fail on an old archive.
+Decision: `Draft.reviewed_at` is `skip_serializing_if = "Option::is_none"`.
+Clearing it (regenerate, un-review) writes an explicit JSON null through
+`drafts::save_unreviewed`, so the clear still reaches other devices.
+Reversible: easily.
+
+## D-040 — Text size scales through `rem`, not CSS zoom
+Date: 2026-09-24
+Context: docs/16 §3 sets the root font size from `ui_scale`.
+Decision: every text size, line height, control and row height, padding,
+margin and gap in `tokens.css` and `base.css` is in `rem` (16px base);
+borders, radii, shadows, the switch's geometry and the thread-flow
+drawing (positions computed in JS) stay in `px`. The value is cached in
+`localStorage` (`lcc.ui_scale`) so boot applies it before first paint; the
+source of truth is `settings.json`.
+Reversible: easily.
