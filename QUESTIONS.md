@@ -252,88 +252,88 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Options:** A exclusive (8–15, 16–30) / B cumulative (last 15, last 30)
 - **Default used:** A — counts add up and a notice sits in exactly one bucket.
 - **Blast radius:** predicate table in `lib/buckets.ts` and six labels. No data change.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — exclusive. The mockup and labels approved.
+- **Resolved:** yes
 
 ### Q31 — Bucket click: filter in place or jump to Notices
 - **Context:** docs/16 §1.5 last paragraph.
 - **Options:** A filter the list on the Attention screen / B navigate to module-items with the bucket applied
 - **Default used:** A — matches how the existing rank counts behave.
 - **Blast radius:** one click handler plus reading a bucket param in `module-items.tsx`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — in place. As drawn.
+- **Resolved:** yes
 
 ### Q32 — Old rank-count row on Attention
 - **Context:** docs/16 §1.2 replaces the five rank counts with the strip and lanes.
 - **Options:** A remove the row from the UI, keep the ranking logic / B keep the row as a slim line above the strip
 - **Default used:** A — the strip covers ranks 1, 3, 4 and the lanes cover the rest; rank 2 (limitation) stays on the row text.
 - **Blast radius:** one JSX block.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — remove the row. Strip + lanes cover it.
+- **Resolved:** yes
 
 ### Q34 — Saved views storage
 - **Context:** docs/16 §1.6. Views are per device in localStorage.
 - **Options:** A per device, localStorage / B per firm, synced through the ledger
 - **Default used:** A — no schema change; matches how theme and filters are stored.
 - **Blast radius:** `lib/saved-views.ts` swaps its backing store; UI unchanged.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — per device. Fine for now; revisit with Q39.
+- **Resolved:** yes
 
 ### Q33 — "Drafts to review" tile
 - **Context:** docs/16 §1.2 and §2.3 add `drafts.reviewed_at`.
 - **Options:** A include the tile and the Mark-reviewed button / B drop both, no schema change
 - **Default used:** A — one nullable column, easy to remove.
 - **Blast radius:** migration, one tile, one button in the draft drawer.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — keep the tile. Small, already built.
+- **Resolved:** yes
 
 ### Q35 — Build 2 phase numbers collide with the thread-flow phase
 - **Context:** `TASKS.md` already has "Phase 14 — Thread flow redesign" (14.1–14.3). Build 2, from `docs/16-dashboard-v2.md`, also numbers its phases 14–22 and its tasks 14.1 onward.
 - **Options:** A keep both and tell them apart by the "Build 2" heading / B renumber Build 2 to 15–23 / C renumber the thread-flow phase
 - **Default used:** A. `docs/16` and QUESTIONS Q30–Q34 cite Build 2 task numbers (14.3, 21.1…), so renumbering would break every cross-reference. Commits for Build 2 name "Build 2" where a task number could be ambiguous.
 - **Blast radius:** headings in `TASKS.md` only.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — keep numbering. Renumbering breaks every cross-ref.
+- **Resolved:** yes
 
 ### Q36 — Saved views are specified and also listed as out of scope
 - **Context:** `docs/16` §1.6 and task 15.5a specify saved views in full; §9 "Out of scope" lists "saved views". Q34 asks only where views are stored.
 - **Options:** A build them per §1.6 / B skip them per §9
 - **Default used:** A. The detailed section, the task and Q34 all assume they exist; §9 reads as a leftover from an earlier draft.
 - **Blast radius:** `lib/saved-views.ts` and the views row in `screens/attention.tsx`; removing both leaves "All" as the only tab.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — build them. §9 line was a leftover.
+- **Resolved:** yes
 
 ### Q37 — Spec names a `--radius` token that does not exist
 - **Context:** `docs/16` §1.2 and §1.5 size tiles with `--radius`; `tokens.css` has `--radius-control` (6px) and `--radius-card` (10px).
 - **Options:** A tiles use `--radius-control`, cards use `--radius-card` / B add `--radius`
 - **Default used:** A. Same pattern as Q29: no new token for a value that already exists. Lane and list cards use the spec's literal 12px radius.
 - **Blast radius:** a few CSS rules under `.att-*` in `base.css`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — existing tokens.
+- **Resolved:** yes
 
 ### Q38 — Note tooltip shows "has a note", not the first 120 characters
 - **Context:** docs/16 §1.7 wants the note icon's tooltip to show the note's first 120 characters; §2.2 has `list_work_items` return only `has_note`.
 - **Options:** A tooltip says the item has a note / B also return `note_preview` (first 120 chars) on every row
 - **Default used:** A. Keeps note text out of the list payload the shell and exports share; the full note is one click away.
 - **Blast radius:** one column in the four list queries, one field in `WorkItemRow`, the `title` attribute in `attention.tsx`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** B — return note_preview. Spec wanted it; one column. Applied in TASKS 22.1.
+- **Resolved:** yes
 
 ### Q39 — Updates only sees this device's ledger stream
 - **Context:** docs/16 §4.1 diffs "the ledger". Locally, `ledger` holds only entries this device wrote; changes replayed from the collector are applied to rows but not re-logged.
 - **Options:** A read the local ledger as is (complete on the collector) / B also record applied foreign entries in a local "received" table and diff that
 - **Default used:** A. No schema change; the collector is the device that sweeps and the one a CA watches for new notices.
 - **Blast radius:** B needs a migration, one insert in `ledger::apply`, and the query in `repo/updates.rs` reading both tables.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** B — received table. Otherwise Updates is empty on every non-collector device, which is most of the firm. Applied in TASKS 22.2.
+- **Resolved:** yes
 
 ### Q40 — Detail thread: keep the two-lane flow or switch to a newest-first list
 - **Context:** docs/16 §6 and task 19.1 describe the proceeding thread as one vertical list, newest at top, with a dot per entry. The detail screen already draws the thread as the two-lane `ThreadFlow` (D-037, Q25–Q29 answered 2026-09-23), which has dots, tones, the document list per entry and the Draft slot.
 - **Options:** A keep `ThreadFlow` as it is / B replace it with the newest-first list / C add a "Newest first" list toggle beside the flow
 - **Default used:** A. The flow was built and its questions answered the day before this spec; replacing it would undo that work (operating rule: never delete finished work). Everything §6 asks of an entry — dot tone, title, date line, documents — the flow already shows.
 - **Blast radius:** B or C is one new component in `ui/` and a switch in `screens/work-item.tsx`; pairing logic is reusable.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — keep ThreadFlow. Switch to C only if the newest-first list is missed after use.
+- **Resolved:** yes
 
 ### Q41 — Earlier-build tests that docs/12 does not name
 - **Context:** Request "keep test fixtures only where docs/12 names them". Build 2's unnamed tests were removed. Older ones were each required by an accepted task (e.g. 14.2 "two vitest cases", 11.1/11.2 round trips, relay invariants run by `check.sh`) and use the allowlisted example PAN.

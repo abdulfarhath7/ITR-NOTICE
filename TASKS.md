@@ -273,8 +273,7 @@ next milestone with a broken tree.
 
 ## Phase 22 — Apply the answered questions (do not start until answers exist)
 
-Placeholder. When `QUESTIONS.md` has `Answer:` lines filled for Q30 onward,
-add one task here per answer that differs from the default used, in the
-same style as Phase 12, then work them top to bottom. Every task must name
-the Qnn it applies and the files it touches. Do not begin any task in this
-phase while its question is still `Resolved: no`.
+Q30–Q37 and Q40 confirmed the defaults as built. Two answers differ:
+
+- [x] **22.1** (Q38) `list_work_items` returns `note_preview` (first 120 characters of `work_item_meta.note`) beside `has_note`; the Attention note icon's tooltip shows it. Files: `src-tauri/src/repo/work_items.rs`, `src/lib/types.ts`, `src/screens/attention.tsx`.
+- [ ] **22.2** (Q39) Migration `ledger_received`: every foreign ledger entry `ledger::apply` writes is also recorded there. `repo/updates.rs` diffs `ledger` and `ledger_received` together, and when this device has no local sweep rows (it is not the collector) takes `since` from the received sweep-source entries. Files: `migrations/0021_ledger_received.sql`, `src-tauri/src/migrate.rs`, `src-tauri/src/ledger.rs`, `src-tauri/src/repo/updates.rs`, `docs/02-data-model.md`, `docs/03-sync-and-ledger.md`.

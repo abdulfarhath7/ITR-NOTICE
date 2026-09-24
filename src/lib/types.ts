@@ -132,6 +132,8 @@ export interface WorkItemRow {
   issued_on: string | null;
   assignee: string | null;
   has_note: boolean;
+  /** First 120 characters of the note (Q38). */
+  note_preview: string | null;
   /** Drafts on this item not yet marked reviewed. */
   drafts_to_review: number;
   /** Demands: current outstanding, else the demand amount. */

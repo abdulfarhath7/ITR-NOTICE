@@ -225,7 +225,7 @@ function Row({ item, nav, today, owning, onOwn, onDraft, onDate }: {
       <td className="wrap">
         <span className="att-client">
           {r.client_name}
-          {r.has_note ? <span className="att-note" title="Has a note — open the item to read it"><Icon name="note" /></span> : null}
+          {r.has_note ? <span className="att-note" title={`${r.note_preview ?? ""}${(r.note_preview?.length ?? 0) >= 120 ? "…" : ""}`}><Icon name="note" /></span> : null}
         </span>
         <div className="sub mono">{[r.client_code, r.pan_masked].filter(Boolean).join(" · ")}</div>
       </td>

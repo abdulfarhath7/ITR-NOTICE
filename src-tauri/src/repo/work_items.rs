@@ -52,6 +52,8 @@ pub struct WorkItemRow {
     /// From `work_item_meta` (docs/16 §2.2).
     pub assignee: Option<String>,
     pub has_note: bool,
+    /// First 120 characters of the note, for the list's tooltip (Q38).
+    pub note_preview: Option<String>,
     /// Drafts on this item's communications not yet marked reviewed.
     pub drafts_to_review: i64,
     /// Demands: current outstanding, else the demand amount. None elsewhere.
@@ -116,7 +118,7 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
                   AND c3.status IN ('open','adjournment_sought','unknown')),
                 x.last_seen_at,
                 (SELECT max(c4.issued_on) FROM communications c4 WHERE c4.proceeding_id = x.id AND c4.direction = 'inbound'),
-                m.assignee, coalesce(m.note, '') <> '',
+                m.assignee, coalesce(m.note, '') <> '', substr(m.note, 1, 120),
                 (SELECT count(*) FROM drafts dr JOIN communications c5 ON c5.id = dr.communication_id
                   WHERE c5.proceeding_id = x.id AND dr.reviewed_at IS NULL)
          FROM proceedings x
@@ -142,7 +144,7 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
             limitation_date: r.get(15)?, status: r.get(16)?, source_panel: r.get(17)?,
             verified_flag: r.get(18)?, gap_flags: gaps(r.get(19)?), document_count: r.get(20)?,
             open_communications: r.get(21)?, last_seen_at: r.get(22)?,
-            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, drafts_to_review: r.get(26)?, amount: None,
+            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, note_preview: r.get(26)?, drafts_to_review: r.get(27)?, amount: None,
         })
     })?;
     let mut out: Vec<WorkItemRow> = rows.collect::<Result<Vec<_>, _>>()?;
@@ -158,7 +160,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
                 x.demand_reference_number, x.section_or_demand_type, x.demand_amount, x.current_outstanding,
                 x.raised_on, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
                 (SELECT count(*) FROM demand_responses r WHERE r.demand_id = x.id),
-                m.assignee, coalesce(m.note, '') <> ''
+                m.assignee, coalesce(m.note, '') <> '', substr(m.note, 1, 120)
          FROM demands x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
@@ -186,7 +188,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
-            issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0,
+            issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0,
             amount: outstanding.or(r.get::<_, Option<f64>>(9)?),
         })
     })?;
@@ -199,7 +201,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
                 x.acknowledgement_number, x.return_type, x.filing_type, x.filed_on, x.verification_status,
                 x.processing_status, x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
                 (SELECT count(*) FROM documents d WHERE d.parent_type = 'return' AND d.parent_id = x.id AND d.state = 'stored'),
-                m.assignee, coalesce(m.note, '') <> ''
+                m.assignee, coalesce(m.note, '') <> '', substr(m.note, 1, 120)
          FROM returns x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
@@ -227,7 +229,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
             document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
-            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, drafts_to_review: 0, amount: None,
+            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, note_preview: r.get(20)?, drafts_to_review: 0, amount: None,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -239,7 +241,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
                 x.acknowledgement_number, coalesce(x.form_label, t.label), t.label, x.filed_on, x.portal_status,
                 x.status, x.verified_flag, x.gap_flags, x.last_seen_at,
                 (SELECT count(*) FROM documents d WHERE d.parent_type = 'filed_form' AND d.parent_id = x.id AND d.state = 'stored'),
-                m.assignee, coalesce(m.note, '') <> ''
+                m.assignee, coalesce(m.note, '') <> '', substr(m.note, 1, 120)
          FROM filed_forms x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
@@ -259,7 +261,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
-            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, drafts_to_review: 0, amount: None,
+            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, amount: None,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
