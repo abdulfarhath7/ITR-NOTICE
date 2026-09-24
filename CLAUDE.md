@@ -40,6 +40,9 @@ This is an unattended build. The user is asleep. There is no one to ask.
 7. Do not write tests the user did not ask for beyond what
    `docs/12-testing.md` specifies. The user tests manually.
 8. Do not refactor code outside the current task's scope.
+9. Build 2 (Phases 14–22) is milestone-driven. Finish a milestone —
+   building and starting — before touching the next. Do not begin
+   Phase 22 until QUESTIONS.md Q30 onward carry answers.
 
 **If you run low on context:** update `TASKS.md` and `NOTES.md` first so the
 next session can resume cleanly. That is the highest-value thing you can do
@@ -117,6 +120,7 @@ docs/                 the specification you are building from
 | `13-conventions.md` | before your first commit |
 | `14-glossary.md` | whenever a tax term is unfamiliar |
 | `15-known-bugs.md` | Phase 2 |
+| `16-dashboard-v2.md` | Build 2 — Phases 14 to 22, read in full before Phase 14 |
 
 ---
 
