@@ -671,3 +671,34 @@ Drafts to review tile. **Client** — Sync switch then a whole-book sweep
 Notes. **Export** — any list; check the file name, header row, widths,
 Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
 `QUESTIONS.md`.
+
+## Session 5 — 2026-09-24, answers applied, real data
+
+### Dummy data removed (request 1)
+
+- Browser preview harness deleted (it lived in the session scratch folder,
+  never in git): its mocked Tauri core with 20 invented work items, six
+  invented client names, sample owners, invented update entries and a
+  sample client; its Vite config and the scratch app-data folder used for
+  start checks.
+- `src/screens/settings/general.tsx`: the text-size preview line no longer
+  carries a sample PAN (`Notice u/s 143(1) · Due 30 Sep · Reply pending`).
+- `src/screens/attention.tsx`: the save-view name placeholder "Rao –
+  scrutiny" is now "View name".
+- Tests added in Build 2 that docs/12 does not name, with their invented
+  clients, owners and PANs: `repo/meta.rs`
+  (`assignee_round_trips_through_the_ledger`), `repo/work_items.rs`
+  (`issued_on_is_the_latest_inbound_communication`,
+  `assignee_and_note_show_on_the_row`), `repo/updates.rs`
+  (`two_runs_one_entry_per_rule`), `mask.rs`
+  (`text_masks_pan_and_long_numbers`). Rust suite now 31 tests.
+- Kept: tests docs/12 names (dates, ledger apply/resume/converge,
+  snapshot + tail, ingestion streak/zero-row/resume/gaps, source
+  independence), the scrubbed parser fixture
+  (`sidecar/tests/fixtures/proceeding-cards.html`, docs/12 "Fixtures"), and
+  the `type_registry` seed in migration 0003 (reference data, not sample
+  data). Earlier-build tests that an accepted task required but docs/12
+  does not name (bundle, GSTIN, intake modules, export columns, queue
+  lock, scheduler, relay invariants, thread pairing, attention ranking)
+  are kept pending Q41. Input placeholders that are hints ("Name, code or
+  PAN", "you@firm.in") are UI copy, not data, and stay.

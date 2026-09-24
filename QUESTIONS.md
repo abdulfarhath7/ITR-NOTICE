@@ -334,3 +334,11 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** B or C is one new component in `ui/` and a switch in `screens/work-item.tsx`; pairing logic is reusable.
 - **Answer:**
 - **Resolved:** no
+
+### Q41 — Earlier-build tests that docs/12 does not name
+- **Context:** Request "keep test fixtures only where docs/12 names them". Build 2's unnamed tests were removed. Older ones were each required by an accepted task (e.g. 14.2 "two vitest cases", 11.1/11.2 round trips, relay invariants run by `check.sh`) and use the allowlisted example PAN.
+- **Options:** A keep them / B delete every test docs/12 does not name, and drop the relay step from `check.sh` if its tests go
+- **Default used:** A. Deleting them removes accepted work the earlier answers asked for; one instruction away if wanted.
+- **Blast radius:** B deletes about 20 Rust tests, 10 vitest cases and 9 relay tests.
+- **Answer:**
+- **Resolved:** no

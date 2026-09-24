@@ -197,7 +197,7 @@ function NameDialog({ title, initial, onSave, onClose }: {
       <div className="field">
         <label htmlFor="view-name">Name</label>
         <input id="view-name" className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
-               onKeyDown={(e) => { if (e.key === "Enter" && ok) onSave(name); }} placeholder="Rao – scrutiny" />
+               onKeyDown={(e) => { if (e.key === "Enter" && ok) onSave(name); }} placeholder="View name" />
         <span className="hint">Saves the selects, owner, tile and buckets. Search text is not saved.</span>
       </div>
     </Dialog>

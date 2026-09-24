@@ -78,33 +78,3 @@ pub fn assignees(con: &Connection) -> AppResult<Vec<String>> {
     Ok(rows.collect::<Result<_, _>>()?)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::repo::local;
-
-    /// Task 14.1: an assignee set here lands in the ledger and on the row.
-    #[test]
-    fn assignee_round_trips_through_the_ledger() {
-        let mut con = Connection::open_in_memory().unwrap();
-        crate::migrate::run(&mut con).unwrap();
-        local::set(&con, local::DEVICE_ID, "dev_a").unwrap();
-        set(&con, "proceedings", "p1", MetaPatch { assignee: Some("Rao".into()), note: None }, "dev_a").unwrap();
-        let entries = crate::ledger::entries_after(&con, "dev_a", 0).unwrap();
-        let e = entries.iter().find(|e| e.entity_type == "work_item_meta").expect("ledger entry");
-        assert_eq!(e.entity_id, "proceedings:p1");
-        assert_eq!(e.payload["assignee"], "Rao");
-        // a second device receives it
-        let mut b = Connection::open_in_memory().unwrap();
-        crate::migrate::run(&mut b).unwrap();
-        local::set(&b, local::DEVICE_ID, "dev_b").unwrap();
-        crate::ledger::apply(&mut b, &entries).unwrap();
-        assert_eq!(get(&b, "proceedings", "p1").unwrap().unwrap().assignee.as_deref(), Some("Rao"));
-        // clearing
-        set(&con, "proceedings", "p1", MetaPatch { assignee: Some(String::new()), note: Some("call AO".into()) }, "dev_a").unwrap();
-        let m = get(&con, "proceedings", "p1").unwrap().unwrap();
-        assert_eq!(m.assignee, None);
-        assert_eq!(m.note.as_deref(), Some("call AO"));
-        assert_eq!(assignees(&con).unwrap(), Vec::<String>::new());
-    }
-}

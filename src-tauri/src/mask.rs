@@ -44,11 +44,3 @@ pub fn text(s: &str) -> String {
     out
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn text_masks_pan_and_long_numbers() {
-        assert_eq!(super::text("login ABCDE1234F failed, call 9876543210"), "login ABCDE••••F failed, call ••••••3210");
-        assert_eq!(super::text("captcha wrong"), "captcha wrong");
-    }
-}

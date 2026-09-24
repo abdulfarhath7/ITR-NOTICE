@@ -31,7 +31,7 @@ export default function General({ theme }: { theme: ReturnType<typeof useTheme> 
         <Row label="Text size" hint={`Scales the whole app. ${MOD} + / ${MOD} − / ${MOD} 0 to reset.`} stacked>
           <div className="stack">
             <TextSizeStepper value={scale} onChange={setScale} />
-            <p className="text-preview" aria-hidden="true">AABCV••••K · Notice u/s 143(1) · Due 30 Sep · Reply pending</p>
+            <p className="text-preview" aria-hidden="true">Notice u/s 143(1) · Due 30 Sep · Reply pending</p>
           </div>
         </Row>
       </Section>
