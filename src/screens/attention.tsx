@@ -7,6 +7,7 @@ import { useRowNav, type RowNavProps } from "../hooks/use-row-nav";
 import { useAttention, useWorkItems } from "../hooks/use-work-items";
 import { RANKS, RANK_LABEL, RANK_TONE, type Rank, type RankedItem } from "../lib/attention";
 import { MODULES, MODULE_LABEL, MODULE_NOUN, plural } from "../lib/labels";
+import { usePersistedFilters } from "../lib/persisted-filters";
 import { href, navigate } from "../lib/router";
 import { STATUSES, STATUS_LABEL, isSettled } from "../lib/status";
 import type { Module } from "../lib/types";
@@ -50,10 +51,12 @@ function Row({ item, nav }: { item: RankedItem; nav: RowNavProps }) {
 }
 
 export default function AttentionScreen() {
-  const [clientId, setClientId] = useState("");
-  const [ay, setAy] = useState("");
-  const [module, setModule] = useState<"" | Module>("");
-  const [status, setStatus] = useState("");
+  const [f, setF] = usePersistedFilters("attention", { clientId: "", ay: "", module: "" as "" | Module, status: "" });
+  const { clientId, ay, module, status } = f;
+  const setClientId = (clientId: string) => setF({ clientId });
+  const setAy = (ay: string) => setF({ ay });
+  const setModule = (module: "" | Module) => setF({ module });
+  const setStatus = (status: string) => setF({ status });
   const [rank, setRank] = useState<Rank | null>(null);
   const [exporting, setExporting] = useState(false);
   const [limit, setLimit] = useState(PAGE);
