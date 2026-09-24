@@ -702,3 +702,18 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
   lock, scheduler, relay invariants, thread pairing, attention ranking)
   are kept pending Q41. Input placeholders that are hints ("Name, code or
   PAN", "you@firm.in") are UI copy, not data, and stay.
+
+### Phase 22 — answers applied (request 2)
+
+- Q30–Q37, Q40 confirmed the defaults; answers written into QUESTIONS.md.
+- 22.1 (Q38) `note_preview` (first 120 characters) on every work-item row;
+  the Attention note icon's tooltip shows it, with "…" when cut.
+- 22.2 (Q39) Migration 0021 `ledger_received`. `ledger::apply` records each
+  applied foreign entry under its merged local id in the same transaction.
+  `repo/updates.rs` diffs `ledger` ∪ `ledger_received`. A device with no
+  sweep or run rows takes `since` from received sweep-source entries,
+  split into sweeps at gaps over 30 minutes. Sync-failed rows still come
+  only from local `ingestion_runs`, so a non-collector shows no "Sync
+  failed" group (runs are not synced). Entries applied before this build
+  were not recorded, so a non-collector's Updates starts filling from its
+  next sync.

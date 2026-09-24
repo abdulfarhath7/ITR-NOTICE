@@ -528,3 +528,12 @@ Context: docs/16 §5 tones a day danger when it is past and holds open
 items. In the Issued view every counted day is in the past.
 Decision: the Issued view shows neutral pills.
 Reversible: easily.
+
+## D-049 — Received ledger entries are kept locally for Updates (Q39)
+Date: 2026-09-24
+Context: Q39 answered B: Updates must work on devices that do not sweep.
+Decision: migration 0021 `ledger_received` (local, not synced) records each
+applied foreign entry in the apply transaction. A non-sweeping device
+infers sweeps from received sweep-source entries separated by more than
+30 minutes. Failed runs are still local to the collector.
+Reversible: yes; the table can be dropped with no effect on sync.

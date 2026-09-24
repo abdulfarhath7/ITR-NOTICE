@@ -2,6 +2,9 @@
 //! ledger against the previous ingestion run and classifies each changed
 //! entity into one group. Nothing here writes.
 //!
+//! Entries come from this device's `ledger` and from `ledger_received`
+//! (entries applied from other devices, Q39).
+//!
 //! Per entity, the newest ledger entry after `since` is compared with the
 //! newest entry at or before it (the baseline), so an item touched twice
 //! in one sweep is one update, not two.
@@ -66,7 +69,38 @@ pub fn default_since(con: &Connection) -> AppResult<Option<String>> {
         _ => {}
     }
     let last: Option<String> = con.query_row("SELECT max(run_at) FROM ingestion_runs", [], |r| r.get(0))?;
-    Ok(last.map(|l| format!("{}T00:00:00.000Z", &l[..10.min(l.len())])))
+    if let Some(l) = last {
+        return Ok(Some(format!("{}T00:00:00.000Z", &l[..10.min(l.len())])));
+    }
+    received_since(con)
+}
+
+/// A gap this long between two sweep writes separates two sweeps.
+const SWEEP_GAP_MINUTES: i64 = 30;
+
+/// A device that does not sweep has no sweep rows of its own (Q39). It
+/// reads the sweeps from the collector's sweep-source entries it received:
+/// writes more than `SWEEP_GAP_MINUTES` apart belong to different sweeps.
+/// `since` is the end of the second-newest such sweep, or the start of the
+/// only one.
+fn received_since(con: &Connection) -> AppResult<Option<String>> {
+    let mut st = con.prepare("SELECT created_at FROM ledger_received WHERE source = 'sweep' ORDER BY created_at")?;
+    let stamps: Vec<String> = st.query_map([], |r| r.get(0))?.collect::<Result<_, _>>()?;
+    let parse = |t: &str| chrono::DateTime::parse_from_rfc3339(t).ok();
+    // (start, end) of each sweep, oldest first
+    let mut sweeps: Vec<(String, String)> = Vec::new();
+    for t in stamps {
+        match sweeps.last_mut() {
+            Some((_, end)) if matches!((parse(end), parse(&t)), (Some(a), Some(b))
+                if b.signed_duration_since(a).num_minutes() <= SWEEP_GAP_MINUTES) => *end = t,
+            _ => sweeps.push((t.clone(), t)),
+        }
+    }
+    Ok(match sweeps.len() {
+        0 => None,
+        1 => sweeps.pop().map(|(start, _)| start),
+        n => Some(sweeps[n - 2].1.clone()),
+    })
 }
 
 fn s(v: &Value, k: &str) -> Option<String> {
@@ -210,19 +244,26 @@ pub fn list(con: &Connection, since: Option<String>) -> AppResult<UpdatesReport>
     let since = match since { Some(x) => Some(x), None => default_since(con)? };
     let Some(since) = since else { return Ok(UpdatesReport { since: None, entries: Vec::new() }) };
 
-    // The newest upsert per entity in the window.
+    // The newest upsert per entity in the window, from this device's own
+    // stream and from what it received from others (Q39).
     let mut st = con.prepare(
-        "SELECT l.entity_type, l.entity_id, l.payload, l.created_at FROM ledger l
+        "WITH e AS (SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger
+                    UNION ALL
+                    SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger_received)
+         SELECT l.entity_type, l.entity_id, l.payload, l.created_at FROM e l
          WHERE l.op = 'upsert' AND l.created_at > ?1
            AND l.entity_type IN ('communications','proceedings','responses','demands')
-           AND NOT EXISTS (SELECT 1 FROM ledger n WHERE n.entity_type = l.entity_type AND n.entity_id = l.entity_id
+           AND NOT EXISTS (SELECT 1 FROM e n WHERE n.entity_type = l.entity_type AND n.entity_id = l.entity_id
                            AND n.op = 'upsert' AND (n.created_at > l.created_at
                                 OR (n.created_at = l.created_at AND (n.device_id, n.seq) > (l.device_id, l.seq))))
          ORDER BY l.created_at DESC")?;
     let latest: Vec<(String, String, String, String)> = st.query_map([&since], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?
         .collect::<Result<_, _>>()?;
     let mut base = con.prepare_cached(
-        "SELECT payload FROM ledger WHERE entity_type = ?1 AND entity_id = ?2 AND op = 'upsert' AND created_at <= ?3
+        "SELECT payload FROM (SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger
+                              UNION ALL
+                              SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger_received)
+         WHERE entity_type = ?1 AND entity_id = ?2 AND op = 'upsert' AND created_at <= ?3
          ORDER BY created_at DESC, device_id DESC, seq DESC LIMIT 1")?;
     let mut entries = Vec::new();
     for (etype, eid, payload, at) in latest {

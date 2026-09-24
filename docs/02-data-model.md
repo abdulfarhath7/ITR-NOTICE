@@ -181,6 +181,11 @@ are evidence; skipping is not.
 ### ledger
 See `03-sync-and-ledger.md`.
 
+### ledger_received  (migration 0021, Q39)
+Local, never synced. Every entry `ledger::apply` applies from another device,
+under the local id it merged into, plus `received_at`. The Updates screen
+diffs it with this device's own `ledger`.
+
 ### work_item_meta  (Build 2, migration 0017)
 | column | type | notes |
 |---|---|---|

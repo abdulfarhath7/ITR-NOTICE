@@ -169,7 +169,10 @@ pub fn apply(con: &mut Connection, entries: &[Entry]) -> AppResult<ApplyReport> 
             continue;
         }
         match apply_one(&tx, e, &mut idmap) {
-            Ok(true) => report.applied += 1,
+            Ok(true) => {
+                report.applied += 1;
+                record_received(&tx, e, &idmap)?;
+            }
             Ok(false) => report.skipped_lost += 1,
             Err(err) => {
                 report.errors.push(format!("{}#{} {}: {err}", e.device_id, e.seq, e.entity_type));
@@ -179,6 +182,19 @@ pub fn apply(con: &mut Connection, entries: &[Entry]) -> AppResult<ApplyReport> 
         tx.commit()?;
     }
     Ok(report)
+}
+
+/// Keep an applied foreign entry (Q39), under the local id it merged into,
+/// so the Updates screen can diff what other devices changed.
+fn record_received(tx: &Transaction, e: &Entry, idmap: &crate::merge::IdMap) -> AppResult<()> {
+    let local_id = idmap.get(&(e.entity_type.clone(), e.entity_id.clone())).cloned().unwrap_or_else(|| e.entity_id.clone());
+    let mut payload = e.payload.clone();
+    if payload.get("id").is_some() { payload["id"] = Value::from(local_id.clone()); }
+    tx.execute(
+        "INSERT OR IGNORE INTO ledger_received (device_id, seq, op, entity_type, entity_id, payload, created_at, source, received_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![e.device_id, e.seq, e.op, e.entity_type, local_id, payload.to_string(), e.created_at, e.source, now()])?;
+    Ok(())
 }
 
 fn apply_one(tx: &Transaction, e: &Entry, idmap: &mut crate::merge::IdMap) -> AppResult<bool> {

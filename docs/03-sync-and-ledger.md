@@ -98,3 +98,12 @@ Show two independent facts, never collapsed into one:
 
 "You are up to date" while the collector has been dead for four days is the
 most dangerous message this app can display. See `09-ui-spec.md`.
+
+## Received entries (Q39)
+
+`ledger` holds this device's own stream only. An entry applied from another
+device is also kept in `ledger_received` (local, never synced) so the
+Updates screen can say what changed on every device, not only on the
+collector. A device with no sweeps of its own splits the received
+sweep-source entries into sweeps wherever two are more than 30 minutes
+apart, and compares against the end of the second-newest.
