@@ -1,5 +1,6 @@
 /** The shell: navigation on the left, one screen on the right (docs/09). */
 import { useEffect } from "react";
+import { useTextSizeShortcuts } from "./hooks/use-text-size";
 import { useAttentionCounts } from "./hooks/use-work-items";
 import { api } from "./lib/api";
 import { PRODUCT_NAME, PRODUCT_SHORT } from "./lib/product";
@@ -62,6 +63,7 @@ export default function App() {
   const route = useRoute();
   const theme = useTheme();
   const palette = useCommandPalette();
+  useTextSizeShortcuts();
   // The first launch lands on the wizard until it is finished or skipped.
   const setup = useQuery<SetupState>("setup:gate", () => api.setupState());
   useEffect(() => {

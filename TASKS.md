@@ -229,9 +229,9 @@ next milestone with a broken tree.
 
 ## Phase 16 — Settings: text size (milestone 3)
 
-- [ ] **16.1** Stepper control in `ui/stepper.tsx` (A− · five dots · A+ · %) with the live preview line under it. Row in `settings/general.tsx` (§3). Persists immediately via `write_settings`, no save bar.
-- [ ] **16.2** Keyboard shortcuts Ctrl/Cmd `+` `−` `0` registered once in the shell; ignored when focus is inside `input`, `textarea`, `select` or a `contenteditable`. Toast "Text size 112%" on change.
-- [ ] **16.3** Verify the command palette (⌘K) and every dialog still fit at 125%; fix any that overflow by using `rem` and `max-height: 90vh`. `NOTES.md` entry. Commit.
+- [x] **16.1** Stepper control in `ui/stepper.tsx` (A− · five dots · A+ · %) with the live preview line under it. Row in `settings/general.tsx` (§3). Persists immediately via `write_settings`, no save bar.
+- [x] **16.2** Keyboard shortcuts Ctrl/Cmd `+` `−` `0` registered once in the shell; ignored when focus is inside `input`, `textarea`, `select` or a `contenteditable`. Toast "Text size 112%" on change.
+- [x] **16.3** Verify the command palette (⌘K) and every dialog still fit at 125%; fix any that overflow by using `rem` and `max-height: 90vh`. `NOTES.md` entry. Commit.
 
 ## Phase 17 — Updates screen (milestone 4)
 

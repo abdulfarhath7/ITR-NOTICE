@@ -527,3 +527,18 @@ positions are computed in JS). Media-query breakpoints stay px.
   of the repo) at 1366×768: no horizontal overflow at 100% or 125%, row
   height stays 40px when hover actions appear, bucket click filters and
   persists, tile click clears the bucket.
+
+### Milestone 3 — Settings: text size (2026-09-24)
+
+- 16.1 `ui/stepper.tsx` (A− · five dots · A+ · %) in Settings › General
+  with the live preview line (sample PAN in the masked form the secret
+  scan allows). `hooks/use-text-size.ts` applies at once and persists
+  through `save_settings`, writes serialised so key repeats land in order.
+- 16.2 Ctrl/Cmd `+` (or `=`), `−`, `0` registered once in the shell;
+  ignored in inputs, textareas, selects and contenteditable. Toast
+  "Text size 112%". Listed under Settings › Keyboard.
+- 16.3 At 125% in the harness the command palette (60vh, top 12vh) and
+  dialogs (`max-height: calc(100vh - 3rem)`, scrolling body) fit the
+  window; no change was needed beyond the rem move in 14.4.
+- Error hit: after an HMR update the harness page threw "stepScale is not
+  defined" from a stale module; a full reload cleared it. Not a code bug.
