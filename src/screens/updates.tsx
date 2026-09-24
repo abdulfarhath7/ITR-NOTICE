@@ -182,7 +182,7 @@ export default function UpdatesScreen() {
         )}
       </PageBody>
       {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} sourceDocumentId={null} onClose={draft.close}
-                                  onSave={(t) => { void draft.saveText(t); }} /> : null}
+                                  onSave={(t) => { void draft.saveText(t); }} onReviewed={(r) => { void draft.setReviewed(r); }} /> : null}
     </Page>
   );
 }

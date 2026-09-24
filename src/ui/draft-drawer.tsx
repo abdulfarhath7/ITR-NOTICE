@@ -6,9 +6,11 @@ import { api, blobUrl } from "../lib/api";
 import type { Draft } from "../lib/types";
 import { Dialog } from "../ui/dialog";
 
-export default function DraftDrawer({ draft, busy, sourceDocumentId, onClose, onSave }: {
+export default function DraftDrawer({ draft, busy, sourceDocumentId, onClose, onSave, onReviewed }: {
   draft: Draft; busy: boolean; sourceDocumentId: string | null; onClose: () => void;
   onSave: (text: string) => void;
+  /** Set or clear `reviewed_at` (docs/16 §6). */
+  onReviewed?: (reviewed: boolean) => void;
 }) {
   const [text, setText] = useState(draft.draft_text);
   const [source, setSource] = useState<string | null>(null);
@@ -29,6 +31,10 @@ export default function DraftDrawer({ draft, busy, sourceDocumentId, onClose, on
   return (
     <Dialog wide title={`Draft reply · ${draft.ref_id}`} onClose={onClose} footer={
       <>
+        {onReviewed ? (draft.reviewed_at
+          ? <button className="btn quiet" disabled={busy} onClick={() => onReviewed(false)} title={`Reviewed ${draft.reviewed_at}`}><span className="pill success">Reviewed</span><span>Clear</span></button>
+          : <button className="btn" disabled={busy || dirty} onClick={() => onReviewed(true)} title={dirty ? "Save your edits first" : undefined}>Mark reviewed</button>) : null}
+        <span className="grow" />
         <button className="btn" onClick={() => { void copy(); }}>Copy</button>
         <button className="btn accent" disabled={!dirty || busy} onClick={() => onSave(text)}>Save</button>
       </>

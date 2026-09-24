@@ -19,6 +19,7 @@ import DueText from "../ui/due-text";
 import EmptyState from "../ui/empty-state";
 import Gap from "../ui/gap";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
+import { NotesCard, OwnerRow } from "../ui/item-meta";
 import { StatusPill } from "../ui/pill";
 import ThreadFlow from "../ui/thread-flow";
 import { DemandScreen, FiledFormScreen, ReturnScreen } from "./module-items";
@@ -75,7 +76,9 @@ function ProceedingScreen({ id }: { id: string }) {
     <Page>
       <PageHead title={p.display_name ?? p.type_label} back={{ route: { name: "client", id: p.client_id }, label: p.client_name }}
                 meta={<span className="row"><StatusPill status={p.status} />
-                  {p.verified_flag ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}</span>} />
+                  {p.verified_flag ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}</span>}>
+        <OwnerRow module="proceedings" id={p.id} />
+      </PageHead>
       <PageBody>
         <div className="grid-2">
           <div className="card">
@@ -124,11 +127,13 @@ function ProceedingScreen({ id }: { id: string }) {
                     onSuggest={(c) => { void suggest(c); }} />
           </div>
         </div>
+
+        <NotesCard module="proceedings" id={p.id} />
       </PageBody>
 
       <DocPreview docs={docs} />
       {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} sourceDocumentId={draftSource} onClose={draft.close}
-                                  onSave={(t) => { void draft.saveText(t); }} /> : null}
+                                  onSave={(t) => { void draft.saveText(t); }} onReviewed={(r) => { void draft.setReviewed(r); }} /> : null}
     </Page>
   );
 }

@@ -671,3 +671,5 @@ table.att-table td .sub { white-space: nowrap; overflow: hidden; text-overflow: 
 .cal-item-view { display: none; }
 .cal-item:hover .cal-item-view, .cal-item:focus-within .cal-item-view { display: inline-flex; }
 .cal-item:hover .cal-item-pill, .cal-item:focus-within .cal-item-pill { display: none; }
+.owner-row { display: inline-flex; align-items: center; gap: 0.5rem; }
+.textarea.notes { width: 100%; }

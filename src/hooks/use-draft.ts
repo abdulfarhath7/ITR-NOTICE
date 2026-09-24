@@ -2,6 +2,7 @@
  *  never called twice for the same notice (docs/08). */
 import { useCallback, useState } from "react";
 import { api, describeError } from "../lib/api";
+import { invalidate } from "../lib/query";
 import { toast, toastError } from "../lib/toast";
 import type { Draft } from "../lib/types";
 
@@ -31,5 +32,18 @@ export function useDraft() {
 
   const close = useCallback(() => setDraft(null), []);
 
-  return { draft, busy, open, saveText, close };
+  /** "Mark reviewed" (docs/16 §6); the Attention strip counts the rest. */
+  const setReviewed = useCallback(async (reviewed: boolean) => {
+    if (!draft) return;
+    setBusy(true);
+    try {
+      await api.setDraftReviewed(draft.ref_id, reviewed);
+      setDraft({ ...draft, reviewed_at: reviewed ? new Date().toISOString() : null });
+      toast(reviewed ? "Marked reviewed." : "Review mark cleared.");
+      invalidate("work_items");
+    } catch (e) { toastError(describeError(e)); }
+    finally { setBusy(false); }
+  }, [draft]);
+
+  return { draft, busy, open, saveText, close, setReviewed };
 }

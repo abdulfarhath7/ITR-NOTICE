@@ -527,7 +527,7 @@ export default function AttentionScreen() {
                  onConfirm={() => { saved.remove(deleting.id); setDeleting(null); }} />
       ) : null}
       {draft.draft ? <DraftDrawer draft={draft.draft} busy={draft.busy} sourceDocumentId={draftSource} onClose={draft.close}
-                                  onSave={(t) => { void draft.saveText(t); }} /> : null}
+                                  onSave={(t) => { void draft.saveText(t); }} onReviewed={(r) => { void draft.setReviewed(r); }} /> : null}
     </Page>
   );
 }

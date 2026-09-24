@@ -251,10 +251,10 @@ next milestone with a broken tree.
 
 ## Phase 19 — Work item detail: thread, owner, notes (milestone 6)
 
-- [ ] **19.1** Thread layout for communications and responses (§6), newest first, reusing the existing document list per entry.
-- [ ] **19.2** Owner row in the detail header with the shared owner select (extract the select into `ui/owner-select.tsx` and reuse it in the list from 15.6).
-- [ ] **19.3** Notes section: textarea, save on blur via `set_work_item_meta`, "Saved" toast, loads from `get_work_item_meta` on open.
-- [ ] **19.4** "Mark reviewed" in the draft drawer; clears on regenerate; the Attention strip tile updates on return. `NOTES.md` entry. Commit.
+- [x] **19.1** (kept the two-lane `ThreadFlow`, see Q40) Thread layout for communications and responses (§6), newest first, reusing the existing document list per entry.
+- [x] **19.2** Owner row in the detail header with the shared owner select (extract the select into `ui/owner-select.tsx` and reuse it in the list from 15.6).
+- [x] **19.3** Notes section: textarea, save on blur via `set_work_item_meta`, "Saved" toast, loads from `get_work_item_meta` on open.
+- [x] **19.4** "Mark reviewed" in the draft drawer; clears on regenerate; the Attention strip tile updates on return. `NOTES.md` entry. Commit.
 
 ## Phase 20 — Client 360 (milestone 7)
 

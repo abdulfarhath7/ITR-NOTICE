@@ -584,3 +584,17 @@ positions are computed in JS). Media-query breakpoints stay px.
   non-Node event target; now guarded with `instanceof HTMLElement`.
 - App build + start check after milestone 4: built, ran 20 s against a
   scratch data dir without error.
+
+### Milestone 6 — Work item detail: owner, notes, review (2026-09-24)
+
+- 19.1 No change: the two-lane `ThreadFlow` stays (Q40).
+- 19.2 `ui/item-meta.tsx` `OwnerRow` in the page head of all four detail
+  screens (proceeding, demand, return, form), using the shared
+  `ui/owner-select.tsx` that the Attention list already uses.
+- 19.3 `NotesCard`: one textarea, saves on blur through
+  `set_work_item_meta`, "Saved" toast, loads with `get_work_item_meta`.
+- 19.4 Draft drawer "Mark reviewed" (disabled while edits are unsaved;
+  once set it reads "Reviewed · Clear"). Generating a draft clears the
+  mark in the core (14.3). Invalidating `work_items` refreshes the strip
+  tile on return. Wired in the detail screen, the Attention list and
+  Updates.

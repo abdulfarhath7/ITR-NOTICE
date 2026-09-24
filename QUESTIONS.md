@@ -326,3 +326,11 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** B needs a migration, one insert in `ledger::apply`, and the query in `repo/updates.rs` reading both tables.
 - **Answer:**
 - **Resolved:** no
+
+### Q40 — Detail thread: keep the two-lane flow or switch to a newest-first list
+- **Context:** docs/16 §6 and task 19.1 describe the proceeding thread as one vertical list, newest at top, with a dot per entry. The detail screen already draws the thread as the two-lane `ThreadFlow` (D-037, Q25–Q29 answered 2026-09-23), which has dots, tones, the document list per entry and the Draft slot.
+- **Options:** A keep `ThreadFlow` as it is / B replace it with the newest-first list / C add a "Newest first" list toggle beside the flow
+- **Default used:** A. The flow was built and its questions answered the day before this spec; replacing it would undo that work (operating rule: never delete finished work). Everything §6 asks of an entry — dot tone, title, date line, documents — the flow already shows.
+- **Blast radius:** B or C is one new component in `ui/` and a switch in `screens/work-item.tsx`; pairing logic is reusable.
+- **Answer:**
+- **Resolved:** no
