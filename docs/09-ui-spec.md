@@ -26,12 +26,33 @@ Ranking, in order:
 4. Open with no stated due date (gap) — these are the dangerous ones
 5. Everything else open
 
-Each row: client, module chip, what it is, AY, due, status pill, actions.
+Layout, top to bottom (Build 2, full detail in `16-dashboard-v2.md` §1):
 
-Filters: client (multi-select), AY, module, status, due window.
+- **Sync line** — "Synced 6:12 am · 200 clients · 3 failed · Retry"; Retry
+  opens Ingestion with failed runs only. "Never synced" before any run.
+- **Needs-action strip** — Overdue · Due in 48h · No due date · Drafts to
+  review. Each tile filters the list and clears any lane bucket.
+- **Filter bar** — client, AY, module, status, owner (Anyone / Mine / a
+  name), search (client, code, PAN, title, reference, section; 150 ms
+  debounce). Selects, owner, tile and buckets persist per device
+  (`lcc.filters.attention`); search never does.
+- **Active chips** — one per non-default filter with ×, then Clear all.
+- **Lanes** — Issued (Last 7 d · 8–15 d · 16–30 d) and Due (Next 7 d ·
+  8–15 d · 16–30 d · Later · Calendar → Open) in a 3fr/5fr grid, stacked
+  under 900px. Windows are exclusive (Q30); counts are taken after the
+  filter bar and before the tile/bucket selection. One bucket per lane;
+  a bucket filters the list in place (Q31).
+- **List card** — count and filter summary with the sort on the right;
+  views row (All · saved views · + Save view, per device, Q34); columns
+  Client · PAN, Section (tone pill), Issued, Due (date and "· 2 d" /
+  "· overdue 3 d"), Owner (initials, click to assign), Stage (status pill,
+  replaced on hover or focus by View · Draft · ✦ Date · Assign).
 
-The five ranks are shown as counts above the list and act as the filter;
-rows are grouped under a header per rank. Arrow keys move, Enter opens.
+The ranking still orders the list; in the default order rows are grouped
+under a header per rank. Inside a Due bucket rows sort by due date
+ascending, inside an Issued bucket by issued date descending. The old
+row of five rank counts is gone from the UI (Q32); rank 2 shows as the
+"limitation …" line under the due date. Arrow keys move, Enter opens.
 
 ## 2 — Clients
 

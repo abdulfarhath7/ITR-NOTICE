@@ -310,3 +310,11 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** a few CSS rules under `.att-*` in `base.css`.
 - **Answer:**
 - **Resolved:** no
+
+### Q38 — Note tooltip shows "has a note", not the first 120 characters
+- **Context:** docs/16 §1.7 wants the note icon's tooltip to show the note's first 120 characters; §2.2 has `list_work_items` return only `has_note`.
+- **Options:** A tooltip says the item has a note / B also return `note_preview` (first 120 chars) on every row
+- **Default used:** A. Keeps note text out of the list payload the shell and exports share; the full note is one click away.
+- **Blast radius:** one column in the four list queries, one field in `WorkItemRow`, the `title` attribute in `attention.tsx`.
+- **Answer:**
+- **Resolved:** no

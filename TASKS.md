@@ -216,16 +216,16 @@ next milestone with a broken tree.
 
 ## Phase 15 — Attention screen v2 (milestone 2)
 
-- [ ] **15.1** Sync line under the page head (§1.1). Add a "failed" filter to the Ingestion screen if it lacks one; "Retry" navigates there.
-- [ ] **15.2** Needs-action strip (§1.2). Tiles filter the list; clicking a tile clears bucket selection. Remove the old rank-count row from the UI only; keep `rankRows` and `RANK_LABEL` for sorting and the detail screen.
-- [ ] **15.3** Owner select and search input in the filter bar (§1.3). Owner names from `work_item_meta` distinct values plus the local user.
-- [ ] **15.4** Active chips row with per-chip × and "Clear all" (§1.4).
-- [ ] **15.5** Issued and Due lanes (§1.5) in the 3fr/5fr grid, including the fifth Due tile "Calendar → Open" that navigates to the Calendar route (the route can be a stub until Phase 18). Counts computed after filter bar, before tile/bucket selection. One active bucket per lane. Stack under 900px.
-- [ ] **15.5a** Views row (§1.6): All · saved views · + Save view; `lib/saved-views.ts` on `localStorage`; save dialog, rename, delete; active tab underline.
-- [ ] **15.6** List card and additions (§1.7): card chrome, count/sort line, six columns in the stated order, section pill with tone, owner avatar with inline assign, note icon with tooltip, hover actions View / Draft / ✦ Date / Assign, relative due suffix. Row height must not change when hover actions appear.
-- [ ] **15.7** Bucket-aware sort (§1.7 last paragraph). Reset pagination (`limit`) when tile or bucket changes, as the existing effect does for filters.
-- [ ] **15.8** Empty states: no open items at all; filters match nothing (with "Clear all"); a selected bucket is empty. Copy per `09-ui-spec.md` "Empty and error states".
-- [ ] **15.9** Update `docs/09-ui-spec.md` screen 1 to describe the new layout. `NOTES.md` entry. Commit.
+- [x] **15.1** Sync line under the page head (§1.1). Add a "failed" filter to the Ingestion screen if it lacks one; "Retry" navigates there.
+- [x] **15.2** Needs-action strip (§1.2). Tiles filter the list; clicking a tile clears bucket selection. Remove the old rank-count row from the UI only; keep `rankRows` and `RANK_LABEL` for sorting and the detail screen.
+- [x] **15.3** Owner select and search input in the filter bar (§1.3). Owner names from `work_item_meta` distinct values plus the local user.
+- [x] **15.4** Active chips row with per-chip × and "Clear all" (§1.4).
+- [x] **15.5** Issued and Due lanes (§1.5) in the 3fr/5fr grid, including the fifth Due tile "Calendar → Open" that navigates to the Calendar route (the route can be a stub until Phase 18). Counts computed after filter bar, before tile/bucket selection. One active bucket per lane. Stack under 900px.
+- [x] **15.5a** Views row (§1.6): All · saved views · + Save view; `lib/saved-views.ts` on `localStorage`; save dialog, rename, delete; active tab underline.
+- [x] **15.6** List card and additions (§1.7): card chrome, count/sort line, six columns in the stated order, section pill with tone, owner avatar with inline assign, note icon with tooltip, hover actions View / Draft / ✦ Date / Assign, relative due suffix. Row height must not change when hover actions appear.
+- [x] **15.7** Bucket-aware sort (§1.7 last paragraph). Reset pagination (`limit`) when tile or bucket changes, as the existing effect does for filters.
+- [x] **15.8** Empty states: no open items at all; filters match nothing (with "Clear all"); a selected bucket is empty. Copy per `09-ui-spec.md` "Empty and error states".
+- [x] **15.9** Update `docs/09-ui-spec.md` screen 1 to describe the new layout. `NOTES.md` entry. Commit.
 
 ## Phase 16 — Settings: text size (milestone 3)
 

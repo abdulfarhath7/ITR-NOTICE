@@ -501,3 +501,29 @@ positions are computed in JS). Media-query breakpoints stay px.
 | base.css | 519 | `.list` | padding-left | `18px` | `1.125rem` |
 | base.css | 524 | `.settings` | gap | `16px` | `1rem` |
 | base.css | 527 | `.settings-nav a` | min-height | `32px` | `2rem` |
+
+### Milestone 2 — Attention screen v2 (2026-09-24)
+
+- 15.1 `get_sync_line` (Rust, `repo/runs.rs`): the window is the sweep that
+  holds the newest run; counts distinct clients and failed/parked runs in
+  it. Ingestion screen gained an All / Failed switch on Sweep history and
+  a route `#/ingestion/failed` that preselects it.
+- 15.2–15.8 `screens/attention.tsx` rewritten per docs/16 §1: strip, owner
+  select and search, chips, lanes (with the Calendar tile; the Calendar
+  route is a stub until Phase 18), views row (`lib/saved-views.ts`), list
+  card with six columns, section tone pill, owner avatar with inline
+  assign (`ui/owner-select.tsx`, extracted now rather than in 19.2), note
+  icon, hover/focus actions, bucket-aware sort, three empty states.
+  `rankRows`/`RANK_LABEL` kept: they order the list and label the group
+  headers shown in the default order.
+- Draft and ✦ Date on a list row act on the proceeding's newest open
+  communication (the detail screen's buttons act on the one clicked).
+- The note icon's tooltip says the item has a note; the row carries only
+  `has_note`, not the text, so the 120-character preview named in §1.7 is
+  not shown. Filed as Q38.
+- Search does not get a chip: §1.4's chip list does not include it. Clear
+  all still empties it; Escape in the box empties it too.
+- Checked in a browser harness (Vite with the Tauri core mocked, kept out
+  of the repo) at 1366×768: no horizontal overflow at 100% or 125%, row
+  height stays 40px when hover actions appear, bucket click filters and
+  persists, tile click clears the bucket.
