@@ -160,7 +160,7 @@ export default function CalendarScreen() {
       {exporting ? (
         <ExportDialog onClose={() => setExporting(false)} choices={{
           view: { items: dayRows.map((r) => [r.module, r.id] as [string, string]),
-                  label: `calendar · ${field} ${selectedIso}${clientName ? ` · ${clientName}` : ""}${filters.module ? ` · ${MODULE_LABEL[filters.module]}` : ""}` },
+                  label: `calendar · ${field} ${selectedIso}${clientName ? ` · ${clientName}` : ""}${filters.module ? ` · ${MODULE_LABEL[filters.module]}` : ""}`, sheet: "Calendar" },
         }} />
       ) : null}
     </Page>

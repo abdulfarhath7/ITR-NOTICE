@@ -43,6 +43,12 @@ pub const PROCEEDING_COLUMNS: [&str; 16] = [
     "Client File #",
 ];
 
+/// Appended after the 16 (docs/16 §8): the positions of the 16 never move.
+pub const PROCEEDING_EXTRA_COLUMNS: [&str; 2] = ["Owner", "Note"];
+
+/// Column widths follow the longest cell, never wider than this (docs/16 §8).
+const MAX_WIDTH: usize = 60;
+
 const DEMAND_COLUMNS: [&str; 15] = [
     "S.No", "Client", "AY", "Demand Reference", "Raised On", "Demand Amount", "Current Outstanding", "Section",
     "Stance", "Disputed Amount", "Filed On", "Challan CIN", "Paid On", "Amount", "Status",
@@ -70,7 +76,9 @@ impl Styles {
         Styles {
             title: Format::new().set_bold(),
             meta: Format::new().set_italic(),
-            header: Format::new().set_bold().set_border_bottom(rust_xlsxwriter::FormatBorder::Thin),
+            // Bold on the light surface-2 fill (docs/10 tokens, light mode).
+            header: Format::new().set_bold().set_background_color(0xF4F3EF)
+                .set_border_bottom(rust_xlsxwriter::FormatBorder::Thin),
             date: Format::new().set_num_format("dd-mmm-yyyy").set_align(FormatAlign::Right),
             money: Format::new().set_num_format("#,##0.00").set_align(FormatAlign::Right),
             text: Format::new().set_num_format("@"),
@@ -117,13 +125,15 @@ fn write_cell(ws: &mut Worksheet, styles: &Styles, row: u32, col: u16, cell: &Ce
 
 /// Rows 1–3 of every sheet (docs/11 "Header block"): a stale export must be
 /// self-evident on its face.
-fn header_block(ws: &mut Worksheet, styles: &Styles, provenance: &Provenance, scope_label: &str, unverified: usize) -> AppResult<()> {
+fn header_block(ws: &mut Worksheet, styles: &Styles, provenance: &Provenance, scope_label: &str, unverified: usize,
+                filters: &str) -> AppResult<()> {
     let line1 = format!("Litigation Command Center export · {scope_label} · generated {}", provenance.generated_ist);
     let line2 = format!("Data as of: collector last run {}, this device cursor {}", provenance.collector_last_run, provenance.cursor_summary);
     let line3 = format!("Unverified fields in this export: {unverified}");
     ws.write_string_with_format(0, 0, &line1, &styles.title).map_err(|e| AppError::state(e.to_string()))?;
     ws.write_string_with_format(1, 0, &line2, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
     ws.write_string_with_format(2, 0, &line3, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
+    ws.write_string_with_format(3, 0, &format!("Active filters: {filters}"), &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
     Ok(())
 }
 
@@ -138,7 +148,19 @@ fn finish_sheet(ws: &mut Worksheet, columns: &[&str], styles: &Styles, rows: &[V
         }
     }
     ws.set_freeze_panes(header_row + 1, 0).map_err(|e| AppError::state(e.to_string()))?;
-    ws.autofit();
+    let last_data = header_row + rows.len() as u32;
+    ws.autofilter(header_row, 0, last_data, columns.len() as u16 - 1).map_err(|e| AppError::state(e.to_string()))?;
+    // Widths from the longest cell in each column (header included), capped.
+    for (c, name) in columns.iter().enumerate() {
+        let longest = rows.iter().map(|r| match r.get(c) {
+            Some(Cell::Text(t)) => t.chars().count(),
+            Some(Cell::Date(_)) => 11,
+            Some(Cell::Money(m)) => format!("{m:.2}").len() + 3,
+            Some(Cell::Int(n)) => n.to_string().len(),
+            _ => 0,
+        }).max().unwrap_or(0).max(name.chars().count() + 3);
+        ws.set_column_width(c as u16, (longest.min(MAX_WIDTH) + 2) as f64).map_err(|e| AppError::state(e.to_string()))?;
+    }
     ws.set_landscape();
     ws.set_print_fit_to_pages(1, 0);
     let last_row = header_row + rows.len() as u32;
@@ -192,6 +214,16 @@ fn scope_where(scope: &ExportScope, module: &str, alias_client: &str) -> (String
     }
 }
 
+/// The provenance block's filter line: a view's label names its filters.
+fn scope_filters(scope: &ExportScope) -> String {
+    match scope {
+        ExportScope::View { label: Some(l), .. } => l.clone(),
+        ExportScope::View { label: None, items } => format!("current view ({} rows)", items.len()),
+        ExportScope::Client { .. } => "one client".into(),
+        ExportScope::All => "none".into(),
+    }
+}
+
 fn scope_label(scope: &ExportScope, con: &Connection) -> String {
     match scope {
         ExportScope::All => "all clients".into(),
@@ -205,6 +237,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     let styles = Styles::new();
     let prov = provenance(con)?;
     let label = scope_label(scope, con);
+    let filters = scope_filters(scope);
     let mut wb = Workbook::new();
     let mut report = ExportReport { path: path.into(), ..Default::default() };
 
@@ -213,11 +246,12 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     let sql = format!(
         "SELECT cl.client_code, cl.name, cl.pan, x.source_panel, yc.assessment_year, t.label, x.assessee_name,
                 x.section_2025, x.section_1961, x.display_name, x.din_reference, x.initiated_on, x.due_date,
-                x.manual_due_date, cl.client_file_no, x.gap_flags, x.id
+                x.manual_due_date, cl.client_file_no, x.gap_flags, x.id, m.assignee, m.note
          FROM proceedings x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
          JOIN type_registry t ON t.id = x.proceeding_type_id
+         LEFT JOIN work_item_meta m ON m.id = 'proceedings:' || x.id
          WHERE 1 = 1 {extra}
          ORDER BY cl.name COLLATE NOCASE, yc.assessment_year, x.initiated_on");
     let mut st = con.prepare(&sql)?;
@@ -229,9 +263,10 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, Option<String>>(7)?, r.get::<_, Option<String>>(8)?, r.get::<_, Option<String>>(9)?,
         r.get::<_, Option<String>>(10)?, r.get::<_, Option<String>>(11)?, r.get::<_, Option<String>>(12)?,
         r.get::<_, Option<String>>(13)?, r.get::<_, Option<String>>(14)?,
-        r.get::<_, Option<String>>(15)?, r.get::<_, String>(16)?)))?;
+        r.get::<_, Option<String>>(15)?, r.get::<_, String>(16)?,
+        (r.get::<_, Option<String>>(17)?, r.get::<_, Option<String>>(18)?))))?;
     for (i, row) in q.enumerate() {
-        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id) = row?;
+        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id, (owner, note)) = row?;
         // DIN and Issued On fall back to the communications when the
         // proceeding card did not carry them (docs/11 columns 11 and 12).
         let comm: Option<(Option<String>, Option<String>)> = con.prepare_cached(
@@ -255,14 +290,16 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
             date(initiated.as_deref().or(comm.as_ref().and_then(|c| c.1.as_deref()))),
             date(due.as_deref()), date(manual.as_deref()), date(submitted.as_deref()),
             text(file_no.as_deref()),
+            text(owner.as_deref()), text(note.as_deref()),
         ]);
     }
     report.proceedings = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Proceedings").map_err(|e| AppError::state(e.to_string()))?;
     let proceedings_unverified = unverified;
-    header_block(ws, &styles, &prov, &label, proceedings_unverified)?;
-    finish_sheet(ws, &PROCEEDING_COLUMNS, &styles, &rows)?;
+    header_block(ws, &styles, &prov, &label, proceedings_unverified, &filters)?;
+    let columns: Vec<&str> = PROCEEDING_COLUMNS.iter().chain(PROCEEDING_EXTRA_COLUMNS.iter()).copied().collect();
+    finish_sheet(ws, &columns, &styles, &rows)?;
 
     // ---- Demands
     let (extra, binds) = scope_where(scope, "demands", "cl");
@@ -304,7 +341,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.demands = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Demands").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified)?;
+    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
     finish_sheet(ws, &DEMAND_COLUMNS, &styles, &rows)?;
     let demands_unverified = unverified;
 
@@ -335,7 +372,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.returns = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Returns").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified)?;
+    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
     finish_sheet(ws, &RETURN_COLUMNS, &styles, &rows)?;
     let returns_unverified = unverified;
 
@@ -365,7 +402,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.forms = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Forms").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified)?;
+    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
     finish_sheet(ws, &FORM_COLUMNS, &styles, &rows)?;
 
     report.unverified_fields = proceedings_unverified + demands_unverified + returns_unverified + unverified;
@@ -441,7 +478,7 @@ pub fn export_updates(con: &Connection, report: &crate::repo::updates::UpdatesRe
         if entries.is_empty() { continue; }
         let ws = wb.add_worksheet();
         ws.set_name(name).map_err(|e| AppError::state(e.to_string()))?;
-        header_block(ws, &styles, &prov, &format!("updates since {since} · {name}"), 0)?;
+        header_block(ws, &styles, &prov, &format!("updates since {since} · {name}"), 0, "none")?;
         let rows: Vec<Vec<Cell>> = entries.iter().enumerate().map(|(i, e)| vec![
             Cell::Int(i as i64 + 1), text(Some(&ist_of(&e.at))), text(e.client_name.as_deref()), text(e.pan_masked.as_deref()),
             text(e.assessment_year.as_deref()), text(e.section.as_deref()), date(e.due_date.as_deref()),
@@ -454,7 +491,7 @@ pub fn export_updates(con: &Connection, report: &crate::repo::updates::UpdatesRe
     if written == 0 {
         let ws = wb.add_worksheet();
         ws.set_name("Updates").map_err(|e| AppError::state(e.to_string()))?;
-        header_block(ws, &styles, &prov, &format!("updates since {since}"), 0)?;
+        header_block(ws, &styles, &prov, &format!("updates since {since}"), 0, "none")?;
         finish_sheet(ws, &COLUMNS, &styles, &[])?;
     }
     wb.save(path).map_err(|e| AppError::Io { message: e.to_string() })?;

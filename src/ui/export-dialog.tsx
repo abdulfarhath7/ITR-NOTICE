@@ -4,13 +4,14 @@
 import { useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { api, describeError } from "../lib/api";
+import { exportFileName } from "../lib/export-name";
 import { toast } from "../lib/toast";
 import type { ExportScope } from "../lib/types";
 import { Dialog } from "./dialog";
 
 export interface ExportChoices {
   /** The rows the screen is showing, when it has a filtered view. */
-  view?: { items: [string, string][]; label: string } | null;
+  view?: { items: [string, string][]; label: string; sheet?: string } | null;
   /** The client on screen, when there is one. */
   client?: { id: string; name: string } | null;
 }
@@ -37,7 +38,8 @@ export default function ExportDialog({ choices, onClose }: { choices: ExportChoi
 
   const run = async () => {
     setError(null);
-    const path = await save({ defaultPath: `lcc-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    const sheet = kind === "view" ? (choices.view?.sheet ?? "View") : kind === "client" ? (choices.client?.name ?? "Client") : "All";
+    const path = await save({ defaultPath: exportFileName(sheet),
                               filters: [{ name: "Excel workbook", extensions: ["xlsx"] }] });
     if (!path) return;
     setBusy(true);

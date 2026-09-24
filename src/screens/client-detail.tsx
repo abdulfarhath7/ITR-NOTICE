@@ -343,7 +343,15 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
       </PageBody>
       {editing ? <ClientForm existing={c} onClose={() => setEditing(false)}
                              onSaved={() => { setEditing(false); invalidate(`clients:${id}`); }} /> : null}
-      {exporting ? <ExportDialog choices={{ client: { id: c.id, name: c.name } }} onClose={() => setExporting(false)} /> : null}
+      {exporting ? <ExportDialog onClose={() => setExporting(false)} choices={{
+        client: { id: c.id, name: c.name },
+        // On a module tab, the rows on screen (that module, the chosen year).
+        view: tab !== "profile" && tab !== "notes" ? {
+          items: moduleRows(tab).map((r) => [r.module, r.id] as [string, string]),
+          label: `${c.name} · ${MODULE_LABEL[tab]} · ${selectedYear ? `AY ${years.find((y) => y.id === selectedYear)?.assessment_year ?? "not stated"}` : "all years"}`,
+          sheet: `${c.name}-${MODULE_LABEL[tab]}`,
+        } : null,
+      }} /> : null}
     </Page>
   );
 }

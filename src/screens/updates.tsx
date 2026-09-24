@@ -7,6 +7,7 @@ import { useDraft } from "../hooks/use-draft";
 import { useSeenUntil, useUpdates } from "../hooks/use-updates";
 import { api, describeError } from "../lib/api";
 import { shortDateOf } from "../lib/due";
+import { exportFileName } from "../lib/export-name";
 import { plural } from "../lib/labels";
 import { invalidate } from "../lib/query";
 import { href, navigate } from "../lib/router";
@@ -137,7 +138,7 @@ export default function UpdatesScreen() {
   };
   const exportAll = async () => {
     try {
-      const path = await save({ defaultPath: `LCC-Updates-${new Date().toISOString().slice(0, 10)}.xlsx`, filters: [{ name: "Excel", extensions: ["xlsx"] }] });
+      const path = await save({ defaultPath: exportFileName("Updates"), filters: [{ name: "Excel", extensions: ["xlsx"] }] });
       if (!path) return;
       const n = await api.exportUpdates(path, q.data?.since ?? undefined);
       toast(`Exported ${plural(n, "update")}.`);

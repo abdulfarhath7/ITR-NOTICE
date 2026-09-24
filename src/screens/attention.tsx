@@ -506,7 +506,7 @@ export default function AttentionScreen() {
       </PageBody>
       {exporting ? (
         <ExportDialog onClose={() => setExporting(false)} choices={{
-          view: { items: matching.map((i) => [i.row.module, i.row.id] as [string, string]), label: `attention list · ${chips.map((c) => c.label).join(" · ") || "all open items"}` },
+          view: { items: matching.map((i) => [i.row.module, i.row.id] as [string, string]), label: `attention list · ${[...chips.map((c) => c.label), ...(search ? [`search “${searchText.trim()}”`] : [])].join(" · ") || "all open items"}`, sheet: "Attention" },
         }} />
       ) : null}
       {naming ? (
