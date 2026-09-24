@@ -19,6 +19,7 @@ import {
 import { parseDate, todayIst, type Ymd } from "../lib/dates";
 import { describeDueShort, shortDateOf } from "../lib/due";
 import { MODULES, MODULE_LABEL, MODULE_NOUN, plural } from "../lib/labels";
+import { DEFAULT_FILTERS, type AttentionFilters } from "../lib/attention-filters";
 import { usePersistedFilters } from "../lib/persisted-filters";
 import { useQuery } from "../lib/query";
 import { href, navigate } from "../lib/router";
@@ -39,21 +40,6 @@ import { StatusPill } from "../ui/pill";
 /** Rows rendered at a time; the rest arrive on request. */
 const PAGE = 200;
 const MINE = "__mine";
-
-export interface AttentionFilters {
-  clientId: string;
-  ay: string;
-  module: "" | Module;
-  status: string;
-  owner: string;
-  tile: "" | Tile;
-  issued: "" | IssuedBucket;
-  due: "" | DueBucket;
-}
-
-export const DEFAULT_FILTERS: AttentionFilters = {
-  clientId: "", ay: "", module: "", status: "", owner: "", tile: "", issued: "", due: "",
-};
 
 const same = (a: AttentionFilters, b: AttentionFilters) =>
   (Object.keys(DEFAULT_FILTERS) as (keyof AttentionFilters)[]).every((k) => a[k] === b[k]);

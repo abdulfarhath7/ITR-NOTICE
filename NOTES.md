@@ -565,3 +565,22 @@ positions are computed in JS). Media-query breakpoints stay px.
   style.
 - 17.5 Sidebar badge counts entries newer than `lcc.updates.seen_until`;
   the query sits under `work_items:` so ingestion events refresh it.
+
+### Milestone 5 — Calendar (2026-09-24)
+
+- 18.1 `lib/calendar.ts`: Monday-first month grid (whole weeks, outside
+  days flagged), `groupByDay` over open items by effective due or issued
+  date, `dayTone`. Pure; `today` is a parameter.
+- 18.2 `screens/calendar.tsx`, nav entry after Updates. Month header with
+  ‹ Today ›, Due / Issued toggle, count pills bottom-right (tones apply to
+  the Due view only; every issued day is in the past, so the Issued view
+  stays normal), selected day tinted, day list with View on hover,
+  "n without a due date →" which sets Attention's No due date tile.
+  Export of the selected day uses the existing export dialog.
+- 18.3 Client and module come from `lcc.filters.attention` (moved the type
+  to `lib/attention-filters.ts`); the chips' × writes back.
+- 18.4 Arrow keys ±1/±7 days (crossing months), `t` today, Enter focuses
+  the day list. Error fixed: the handler called `contains()` on a
+  non-Node event target; now guarded with `instanceof HTMLElement`.
+- App build + start check after milestone 4: built, ran 20 s against a
+  scratch data dir without error.

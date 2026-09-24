@@ -10,6 +10,7 @@ import { useTheme } from "./lib/theme";
 import type { SetupState } from "./lib/types";
 import { useUnreadUpdates } from "./hooks/use-updates";
 import AttentionScreen from "./screens/attention";
+import CalendarScreen from "./screens/calendar";
 import ClientDetailScreen from "./screens/client-detail";
 import ClientsScreen from "./screens/clients";
 import DevicesScreen from "./screens/devices";
@@ -26,6 +27,7 @@ import Toasts from "./ui/toasts";
 const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "attention" }, label: "Attention", icon: "inbox" },
   { route: { name: "updates" }, label: "Updates", icon: "bell" },
+  { route: { name: "calendar" }, label: "Calendar", icon: "calendar" },
   { route: { name: "clients" }, label: "Clients", icon: "users" },
   { route: { name: "ingestion" }, label: "Ingestion", icon: "download" },
   { route: { name: "devices" }, label: "Devices", icon: "monitor" },
@@ -92,9 +94,7 @@ export default function App() {
     case "settings": screen = <SettingsScreen section={route.section} theme={theme} />; break;
     case "setup": screen = <SetupScreen />; break;
     case "updates": screen = <UpdatesScreen />; break;
-    case "calendar":
-      // Built in Phases 17 and 18; until then the route exists for links.
-      screen = <div className="page"><div className="loading">Coming in this build.</div></div>; break;
+    case "calendar": screen = <CalendarScreen />; break;
   }
   const active = section(route);
 

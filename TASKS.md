@@ -244,10 +244,10 @@ next milestone with a broken tree.
 
 ## Phase 18 — Calendar screen (milestone 5)
 
-- [ ] **18.1** `lib/calendar.ts`: pure month-grid builder (Monday-first, IST, leading/trailing days flagged) and `groupByDay(rows, field, today)`.
-- [ ] **18.2** Route `calendar`, nav entry after Updates, screen per §5: month grid, day count pills with tone, `‹ Today ›`, `Due`/`Issued` toggle, selected-day list with View on hover, "n without a due date →" link.
-- [ ] **18.3** Read client and module filters from the persisted Attention filter object; show as chips only. Changing them here writes back to the same object.
-- [ ] **18.4** Keyboard: arrow keys move the selected day, `t` jumps to today, `Enter` on a day focuses its list. `NOTES.md` entry. Commit.
+- [x] **18.1** `lib/calendar.ts`: pure month-grid builder (Monday-first, IST, leading/trailing days flagged) and `groupByDay(rows, field, today)`.
+- [x] **18.2** Route `calendar`, nav entry after Updates, screen per §5: month grid, day count pills with tone, `‹ Today ›`, `Due`/`Issued` toggle, selected-day list with View on hover, "n without a due date →" link.
+- [x] **18.3** Read client and module filters from the persisted Attention filter object; show as chips only. Changing them here writes back to the same object.
+- [x] **18.4** Keyboard: arrow keys move the selected day, `t` jumps to today, `Enter` on a day focuses its list. `NOTES.md` entry. Commit.
 
 ## Phase 19 — Work item detail: thread, owner, notes (milestone 6)
 
