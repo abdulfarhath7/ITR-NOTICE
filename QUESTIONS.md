@@ -398,3 +398,83 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** `decide::latest_ay_start`.
 - **Answer:**
 - **Resolved:** no
+
+### Q49 — Saved views that stored a lane bucket
+- **Context:** Build 2 saved views persist `bucket=8-15` style filters. Build 4 removes lanes.
+- **Options:** A: migrate each bucket to the cumulative window of its upper bound (8–15 → Last 15) / B: drop the bucket from the saved view and leave the rest / C: delete affected saved views
+- **Default used:** A — the user who saved "8–15" most likely wanted "this fortnight", and nothing is lost.
+- **Blast radius:** one SQL data migration; B or C is a smaller change.
+- **Answer:**
+- **Resolved:** no
+
+### Q50 — Which type_registry rows count as assessment proceedings
+- **Context:** Viewed by AO and Limitation are assessment-only. The registry has no flag for it.
+- **Options:** A: seed `is_assessment=1` for scrutiny (143(2)/142(1)), reassessment (148/147), penalty (270A/271*), best-judgement (144) / B: A plus rectification (154) and revision (263/264) / C: only rows whose portal panel is "Assessment Proceedings"
+- **Default used:** A — matches what the portal shows "Response viewed by AO on" for, as far as the existing parser has seen it.
+- **Blast radius:** an UPDATE statement; the flag is data, so any answer is a one-line change.
+- **Answer:**
+- **Resolved:** no
+
+### Q51 — Viewed by AO as one export column or two
+- **Context:** Column 17 is `Yes (dd-mm-yyyy)` / `No` / blank in one text cell.
+- **Options:** A: one text column as specified / B: two columns, `Viewed by AO` (Yes/No/blank) and `Viewed On` (real date)
+- **Default used:** A — keeps the sheet at 18 columns and matches the dialog preview in the mockup.
+- **Blast radius:** export column list and `docs/11-exports.md`; B is a better sort/filter experience for a CA.
+- **Answer:**
+- **Resolved:** no
+
+### Q52 — Where the limitation date comes from
+- **Context:** `proceedings.limitation_date` exists but nothing in the sidecar parses it; Farhath believes the portal shows a "limitation date or something" on assessment proceedings.
+- **Options:** A: manual only, entered on the work item, until a HAR capture confirms the portal label / B: derive from statute (e.g. AY end + N months by section) / C: parse a guessed label from the card
+- **Default used:** A — B invents a statutory date (forbidden, D-007 spirit) and C repeats the screenshot-parser mistake from `docs/15-known-bugs.md`.
+- **Blast radius:** none in code; when the label is confirmed, one parser field and one intake mapping.
+- **Answer:**
+- **Resolved:** no
+
+### Q53 — Not-viewed-by-AO chip: which response counts
+- **Context:** "Reply not yet viewed by AO" needs a filed response to be meaningful.
+- **Options:** A: latest response on the proceeding filed and `ao_viewed_on` null / B: any response filed / C: ignore responses; null `ao_viewed_on` on any assessment proceeding
+- **Default used:** A — a proceeding with no reply yet is "needs action", not "awaiting AO".
+- **Blast radius:** one SQL predicate shared by the chip and the risk-strip tile.
+- **Answer:**
+- **Resolved:** no
+
+### Q54 — Export column picker persistence
+- **Context:** The dialog lets the user untick columns.
+- **Options:** A: remember per device in settings / B: remember per saved view / C: never remember, always all columns
+- **Default used:** A — cheapest; the mockup shows no per-view control.
+- **Blast radius:** one settings key.
+- **Answer:**
+- **Resolved:** no
+
+### Q55 — Clients export: include the sync-health columns
+- **Context:** Columns 15–17 (Last Sync, Last Result, Open Items) are not registration fields; the request was "all the fields filled when the client was added".
+- **Options:** A: include them at the end / B: registration fields only (14 columns)
+- **Default used:** A — the ideation table listed them and they cost nothing to drop later.
+- **Blast radius:** three columns.
+- **Answer:**
+- **Resolved:** no
+
+### Q56 — Limitation date on the Calendar
+- **Context:** §3.3 puts limitation dates on the Calendar as items.
+- **Options:** A: show as items with their own pill / B: show only as a count in the risk strip, not on the Calendar
+- **Default used:** A.
+- **Blast radius:** one Calendar item source.
+- **Answer:**
+- **Resolved:** no
+
+### Q57 — "Everything" deep fetch and the time budget
+- **Context:** docs/17 gives the nightly sweep a run window and time budget. A user-requested full-history fetch of one client can be long.
+- **Options:** A: no budget, runs to completion with a cancel button / B: same budget as nightly, resumes next night / C: budget prompt before starting
+- **Default used:** A — the user asked for it explicitly and is watching.
+- **Blast radius:** one branch in the fetch runner.
+- **Answer:**
+- **Resolved:** no
+
+### Q58 — Build 4 mockups are not in the tree
+- **Context:** docs/18 says the UI must match `docs/mockups/build-4/*.png` exactly. The zip carried only the three markdown files; no PNG arrived.
+- **Options:** A build from the spec's prose (§2–§7 name every element, the copy and the pill colours) and refit once the PNGs land / B stop Build 4 until they arrive
+- **Default used:** A — the text is specific enough for layout, copy and colours; spacing follows the design system.
+- **Blast radius:** layout polish only, per screen, once the PNGs are added; no data or command changes.
+- **Answer:**
+- **Resolved:** no

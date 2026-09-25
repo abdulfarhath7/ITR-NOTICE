@@ -331,3 +331,80 @@ answers to the questions this build files.
 
 Placeholder, same rules as Phase 22: one task per answer that differs
 from its default, from Q41 onward (Build 3 questions are Q42–Q46).
+
+---
+
+# Build 4 — Cumulative windows, exports, AO-viewed and limitation
+
+Specification: `docs/18-build-4.md`. Read it after docs/16 and docs/17. Seeded questions are Q49–Q57 (renumbered from the install notes' Q46–Q54).
+
+Same rules as Builds 1–3. Each phase ends with `./scripts/check.sh` green and a commit.
+
+## Phase 25 — Cumulative windows and the lane teardown
+
+Read `docs/18-build-4.md` §2 in full first. UI reference: `docs/mockups/build-4/attention.png`.
+
+- [ ] **25.1** Replace the lane bucket logic with one `windowRange(kind, days, today)` helper in `src/lib/windows.ts` returning `[from, to]` inclusive, today-anchored, per the table in §2. Both Attention and Calendar import it; nothing else computes a window.
+  - *Done when:* there is exactly one place a window is turned into dates.
+- [ ] **25.2** Remove the Issued/Due lane components from Attention. Keep the risk strip slot, chip bar and ranked table. Ranking unchanged from `docs/09-ui-spec.md` §1.
+- [ ] **25.3** Chip bar: Issued Last 7 / 15 / 30 and Due Next 7 / 15 / 30 as single-select groups; both groups may be active at once. Existing client, module, status chips unchanged.
+- [ ] **25.4** Hint line under the chips with the `Days 1–N` pill and the computed date range; `Showing all open items.` when no window chip is active. Copy literal from §2.
+- [ ] **25.5** Risk strip: four tiles per the mockup. Overdue and Due in 3 days from the effective due date; Reply not yet viewed by AO and Limitation within 60 days per §3. Each tile click applies the matching chip.
+- [ ] **25.6** Migration: rewrite saved views that store lane buckets into window chips (§2, Q49).
+- [ ] **25.7** Calendar screen's "next N days" strip uses `windowRange`.
+- [ ] **25.8** `./scripts/check.sh` green. Commit.
+
+## Phase 26 — Viewed by AO and Limitation, everywhere
+
+Read `docs/18-build-4.md` §3. UI reference: `attention.png`, `work-item.png`.
+
+- [ ] **26.1** Migration: `communications.ao_viewed_first_seen_at`. Intake sets it on the first null → non-null transition of `ao_viewed_on` and never again.
+- [ ] **26.2** Migration: `type_registry.is_assessment` with the seed UPDATE (Q50). Expose on the proceeding read model as `is_assessment`.
+- [ ] **26.3** Ledger kinds `ao_viewed` and `limitation_changed` with the payloads in §3.4. Intake writes `ao_viewed` alongside 26.1; the proceeding update path writes `limitation_changed` on any change, with `source`.
+- [ ] **26.4** Attention table: columns Viewed by AO and Limitation after Due, rendered per §3.3; `—` on non-assessment rows; both columns hidden when no assessment row is in the result set.
+- [ ] **26.5** Chips: `Not viewed by AO`, `Limitation ≤ 30/60/90d` (menu, default 90), `Type ▾` multi-select. Saved views persist them.
+- [ ] **26.6** Notice-type pill from the map in `src/lib/notice-type.ts` (§3.5), shown in the Type column.
+- [ ] **26.7** Work item header: Reply viewed by AO pill and Limitation date with days left; thread event "Reply viewed by AO" with the first-seen subline; trailing grey event carries the limitation date. Layout per `work-item.png`.
+- [ ] **26.8** Client 360 proceedings tab gains both columns.
+- [ ] **26.9** Calendar shows limitation dates as items with their own pill.
+- [ ] **26.10** Updates screen renders `ao_viewed` (green "AO viewed") and `limitation_changed` (amber "Limitation") entries per the right panel of `work-item.png`.
+- [ ] **26.11** `./scripts/check.sh` green. Commit.
+
+## Phase 27 — Attention export with the filter written into the sheet
+
+Read `docs/18-build-4.md` §4 and `docs/11-exports.md`. UI reference: `export-dialog.png`.
+
+- [ ] **27.1** Rust: header block becomes rows 1–4 per §4.2 on every sheet; column headers on row 6, frozen, autofilter on. Update the Demands, Returns and Forms sheets too.
+- [ ] **27.2** Rust: filter-line grammar and `scope_label()` per §4.2; `View.label` is passed through unchanged.
+- [ ] **27.3** Rust: proceedings sheet columns 17 Viewed by AO and 18 Limitation Date per §4.4. Update `docs/11-exports.md` §Sheet 1 in the same commit (Q51).
+- [ ] **27.4** Rust: `preview_export` command returning the four header strings, the column list and the first three rows for a scope, so the dialog preview never re-implements formatting.
+- [ ] **27.5** Rust: suggested filename per §4.3.
+- [ ] **27.6** Frontend: `Export · N rows` button on Attention; N is the full result-set count, not the page.
+- [ ] **27.7** Frontend: export dialog per the mockup — left summary, column picker remembered per device, right sheet preview from 27.4, footer copy literal, Cancel / Export .xlsx.
+- [ ] **27.8** Frontend: Client 360 Export opens the same dialog with Client fixed.
+- [ ] **27.9** `./scripts/check.sh` green. Commit.
+
+## Phase 28 — Clients export and sync-health columns
+
+Read `docs/18-build-4.md` §5–6. UI reference: `clients.png`.
+
+- [ ] **28.1** Rust: `export_clients` writing the 17-column `Clients` sheet per §5 with the four-row header block. The module must not import `keychain.rs` and must not read any credential table or secret (`docs/07-security.md`). Add a comment at the top of the file stating this.
+- [ ] **28.2** Rust: per-client sync health read model — last run, result label, open count — from the local ledger and `ingestion_runs`.
+- [ ] **28.3** Frontend: Clients table gains Last sync, Result (pill colours per mockup), Open. Header count `<n> registered · <m> with sync failures`. Search over name, PAN, GSTIN. Footer copy literal from §6.
+- [ ] **28.4** Frontend: `Export all clients` button left of Add client, save-as prompt with the suggested filename, no dialog.
+- [ ] **28.5** `./scripts/check.sh` green. Commit.
+
+## Phase 29 — Sweep screen and run-log export
+
+Read `docs/18-build-4.md` §7 and `docs/17-scrape-scopes.md`. UI reference: `sweep.png`. If Phase 23 already built a Sync screen, rework it; do not build a second one.
+
+- [ ] **29.1** Nav tab named Sweep. Left card per §7 with the five stat rows; Failed links to Clients filtered to failures; Run now and Export run log buttons.
+- [ ] **29.2** Right card: Deep fetch one client with Scope Everything / Last N AYs / Since date and Fetch Index only / Index + download PDFs, wired to the docs/17 deep-fetch command. Everything = full-history. Stepper appears on Last N AYs, date field on Since date.
+- [ ] **29.3** Estimate line from the docs/17 listing probe; `Estimate after probe` when none.
+- [ ] **29.4** Rust: `export_sweep_run` writing the `Sweep runs` sheet per §7 with the header block.
+- [ ] **29.5** Sweep run summary counts `ao_viewed` ledger entries as AO-viewed flips.
+- [ ] **29.6** `./scripts/check.sh` green. Commit. Add the Build 4 session entry to `NOTES.md` listing every TODO pushed through.
+
+## Phase 30 — Apply the answered questions (reserved)
+
+Do not start. Farhath answers Q49 onward after testing Phases 25–29. Then add one task here per answer that differs from its default, in the shape of Phase 12 and Phase 22, each scoped to the seam named in `docs/18-build-4.md` §10. Edit in place; no module is rebuilt, renamed or restructured to apply an answer. If an answer cannot be applied within its seam, stop that task, note why in `NOTES.md`, and continue with the rest.

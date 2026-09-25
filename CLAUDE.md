@@ -122,6 +122,7 @@ docs/                 the specification you are building from
 | `15-known-bugs.md` | Phase 2 |
 | `16-dashboard-v2.md` | Build 2 — Phases 14 to 22, read in full before Phase 14 |
 | `17-scrape-scopes.md` | Build 3 — Phase 23, read in full before it; re-read `05` and `protocol.py` too |
+| `18-build-4.md` | Build 4 — Phases 25 to 30, read in full before Phase 25 |
 
 ---
 
