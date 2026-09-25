@@ -374,15 +374,15 @@ Read `docs/18-build-4.md` §3. UI reference: `attention.png`, `work-item.png`.
 
 Read `docs/18-build-4.md` §4 and `docs/11-exports.md`. UI reference: `export-dialog.png`.
 
-- [ ] **27.1** Rust: header block becomes rows 1–4 per §4.2 on every sheet; column headers on row 6, frozen, autofilter on. Update the Demands, Returns and Forms sheets too.
-- [ ] **27.2** Rust: filter-line grammar and `scope_label()` per §4.2; `View.label` is passed through unchanged.
-- [ ] **27.3** Rust: proceedings sheet columns 17 Viewed by AO and 18 Limitation Date per §4.4. Update `docs/11-exports.md` §Sheet 1 in the same commit (Q51).
-- [ ] **27.4** Rust: `preview_export` command returning the four header strings, the column list and the first three rows for a scope, so the dialog preview never re-implements formatting.
-- [ ] **27.5** Rust: suggested filename per §4.3.
-- [ ] **27.6** Frontend: `Export · N rows` button on Attention; N is the full result-set count, not the page.
-- [ ] **27.7** Frontend: export dialog per the mockup — left summary, column picker remembered per device, right sheet preview from 27.4, footer copy literal, Cancel / Export .xlsx.
-- [ ] **27.8** Frontend: Client 360 Export opens the same dialog with Client fixed.
-- [ ] **27.9** `./scripts/check.sh` green. Commit.
+- [x] **27.1** Rust: header block becomes rows 1–4 per §4.2 on every sheet; column headers on row 6, frozen, autofilter on. Update the Demands, Returns and Forms sheets too.
+- [x] **27.2** Rust: filter-line grammar and `scope_label()` per §4.2; `View.label` is passed through unchanged.
+- [x] **27.3** Rust: proceedings sheet columns 17 Viewed by AO and 18 Limitation Date per §4.4. Update `docs/11-exports.md` §Sheet 1 in the same commit (Q51).
+- [x] **27.4** Rust: `preview_export` command returning the four header strings, the column list and the first three rows for a scope, so the dialog preview never re-implements formatting.
+- [x] **27.5** Rust: suggested filename per §4.3.
+- [x] **27.6** Frontend: `Export · N rows` button on Attention; N is the full result-set count, not the page.
+- [x] **27.7** Frontend: export dialog per the mockup — left summary, column picker remembered per device, right sheet preview from 27.4, footer copy literal, Cancel / Export .xlsx.
+- [x] **27.8** Frontend: Client 360 Export opens the same dialog with Client fixed.
+- [x] **27.9** `./scripts/check.sh` green. Commit.
 
 ## Phase 28 — Clients export and sync-health columns
 

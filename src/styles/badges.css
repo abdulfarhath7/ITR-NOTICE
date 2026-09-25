@@ -42,3 +42,22 @@
 .att-type-menu { min-width: 12rem; padding: 0.25rem; }
 .att-type-menu label.check { display: flex; align-items: center; gap: 0.5rem; height: 1.75rem; padding: 0 0.5rem; font-size: 0.75rem; cursor: pointer; }
 .cal-lim { margin-left: 0.125rem; }
+
+/* Export dialog (docs/18 §4.1) */
+.dialog:has(.exp-grid) { max-width: min(64rem, 96vw); max-height: 90vh; }
+.exp-grid { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: 1rem; }
+.exp-left { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+.exp-summary dd { overflow-wrap: anywhere; }
+.exp-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.125rem 0.75rem; margin: 0; padding: 0.5rem 0.625rem 0.625rem; border: 1px solid var(--border); border-radius: var(--radius-control); }
+.exp-columns legend { padding: 0 0.25rem; font-size: 0.75rem; }
+.exp-columns label.check { font-size: 0.75rem; }
+.exp-right { min-width: 0; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface-2); }
+.exp-sheet-title { padding: 0.375rem 0.625rem; font-size: 0.6875rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.exp-sheet { border-collapse: collapse; font-size: 0.6875rem; line-height: 1.25rem; white-space: nowrap; }
+.exp-sheet th.exp-rowno { width: 1.75rem; text-align: right; padding: 0 0.375rem; color: var(--text-muted); background: var(--surface-1); border-right: 1px solid var(--border); font-weight: 400; }
+.exp-sheet td { padding: 0 0.5rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.exp-sheet .exp-title { font-weight: 600; }
+.exp-sheet .exp-meta { font-style: italic; color: var(--text-muted); }
+.exp-sheet .exp-head td { font-weight: 600; background: var(--surface-1); }
+.exp-foot { flex: 1; text-align: left; }
+@media (max-width: 900px) { .exp-grid { grid-template-columns: 1fr; } }

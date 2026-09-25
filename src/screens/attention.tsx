@@ -14,7 +14,8 @@ import { api, describeError } from "../lib/api";
 import { RANK_LABEL, RANK_TONE, type Rank, type RankedItem } from "../lib/attention";
 import {
   RISK_LABEL, RISK_TILES, RISK_TONE, WINDOW_DAYS, countWindows, inLimitation, inTileFilter, inWindow, rangeText,
-  windowDays, windowLabel, windowRange, windowSummary, type RiskTile, type WindowDays, type WindowKind, type WindowValue,
+  windowDays, windowFilterLine, windowLabel, windowRange, windowSummary,
+  type RiskTile, type WindowDays, type WindowKind, type WindowValue,
 } from "../lib/windows";
 import { migrateAttentionFilters } from "../lib/filters-migrate";
 import { noticeType, noticeTypesIn } from "../lib/notice-type";
@@ -485,13 +486,25 @@ export default function AttentionScreen() {
   };
 
   const noneAtAll = !ranked.length && !chips.length;
+  // docs/18 §4.2 filter-line grammar: the window chip(s) with their dates,
+  // then every other chip appended with " · "; "All open items" without a
+  // window. §4.3: the filename slug names the first window.
+  const windowParts = [
+    ...(issuedDays ? [windowFilterLine("issued", issuedDays, today)] : []),
+    ...(dueDays ? [windowFilterLine("due", dueDays, today)] : []),
+  ];
+  const extraChips = chips.filter((c) => !["issued", "due"].includes(c.key)).map((c) => c.key === "types" ? `Type: ${f.types.join(", ")}` : c.label);
+  const filterLine = [...(windowParts.length ? windowParts : ["All open items"]), ...extraChips, ...(search ? [`search “${searchText.trim()}”`] : [])].join(" · ");
+  const windowSlug = issuedDays ? `issued-${issuedDays}d` : dueDays ? `due-${dueDays}d` : null;
   const windowActive = !!(f.tile || f.issued || f.due || f.notViewedByAo || f.limitation || f.types.length);
   const windowText = chips.filter((c) => ["tile", "issued", "due", "ao", "limitation", "types"].includes(c.key)).map((c) => c.label).join(" and ");
 
   return (
     <Page>
       <PageHead title="Attention" meta={q.loading && !q.data ? "Loading" : plural(ranked.length, "open item")}>
-        <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export</span></button>
+        <button className="btn" onClick={() => setExporting(true)} disabled={!q.data}>
+          <Icon name="upload" /><span>Export · {plural(matching.length, "row")}</span>
+        </button>
       </PageHead>
       <PageBody>
         <SyncLineView today={today} />
@@ -616,7 +629,17 @@ export default function AttentionScreen() {
       </PageBody>
       {exporting ? (
         <ExportDialog onClose={() => setExporting(false)} choices={{
-          view: { items: matching.map((i) => [i.row.module, i.row.id] as [string, string]), label: `attention list · ${[...chips.map((c) => c.label), ...(search ? [`search “${searchText.trim()}”`] : [])].join(" · ") || "all open items"}`, sheet: "Attention" },
+          view: {
+            items: matching.map((i) => [i.row.module, i.row.id] as [string, string]),
+            label: filterLine, sheet: "Attention", window: windowSlug,
+            summary: {
+              filter: filterLine,
+              range: issuedDays ? rangeText(windowRange("issued", issuedDays, today)) : dueDays ? rangeText(windowRange("due", dueDays, today)) : "All dates",
+              client: f.clientId ? clientName(f.clientId) : "All clients",
+              module: f.module ? MODULE_LABEL[f.module] : "All modules",
+              status: f.status ? (STATUS_LABEL[f.status as keyof typeof STATUS_LABEL] ?? f.status) : "Open",
+            },
+          },
         }} />
       ) : null}
       {naming ? (

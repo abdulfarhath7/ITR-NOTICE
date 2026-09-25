@@ -2,7 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
-  BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
+  BundleManifest, Cadences, ClientDetail, DataDirInfo, DeviceInfo, SetupState, ExportOptions, ExportPreview, ExportReport, ExportScope, ExportSummary, FirmCreated, ImportSummary,
   RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
@@ -122,8 +122,12 @@ export const api = {
   syncNow: () => invoke<SyncResult>("sync_now"),
   leaveFirm: () => invoke<void>("leave_firm"),
 
-  exportExcel: (scope: ExportScope, path: string) => invoke<ExportReport>("export_excel", { scope, path }),
+  exportExcel: (scope: ExportScope, path: string, options?: ExportOptions) =>
+    invoke<ExportReport>("export_excel", { scope, path, options: options ?? null }),
   exportPreview: (scope: ExportScope) => invoke<[string, number][]>("export_preview", { scope }),
+  previewExportSheet: (scope: ExportScope, options: ExportOptions, window: string | null) =>
+    invoke<ExportPreview>("preview_export_sheet", { scope, options, window }),
+  exportColumns: () => invoke<string[]>("export_columns"),
 
   dataDir: () => invoke<DataDirInfo>("get_data_dir"),
   openDataDir: () => invoke<void>("open_data_dir"),

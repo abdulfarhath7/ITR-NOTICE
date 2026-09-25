@@ -1,13 +1,20 @@
-//! Excel export (docs/11-exports.md). Built in the core, one tab per
-//! module; the proceedings sheet is the firm's own 16-column format, in
-//! order. Dates are real Excel dates (`dd-mmm-yyyy`), amounts numeric with
+//! Excel export (docs/11-exports.md, docs/18 §4). Built in the core, one
+//! tab per module; the proceedings sheet is the firm's own 16 columns in
+//! order, then Viewed by AO and Limitation Date (Build 4), then Owner and
+//! Note. Dates are real Excel dates (`dd-mmm-yyyy`), amounts numeric with
 //! two decimals, identifiers text so Excel leaves leading zeros alone.
 //! Blank means blank: a gap-flagged field is an empty cell, never "N/A".
 //! Every status is exported; only the Attention list filters by status.
+//!
+//! The proceedings columns are one declarative table (`PROCEEDING_SHEET`):
+//! header, cell function. Adding, splitting or dropping a column is one
+//! row there (Q51), and the dialog's column picker selects from it.
+//!
+//! Nothing here reads a credential: this module never imports
+//! `keychain.rs` and never touches a secret (docs/07).
 
 use crate::dates::parse_portal_date;
 use crate::error::{AppError, AppResult};
-use crate::ledger;
 use crate::repo::{local, runs};
 use chrono::Datelike;
 use rusqlite::{Connection, OptionalExtension};
@@ -24,6 +31,26 @@ pub enum ExportScope {
     Client { client_id: String },
 }
 
+/// What the dialog chose beyond the scope (docs/18 §4.1).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExportOptions {
+    /// Proceedings-sheet headers to write, in sheet order; None = all.
+    #[serde(default)]
+    pub columns: Option<Vec<String>>,
+}
+
+/// The dialog's preview (docs/18 §4.1): the header lines as the sheet will
+/// carry them, the columns, and the first rows rendered as text.
+#[derive(Debug, Clone, Serialize)]
+pub struct ExportPreview {
+    pub header: Vec<String>,
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    pub total_rows: usize,
+    pub unverified: usize,
+    pub file_name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct ExportReport {
     pub path: String,
@@ -36,15 +63,64 @@ pub struct ExportReport {
 
 /// The 16 columns, in the firm's order (Q01 dropped "Created Mode" from
 /// the sheet; `proceedings.created_mode` stays in the database). Do not
-/// reorder.
+/// reorder. `PROCEEDING_SHEET` starts with exactly these; the test pins it.
+#[cfg_attr(not(test), allow(dead_code))]
 pub const PROCEEDING_COLUMNS: [&str; 16] = [
     "S.No", "Client ID", "Client Name", "PAN", "Self/Other", "AY", "Type", "Assessee Name", "Section",
     "Proceeding Name", "DIN", "Issued On", "Response Due Date", "Manual Due Date", "Response Submitted On",
     "Client File #",
 ];
 
-/// Appended after the 16 (docs/16 §8): the positions of the 16 never move.
-pub const PROCEEDING_EXTRA_COLUMNS: [&str; 2] = ["Owner", "Note"];
+/// One proceedings row as the queries return it; the column table turns
+/// it into cells.
+pub struct ProcRow {
+    code: Option<String>, name: String, pan: String, self_other: &'static str, ay: Option<String>,
+    type_label: String, assessee: Option<String>, section: Option<String>, display: Option<String>,
+    din: Option<String>, issued: Option<String>, due: Option<String>, manual: Option<String>,
+    submitted: Option<String>, file_no: Option<String>,
+    /// `Yes (dd-mm-yyyy)` / `No` / blank (docs/18 §4.4, D-064).
+    ao_viewed: Option<String>,
+    limitation: Option<String>,
+    owner: Option<String>, note: Option<String>,
+    status: String,
+}
+
+/// The Q51 seam: one row per column, in sheet order.
+pub struct ProcColumn {
+    pub header: &'static str,
+    cell: fn(&ProcRow, usize) -> Cell,
+}
+
+pub const PROCEEDING_SHEET: &[ProcColumn] = &[
+    ProcColumn { header: "S.No", cell: |_, i| Cell::Int(i as i64 + 1) },
+    ProcColumn { header: "Client ID", cell: |r, _| text(r.code.as_deref()) },
+    ProcColumn { header: "Client Name", cell: |r, _| Cell::Text(r.name.clone()) },
+    ProcColumn { header: "PAN", cell: |r, _| Cell::Text(r.pan.clone()) },
+    ProcColumn { header: "Self/Other", cell: |r, _| Cell::Text(r.self_other.into()) },
+    ProcColumn { header: "AY", cell: |r, _| text(r.ay.as_deref()) },
+    ProcColumn { header: "Type", cell: |r, _| Cell::Text(r.type_label.clone()) },
+    ProcColumn { header: "Assessee Name", cell: |r, _| text(r.assessee.as_deref()) },
+    ProcColumn { header: "Section", cell: |r, _| text(r.section.as_deref()) },
+    ProcColumn { header: "Proceeding Name", cell: |r, _| text(r.display.as_deref()) },
+    ProcColumn { header: "DIN", cell: |r, _| text(r.din.as_deref()) },
+    ProcColumn { header: "Issued On", cell: |r, _| date(r.issued.as_deref()) },
+    ProcColumn { header: "Response Due Date", cell: |r, _| date(r.due.as_deref()) },
+    ProcColumn { header: "Manual Due Date", cell: |r, _| date(r.manual.as_deref()) },
+    ProcColumn { header: "Response Submitted On", cell: |r, _| date(r.submitted.as_deref()) },
+    ProcColumn { header: "Client File #", cell: |r, _| text(r.file_no.as_deref()) },
+    ProcColumn { header: "Viewed by AO", cell: |r, _| text(r.ao_viewed.as_deref()) },
+    ProcColumn { header: "Limitation Date", cell: |r, _| date(r.limitation.as_deref()) },
+    ProcColumn { header: "Owner", cell: |r, _| text(r.owner.as_deref()) },
+    ProcColumn { header: "Note", cell: |r, _| text(r.note.as_deref()) },
+];
+
+/// The columns the picker chose, in sheet order; unknown names are ignored.
+fn chosen_columns(options: &ExportOptions) -> Vec<&'static ProcColumn> {
+    match &options.columns {
+        None => PROCEEDING_SHEET.iter().collect(),
+        Some(want) => PROCEEDING_SHEET.iter().filter(|c| want.iter().any(|w| w == c.header)).collect(),
+    }
+}
 
 /// Column widths follow the longest cell, never wider than this (docs/16 §8).
 const MAX_WIDTH: usize = 60;
@@ -123,22 +199,63 @@ fn write_cell(ws: &mut Worksheet, styles: &Styles, row: u32, col: u16, cell: &Ce
     Ok(())
 }
 
-/// Rows 1–3 of every sheet (docs/11 "Header block"): a stale export must be
-/// self-evident on its face.
-fn header_block(ws: &mut Worksheet, styles: &Styles, provenance: &Provenance, scope_label: &str, unverified: usize,
-                filters: &str) -> AppResult<()> {
-    let line1 = format!("Litigation Command Center export · {scope_label} · generated {}", provenance.generated_ist);
-    let line2 = format!("Data as of: collector last run {}, this device cursor {}", provenance.collector_last_run, provenance.cursor_summary);
-    let line3 = format!("Unverified fields in this export: {unverified}");
-    ws.write_string_with_format(0, 0, &line1, &styles.title).map_err(|e| AppError::state(e.to_string()))?;
-    ws.write_string_with_format(1, 0, &line2, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
-    ws.write_string_with_format(2, 0, &line3, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
-    ws.write_string_with_format(3, 0, format!("Active filters: {filters}"), &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
+/// What row 3 says about one sheet (docs/18 §4.2).
+struct SheetMeta {
+    title: &'static str,
+    module: &'static str,
+    /// Distinct client names in the sheet's rows (View), or the scope's.
+    client_scope: String,
+    /// Distinct statuses in the sheet's rows (View), else "every status".
+    status: String,
+}
+
+/// Rows 1–4 of every sheet (docs/18 §4.2): a stale export must be
+/// self-evident on its face. Row 5 stays blank; the column headers sit on
+/// row 6.
+fn header_lines(provenance: &Provenance, filter_line: &str, meta: &SheetMeta, rows: usize, unverified: usize) -> [String; 4] {
+    let unv = if unverified > 0 { format!(" · Unverified: {unverified}") } else { String::new() };
+    [
+        format!("Litigation Command Center — {}", meta.title),
+        format!("Filter: {filter_line}"),
+        format!("Client: {} · Module: {} · Status: {}", meta.client_scope, meta.module, meta.status),
+        format!("Exported: {} · Rows: {rows} · Last sweep: {}{unv}", provenance.generated_ist, provenance.collector_last_run),
+    ]
+}
+
+fn header_block(ws: &mut Worksheet, styles: &Styles, lines: &[String; 4]) -> AppResult<()> {
+    ws.write_string_with_format(0, 0, &lines[0], &styles.title).map_err(|e| AppError::state(e.to_string()))?;
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        ws.write_string_with_format(i as u32, 0, line, &styles.meta).map_err(|e| AppError::state(e.to_string()))?;
+    }
     Ok(())
 }
 
+/// Row 3's client and status for a sheet, from what the sheet holds.
+fn sheet_meta(scope: &ExportScope, con: &Connection, title: &'static str, module: &'static str,
+              clients: &[String], statuses: &[String]) -> SheetMeta {
+    let client_scope = match scope {
+        ExportScope::All => "all clients".into(),
+        ExportScope::Client { client_id } => crate::repo::clients::get(con, client_id).ok().flatten()
+            .map(|c| c.name).unwrap_or_else(|| "one client".into()),
+        ExportScope::View { .. } => {
+            let mut names: Vec<&String> = clients.iter().collect();
+            names.sort(); names.dedup();
+            match names.len() { 0 => "none".into(), 1 => names[0].clone(), n => format!("{n} clients") }
+        }
+    };
+    let status = match scope {
+        ExportScope::View { .. } => {
+            let mut st: Vec<String> = statuses.iter().map(|s| s.replace('_', " ")).collect();
+            st.sort(); st.dedup();
+            if st.is_empty() { "none".into() } else { st.join(", ") }
+        }
+        _ => "every status".into(),
+    };
+    SheetMeta { title, module, client_scope, status }
+}
+
 fn finish_sheet(ws: &mut Worksheet, columns: &[&str], styles: &Styles, rows: &[Vec<Cell>]) -> AppResult<()> {
-    let header_row: u32 = 4;
+    let header_row: u32 = 5;
     for (i, name) in columns.iter().enumerate() {
         ws.write_string_with_format(header_row, i as u16, *name, &styles.header).map_err(|e| AppError::state(e.to_string()))?;
     }
@@ -174,26 +291,18 @@ type LatestResponse = (Option<String>, Option<f64>, Option<String>, String);
 struct Provenance {
     generated_ist: String,
     collector_last_run: String,
-    cursor_summary: String,
 }
 
 fn provenance(con: &Connection) -> AppResult<Provenance> {
-    let ist = chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%d-%b-%Y %H:%M IST").to_string();
+    let ist = chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%d %b %Y %H:%M IST").to_string();
     let collector = local::get(con, crate::relay::KEY_COLLECTOR_SEEN)?
         .or(runs::latest(con)?.map(|r| r.run_at))
         .map(|s| ist_of(&s)).unwrap_or_else(|| "never".into());
-    let cursor = ledger::full_cursor_map(con)?;
-    let device = local::device_id(con)?;
-    let mut parts: Vec<String> = cursor.iter().map(|(d, s)| format!("{}{}:{}", if *d == device { "*" } else { "" }, short(d), s)).collect();
-    parts.sort();
-    Ok(Provenance { generated_ist: ist, collector_last_run: collector,
-                    cursor_summary: if parts.is_empty() { "no streams".into() } else { parts.join(" ") } })
+    Ok(Provenance { generated_ist: ist, collector_last_run: collector })
 }
 
-fn short(device: &str) -> String { device.chars().take(12).collect() }
-
 fn ist_of(iso: &str) -> String {
-    chrono::DateTime::parse_from_rfc3339(iso).map(|t| t.with_timezone(&chrono_tz::Asia::Kolkata).format("%d-%b-%Y %H:%M IST").to_string())
+    chrono::DateTime::parse_from_rfc3339(iso).map(|t| t.with_timezone(&chrono_tz::Asia::Kolkata).format("%d %b %Y %H:%M").to_string())
         .unwrap_or_else(|_| iso.to_string())
 }
 
@@ -214,39 +323,42 @@ fn scope_where(scope: &ExportScope, module: &str, alias_client: &str) -> (String
     }
 }
 
-/// The provenance block's filter line: a view's label names its filters.
-fn scope_filters(scope: &ExportScope) -> String {
+/// Row 2's filter line (docs/18 §4.2). A view's `label` is the line the
+/// screen built from its chips and passes through unchanged; the two
+/// fixed scopes have fixed strings.
+pub fn scope_label(scope: &ExportScope, con: &Connection) -> String {
     match scope {
-        ExportScope::View { label: Some(l), .. } => l.clone(),
-        ExportScope::View { label: None, items } => format!("current view ({} rows)", items.len()),
-        ExportScope::Client { .. } => "one client".into(),
-        ExportScope::All => "none".into(),
-    }
-}
-
-fn scope_label(scope: &ExportScope, con: &Connection) -> String {
-    match scope {
-        ExportScope::All => "all clients".into(),
+        ExportScope::All => "All proceedings, every status".into(),
         ExportScope::Client { client_id } => crate::repo::clients::get(con, client_id).ok().flatten()
-            .map(|c| format!("client {}", c.name)).unwrap_or_else(|| "one client".into()),
-        ExportScope::View { label, items } => label.clone().unwrap_or_else(|| format!("current view ({} rows)", items.len())),
+            .map(|c| format!("Client {}, every status", c.name)).unwrap_or_else(|| "One client, every status".into()),
+        ExportScope::View { label: Some(l), .. } => l.clone(),
+        ExportScope::View { label: None, .. } => "All open items".into(),
     }
 }
 
-pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> AppResult<ExportReport> {
-    let styles = Styles::new();
-    let prov = provenance(con)?;
-    let label = scope_label(scope, con);
-    let filters = scope_filters(scope);
-    let mut wb = Workbook::new();
-    let mut report = ExportReport { path: path.into(), ..Default::default() };
+/// `LCC_<slug>_<yyyy-mm-dd>.xlsx` (docs/18 §4.3). `window` is the screen's
+/// active window chip as `issued-15d` / `due-30d`, when any.
+pub fn suggested_file_name(scope: &ExportScope, window: Option<&str>, con: &Connection) -> String {
+    let slug = match scope {
+        ExportScope::All => "all".to_string(),
+        ExportScope::Client { client_id } => crate::repo::clients::get(con, client_id).ok().flatten()
+            .map(|c| format!("client-{}", c.client_code.filter(|x| !x.trim().is_empty()).unwrap_or(c.pan)))
+            .unwrap_or_else(|| "client".into()),
+        ExportScope::View { .. } => window.filter(|w| !w.is_empty()).unwrap_or("view").to_string(),
+    };
+    let safe: String = slug.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '-' }).collect();
+    let day = chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%Y-%m-%d");
+    format!("LCC_{safe}_{day}.xlsx")
+}
 
-    // ---- Sheet 1: Proceedings, the 16 columns
+/// Every proceedings row of the scope, plus its unverified-field count.
+fn collect_proceedings(con: &Connection, scope: &ExportScope) -> AppResult<(Vec<ProcRow>, usize)> {
     let (extra, binds) = scope_where(scope, "proceedings", "cl");
     let sql = format!(
         "SELECT cl.client_code, cl.name, cl.pan, x.source_panel, yc.assessment_year, t.label, x.assessee_name,
                 x.section_2025, x.section_1961, x.display_name, x.din_reference, x.initiated_on, x.due_date,
-                x.manual_due_date, cl.client_file_no, x.gap_flags, x.id, m.assignee, m.note
+                x.manual_due_date, cl.client_file_no, x.gap_flags, x.id, m.assignee, m.note,
+                x.limitation_date, t.is_assessment, x.status
          FROM proceedings x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
@@ -255,7 +367,7 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
          WHERE 1 = 1 {extra}
          ORDER BY cl.name COLLATE NOCASE, yc.assessment_year, x.initiated_on");
     let mut st = con.prepare(&sql)?;
-    let mut rows: Vec<Vec<Cell>> = Vec::new();
+    let mut rows: Vec<ProcRow> = Vec::new();
     let mut unverified = 0usize;
     let q = st.query_map(rusqlite::params_from_iter(binds.iter()), |r| Ok((
         r.get::<_, Option<String>>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, r.get::<_, String>(3)?,
@@ -264,9 +376,11 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, Option<String>>(10)?, r.get::<_, Option<String>>(11)?, r.get::<_, Option<String>>(12)?,
         r.get::<_, Option<String>>(13)?, r.get::<_, Option<String>>(14)?,
         r.get::<_, Option<String>>(15)?, r.get::<_, String>(16)?,
-        (r.get::<_, Option<String>>(17)?, r.get::<_, Option<String>>(18)?))))?;
-    for (i, row) in q.enumerate() {
-        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id, (owner, note)) = row?;
+        (r.get::<_, Option<String>>(17)?, r.get::<_, Option<String>>(18)?, r.get::<_, Option<String>>(19)?,
+         r.get::<_, i64>(20)?, r.get::<_, String>(21)?))))?;
+    for row in q {
+        let (code, name, pan, panel, ay, type_label, assessee, s2025, s1961, display, din, initiated, due, manual, file_no, gaps, id,
+             (owner, note, limitation, is_assessment, status)) = row?;
         // DIN and Issued On fall back to the communications when the
         // proceeding card did not carry them (docs/11 columns 11 and 12).
         let comm: Option<(Option<String>, Option<String>)> = con.prepare_cached(
@@ -275,30 +389,97 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         let submitted: Option<String> = con.prepare_cached(
             "SELECT filed_on FROM responses WHERE proceeding_id = ?1 AND filed_on IS NOT NULL ORDER BY filed_on DESC LIMIT 1")?
             .query_row([&id], |r| r.get(0)).optional()?;
+        // Column 17 (docs/18 §4.4, D-064): the latest inbound notice's AO
+        // date; "No" only once a reply to it is on record; blank otherwise
+        // and always blank off assessment proceedings.
+        let ao_viewed = if is_assessment == 1 {
+            let latest: Option<(String, Option<String>)> = con.prepare_cached(
+                "SELECT id, ao_viewed_on FROM communications WHERE proceeding_id = ?1 AND direction = 'inbound'
+                  ORDER BY issued_on DESC, created_at DESC LIMIT 1")?
+                .query_row([&id], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
+            match latest {
+                Some((_, Some(seen))) => Some(match parse_portal_date(&seen) {
+                    Some(d) => format!("Yes ({})", d.format("%d-%m-%Y")), None => format!("Yes ({seen})") }),
+                Some((cid, None)) => {
+                    let replied: i64 = con.prepare_cached("SELECT count(*) FROM responses WHERE in_reply_to = ?1")?
+                        .query_row([&cid], |r| r.get(0))?;
+                    if replied > 0 { Some("No".into()) } else { None }
+                }
+                None => None,
+            }
+        } else { None };
         let section = match (s2025.as_deref(), s1961.as_deref()) {
             (Some(n), Some(o)) => Some(format!("{n} ({o})")), (Some(n), None) => Some(n.to_string()),
             (None, Some(o)) => Some(o.to_string()), (None, None) => None,
         };
         let self_other = if panel.starts_with("self") { "Self" } else if panel.starts_with("auth_rep") { "AR" } else { "Other" };
         unverified += gap_count(gaps.as_deref());
-        rows.push(vec![
-            Cell::Int(i as i64 + 1),
-            text(code.as_deref()), Cell::Text(name), Cell::Text(pan), Cell::Text(self_other.into()),
-            text(ay.as_deref()), Cell::Text(type_label), text(assessee.as_deref()), text(section.as_deref()),
-            text(display.as_deref()),
-            text(din.as_deref().or(comm.as_ref().and_then(|c| c.0.as_deref()))),
-            date(initiated.as_deref().or(comm.as_ref().and_then(|c| c.1.as_deref()))),
-            date(due.as_deref()), date(manual.as_deref()), date(submitted.as_deref()),
-            text(file_no.as_deref()),
-            text(owner.as_deref()), text(note.as_deref()),
-        ]);
+        rows.push(ProcRow {
+            code, name, pan, self_other, ay, type_label, assessee, section, display,
+            din: din.or(comm.as_ref().and_then(|c| c.0.clone())),
+            issued: initiated.or(comm.as_ref().and_then(|c| c.1.clone())),
+            due, manual, submitted, file_no, ao_viewed,
+            limitation: if is_assessment == 1 { limitation } else { None },
+            owner, note, status,
+        });
     }
+    Ok((rows, unverified))
+}
+
+fn render_cell(cell: &Cell) -> String {
+    match cell {
+        Cell::Blank => String::new(),
+        Cell::Text(t) => t.clone(),
+        Cell::Date(iso) => parse_portal_date(iso).map(|d| d.format("%d-%b-%Y").to_string()).unwrap_or_else(|| iso.clone()),
+        Cell::Money(m) => format!("{m:.2}"),
+        Cell::Int(n) => n.to_string(),
+    }
+}
+
+/// The dialog's preview: the header block as it will be written, the
+/// chosen columns, and the first three rows as text (docs/18 §4.1).
+pub fn preview_proceedings(con: &Connection, scope: &ExportScope, options: &ExportOptions, window: Option<&str>) -> AppResult<ExportPreview> {
+    let prov = provenance(con)?;
+    let (rows, unverified) = collect_proceedings(con, scope)?;
+    let clients: Vec<String> = rows.iter().map(|r| r.name.clone()).collect();
+    let statuses: Vec<String> = rows.iter().map(|r| r.status.clone()).collect();
+    let meta = sheet_meta(scope, con, "Proceedings", "Proceedings", &clients, &statuses);
+    let header = header_lines(&prov, &scope_label(scope, con), &meta, rows.len(), unverified);
+    let cols = chosen_columns(options);
+    let preview_rows: Vec<Vec<String>> = rows.iter().take(3).enumerate()
+        .map(|(i, r)| cols.iter().map(|c| render_cell(&(c.cell)(r, i))).collect()).collect();
+    Ok(ExportPreview {
+        header: header.to_vec(), columns: cols.iter().map(|c| c.header.to_string()).collect(),
+        rows: preview_rows, total_rows: rows.len(), unverified, file_name: suggested_file_name(scope, window, con),
+    })
+}
+
+/// Every column (the tests and the bundle round trip use this form).
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> AppResult<ExportReport> {
+    export_workbook_with(con, scope, &ExportOptions::default(), path)
+}
+
+pub fn export_workbook_with(con: &Connection, scope: &ExportScope, options: &ExportOptions, path: &str) -> AppResult<ExportReport> {
+    let styles = Styles::new();
+    let prov = provenance(con)?;
+    let filter_line = scope_label(scope, con);
+    let mut wb = Workbook::new();
+    let mut report = ExportReport { path: path.into(), ..Default::default() };
+
+    // ---- Sheet 1: Proceedings, the column table
+    let (proc_rows, unverified) = collect_proceedings(con, scope)?;
+    let cols = chosen_columns(options);
+    let rows: Vec<Vec<Cell>> = proc_rows.iter().enumerate().map(|(i, r)| cols.iter().map(|c| (c.cell)(r, i)).collect()).collect();
     report.proceedings = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Proceedings").map_err(|e| AppError::state(e.to_string()))?;
     let proceedings_unverified = unverified;
-    header_block(ws, &styles, &prov, &label, proceedings_unverified, &filters)?;
-    let columns: Vec<&str> = PROCEEDING_COLUMNS.iter().chain(PROCEEDING_EXTRA_COLUMNS.iter()).copied().collect();
+    let clients: Vec<String> = proc_rows.iter().map(|r| r.name.clone()).collect();
+    let statuses: Vec<String> = proc_rows.iter().map(|r| r.status.clone()).collect();
+    let meta = sheet_meta(scope, con, "Proceedings", "Proceedings", &clients, &statuses);
+    header_block(ws, &styles, &header_lines(&prov, &filter_line, &meta, rows.len(), unverified))?;
+    let columns: Vec<&str> = cols.iter().map(|c| c.header).collect();
     finish_sheet(ws, &columns, &styles, &rows)?;
 
     // ---- Demands
@@ -315,8 +496,11 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, Option<String>>(2)?, r.get::<_, Option<String>>(3)?,
         r.get::<_, Option<f64>>(4)?, r.get::<_, Option<f64>>(5)?, r.get::<_, Option<String>>(6)?, r.get::<_, String>(7)?,
         r.get::<_, Option<String>>(8)?, r.get::<_, String>(9)?, r.get::<_, String>(10)?)))?;
+    let mut names: Vec<String> = Vec::new();
+    let mut statuses: Vec<String> = Vec::new();
     for (i, row) in q.enumerate() {
         let (name, ay, reference, raised, amount, outstanding, section, status, gaps, id, yc_id) = row?;
+        names.push(name.clone()); statuses.push(status.clone());
         let resp: Option<LatestResponse> = con.prepare_cached(
             "SELECT stance, disputed_amount, filed_on, id FROM demand_responses WHERE demand_id = ?1 ORDER BY filed_on DESC LIMIT 1")?
             .query_row([&id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).optional()?;
@@ -341,7 +525,8 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.demands = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Demands").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
+    let meta = sheet_meta(scope, con, "Demands", "Demands", &names, &statuses);
+    header_block(ws, &styles, &header_lines(&prov, &filter_line, &meta, rows.len(), unverified))?;
     finish_sheet(ws, &DEMAND_COLUMNS, &styles, &rows)?;
     let demands_unverified = unverified;
 
@@ -360,8 +545,12 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, String>(2)?, r.get::<_, Option<String>>(3)?,
         r.get::<_, Option<String>>(4)?, r.get::<_, Option<String>>(5)?, r.get::<_, Option<String>>(6)?,
         r.get::<_, Option<String>>(7)?, r.get::<_, Option<String>>(8)?, r.get::<_, Option<String>>(9)?)))?;
+    let mut names: Vec<String> = Vec::new();
+    let mut statuses: Vec<String> = Vec::new();
     for (i, row) in q.enumerate() {
         let (name, ay, ack, rtype, ftype, filed, verif, proc_status, gaps, supersedes) = row?;
+        names.push(name.clone());
+        if let Some(st) = verif.as_deref() { statuses.push(st.to_string()); }
         unverified += gap_count(gaps.as_deref());
         rows.push(vec![
             Cell::Int(i as i64 + 1), Cell::Text(name), text(ay.as_deref()), Cell::Text(ack), text(rtype.as_deref()),
@@ -372,7 +561,8 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.returns = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Returns").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
+    let meta = sheet_meta(scope, con, "Returns", "Returns", &names, &statuses);
+    header_block(ws, &styles, &header_lines(&prov, &filter_line, &meta, rows.len(), unverified))?;
     finish_sheet(ws, &RETURN_COLUMNS, &styles, &rows)?;
     let returns_unverified = unverified;
 
@@ -391,8 +581,11 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
         r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, String>(2)?, r.get::<_, String>(3)?,
         r.get::<_, Option<String>>(4)?, r.get::<_, Option<String>>(5)?, r.get::<_, String>(6)?,
         r.get::<_, Option<String>>(7)?, r.get::<_, Option<String>>(8)?)))?;
+    let mut names: Vec<String> = Vec::new();
+    let mut statuses: Vec<String> = Vec::new();
     for (i, row) in q.enumerate() {
         let (name, ay, form, ack, filed, ftype, status, filed_by, gaps) = row?;
+        names.push(name.clone()); statuses.push(status.clone());
         unverified += gap_count(gaps.as_deref());
         rows.push(vec![
             Cell::Int(i as i64 + 1), Cell::Text(name), text(ay.as_deref()), Cell::Text(form), Cell::Text(ack),
@@ -402,7 +595,8 @@ pub fn export_workbook(con: &Connection, scope: &ExportScope, path: &str) -> App
     report.forms = rows.len();
     let ws = wb.add_worksheet();
     ws.set_name("Forms").map_err(|e| AppError::state(e.to_string()))?;
-    header_block(ws, &styles, &prov, &label, unverified, &filters)?;
+    let meta = sheet_meta(scope, con, "Forms", "Forms", &names, &statuses);
+    header_block(ws, &styles, &header_lines(&prov, &filter_line, &meta, rows.len(), unverified))?;
     finish_sheet(ws, &FORM_COLUMNS, &styles, &rows)?;
 
     report.unverified_fields = proceedings_unverified + demands_unverified + returns_unverified + unverified;
@@ -452,8 +646,14 @@ mod tests {
         let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
         let mut shared = String::new();
         std::io::Read::read_to_string(&mut zip.by_name("xl/sharedStrings.xml").unwrap(), &mut shared).unwrap();
-        assert!(shared.contains("Litigation Command Center export"));
-        assert!(shared.contains("Unverified fields in this export"));
+        assert!(shared.contains("Litigation Command Center — Proceedings"));
+        assert!(shared.contains("Filter: All proceedings, every status"));
+        assert!(shared.contains("Unverified: "));
+        assert!(shared.contains("Viewed by AO") && shared.contains("Limitation Date"));
+        assert_eq!(PROCEEDING_SHEET.len(), 20);
+        for (i, name) in PROCEEDING_COLUMNS.iter().enumerate() { assert_eq!(PROCEEDING_SHEET[i].header, *name, "column {}", i + 1); }
+        assert_eq!(PROCEEDING_SHEET[16].header, "Viewed by AO");
+        assert_eq!(PROCEEDING_SHEET[17].header, "Limitation Date");
         assert!(shared.contains("Client File #"));
         assert!(!shared.contains("N/A"));
         let _ = std::fs::remove_dir_all(&dir);
@@ -478,7 +678,8 @@ pub fn export_updates(con: &Connection, report: &crate::repo::updates::UpdatesRe
         if entries.is_empty() { continue; }
         let ws = wb.add_worksheet();
         ws.set_name(name).map_err(|e| AppError::state(e.to_string()))?;
-        header_block(ws, &styles, &prov, &format!("updates since {since} · {name}"), 0, "none")?;
+        let meta = SheetMeta { title: name, module: "Updates", client_scope: "all clients".into(), status: "every status".into() };
+        header_block(ws, &styles, &header_lines(&prov, &format!("Updates since {since} · {name}"), &meta, entries.len(), 0))?;
         let rows: Vec<Vec<Cell>> = entries.iter().enumerate().map(|(i, e)| vec![
             Cell::Int(i as i64 + 1), text(Some(&ist_of(&e.at))), text(e.client_name.as_deref()), text(e.pan_masked.as_deref()),
             text(e.assessment_year.as_deref()), text(e.section.as_deref()), date(e.due_date.as_deref()),
@@ -491,7 +692,8 @@ pub fn export_updates(con: &Connection, report: &crate::repo::updates::UpdatesRe
     if written == 0 {
         let ws = wb.add_worksheet();
         ws.set_name("Updates").map_err(|e| AppError::state(e.to_string()))?;
-        header_block(ws, &styles, &prov, &format!("updates since {since}"), 0, "none")?;
+        let meta = SheetMeta { title: "Updates", module: "Updates", client_scope: "all clients".into(), status: "every status".into() };
+        header_block(ws, &styles, &header_lines(&prov, &format!("Updates since {since}"), &meta, 0, 0))?;
         finish_sheet(ws, &COLUMNS, &styles, &[])?;
     }
     wb.save(path).map_err(|e| AppError::Io { message: e.to_string() })?;

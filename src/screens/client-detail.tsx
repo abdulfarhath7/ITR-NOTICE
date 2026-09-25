@@ -408,11 +408,17 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
                                           tier={c.cadence_tier} onClose={() => setFetchingHistory(false)} /> : null}
       {exporting ? <ExportDialog onClose={() => setExporting(false)} choices={{
         client: { id: c.id, name: c.name },
+        fixedClient: true,
         // On a module tab, the rows on screen (that module, the chosen year).
         view: tab !== "profile" && tab !== "notes" ? {
           items: moduleRows(tab).map((r) => [r.module, r.id] as [string, string]),
-          label: `${c.name} · ${MODULE_LABEL[tab]} · ${selectedYear ? `AY ${years.find((y) => y.id === selectedYear)?.assessment_year ?? "not stated"}` : "all years"}`,
+          label: `Client ${c.name} · ${MODULE_LABEL[tab]} · ${selectedYear ? `AY ${years.find((y) => y.id === selectedYear)?.assessment_year ?? "not stated"}` : "all years"}`,
           sheet: `${c.name}-${MODULE_LABEL[tab]}`,
+          window: `client-${c.client_code || c.pan}`,
+          summary: {
+            filter: `Client ${c.name} · ${MODULE_LABEL[tab]} · ${selectedYear ? `AY ${years.find((y) => y.id === selectedYear)?.assessment_year ?? "not stated"}` : "all years"}`,
+            range: "All dates", client: c.name, module: MODULE_LABEL[tab], status: "Every status",
+          },
         } : null,
       }} /> : null}
     </Page>

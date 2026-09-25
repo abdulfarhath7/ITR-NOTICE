@@ -106,6 +106,7 @@ pub fn run() {
             commands::sync::sync_now, commands::sync::leave_firm,
             commands::sync::set_alert_email, commands::sync::get_alert_email,
             commands::export::export_excel, commands::export::export_preview, commands::export::export_updates,
+            commands::export::preview_export_sheet, commands::export::export_columns,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

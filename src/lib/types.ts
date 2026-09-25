@@ -8,6 +8,8 @@ export interface Settings {
   last_user_id: string;
   /** Text size in percent: 85, 92, 100, 112 or 125 (docs/16 §2.4). */
   ui_scale: number;
+  /** The export dialog's column picker, remembered per device (docs/18 Q54). */
+  export_columns?: string[] | null;
 }
 
 export interface ClientSummary {
@@ -631,6 +633,16 @@ export type ExportScope =
   | { kind: "all" }
   | { kind: "client"; client_id: string };
 export interface ExportReport { path: string; proceedings: number; demands: number; returns: number; forms: number; unverified_fields: number }
+export interface ExportOptions { columns?: string[] | null }
+/** docs/18 §4.1: the header lines, columns and first rows as the sheet will carry them. */
+export interface ExportPreview {
+  header: string[];
+  columns: string[];
+  rows: string[][];
+  total_rows: number;
+  unverified: number;
+  file_name: string;
+}
 
 export interface DataDirInfo { path: string; archive_bytes: number }
 export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number; removed: boolean }

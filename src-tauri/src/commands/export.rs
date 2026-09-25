@@ -2,14 +2,29 @@
 
 use crate::commands::lock_db;
 use crate::error::AppResult;
-use crate::export::{self, ExportReport, ExportScope};
+use crate::export::{self, ExportOptions, ExportPreview, ExportReport, ExportScope};
 use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
-pub fn export_excel(state: State<AppState>, scope: ExportScope, path: String) -> AppResult<ExportReport> {
+pub fn export_excel(state: State<AppState>, scope: ExportScope, path: String, options: Option<ExportOptions>) -> AppResult<ExportReport> {
     let con = lock_db(&state)?;
-    export::export_workbook(&con, &scope, &path)
+    export::export_workbook_with(&con, &scope, &options.unwrap_or_default(), &path)
+}
+
+/// The dialog's sheet preview and suggested filename (docs/18 §4.1, §4.3):
+/// the same header strings and cells the workbook will carry.
+#[tauri::command]
+pub fn preview_export_sheet(state: State<AppState>, scope: ExportScope, options: Option<ExportOptions>,
+                            window: Option<String>) -> AppResult<ExportPreview> {
+    let con = lock_db(&state)?;
+    export::preview_proceedings(&con, &scope, &options.unwrap_or_default(), window.as_deref())
+}
+
+/// Every proceedings-sheet column in order, for the picker.
+#[tauri::command]
+pub fn export_columns() -> Vec<String> {
+    export::PROCEEDING_SHEET.iter().map(|c| c.header.to_string()).collect()
 }
 
 /// Row counts per module for a scope, shown on the control before the

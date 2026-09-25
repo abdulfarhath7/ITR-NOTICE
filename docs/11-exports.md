@@ -5,7 +5,7 @@
 One workbook, one sheet per module. The proceedings sheet is fixed by the
 firm's existing format and must match exactly, in this order.
 
-### Sheet 1 — Proceedings (the 16 columns)
+### Sheet 1 — Proceedings (16 columns, then 17–20)
 
 | # | Column | Source |
 |---|---|---|
@@ -26,8 +26,20 @@ firm's existing format and must match exactly, in this order.
 | 15 | Response Submitted On | `responses.filed_on`, latest |
 | 16 | Client File # | `clients.client_file_no` (user-entered) |
 
-Build 2 appends **17 Owner** (`work_item_meta.assignee`) and **18 Note**
-(`work_item_meta.note`) after these 16; the 16 keep their positions.
+Build 4 (docs/18 §4.4) adds after the 16:
+
+| # | Column | Source |
+|---|---|---|
+| 17 | Viewed by AO | latest inbound `communications.ao_viewed_on` on the proceeding: `Yes (dd-mm-yyyy)`; `No` when the latest notice has a filed reply and no date; blank when the proceeding is not an assessment proceeding (`type_registry.is_assessment`, Q50) or no reply is filed (D-064). One text column (Q51) |
+| 18 | Limitation Date | `proceedings.limitation_date` as a real Excel date, blank when null or not an assessment proceeding |
+
+Build 2's **19 Owner** (`work_item_meta.assignee`) and **20 Note**
+(`work_item_meta.note`) come last. The 16 keep their positions.
+
+The columns are one declarative table in `src-tauri/src/export.rs`
+(`PROCEEDING_SHEET`: header, cell function). The export dialog's column
+picker chooses from it; every column but Note is ticked by default and the
+choice is remembered per device (Q54).
 
 `Created Mode` was dropped from the sheet (Q01); `proceedings.created_mode` stays in the database as provenance.
 
@@ -63,21 +75,38 @@ so Excel does not mangle leading zeros or apply scientific notation.
 
 ## Header block
 
-Rows 1 to 4 of every sheet, above the column headers:
+Rows 1 to 4 of every sheet (docs/18 §4.2), row 5 blank, the column headers
+on row 6:
 
 ```
-Litigation Command Center export · <scope> · generated <timestamp IST>
-Data as of: collector last run <timestamp>, this device cursor <summary>
-Unverified fields in this export: <count>
-Active filters: <the view's filters, or none>
+Row 1  Litigation Command Center — <sheet title>
+Row 2  Filter: <filter line>
+Row 3  Client: <client scope> · Module: <module> · Status: <status>
+Row 4  Exported: <dd Mon yyyy HH:mm IST> · Rows: <n> · Last sweep: <dd Mon yyyy HH:mm>[ · Unverified: <n>]
 ```
 
-The column header row (row 5) is bold on a light fill, frozen, with an
-autofilter; column widths follow the longest cell, capped at 60. Files are
-named `LCC-<sheet>-<YYYY-MM-DD>-<HHMM>.xlsx` in IST. Every list with an
-Export button (Attention, a Client 360 module tab, Updates, the Calendar
-day) exports exactly what it shows. The Updates export has one sheet per
-group instead of the module sheets.
+Filter line grammar: a window chip reads `Issued in last 15 days (11 Sep
+2026 – 25 Sep 2026)` or `Due in next 30 days (…)`; no window chip reads
+`All open items`; every other chip is appended with ` · ` (`… · Not viewed
+by AO · Type: 143(2), 148`). The `All` scope reads `All proceedings, every
+status`; the `Client` scope `Client <name>, every status`. The screen builds
+the line from its chips and passes it as the view's `label`; the Rust side
+writes it unchanged. Row 3's client and status are read from the rows the
+sheet holds. `Unverified` appears only when the count is above zero.
+
+The column header row (row 6) is bold on a light fill, frozen, with an
+autofilter; column widths follow the longest cell, capped at 60. The
+suggested filename is `LCC_<slug>_<yyyy-mm-dd>.xlsx` with slug
+`issued-15d`, `due-30d`, `all`, `client-<client_code or pan>`, or `view`
+when the filter has no window chip (docs/18 §4.3); the save dialog still
+asks. Every list with an Export button (Attention, a Client 360 module tab,
+Updates, the Calendar day) exports exactly what it shows: the whole result
+set, not the page on screen. The Updates export has one sheet per group
+instead of the module sheets.
+
+The export dialog shows the header lines and the first three rows as the
+sheet will carry them, from the `preview_export_sheet` command, so the
+preview and the workbook can never disagree.
 
 A stale export must be self-evident on its face (Q15). Someone will email this
 workbook to a partner; it has to carry its own provenance.

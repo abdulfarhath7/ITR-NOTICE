@@ -19,6 +19,11 @@ pub struct Settings {
     /// else read from disk is clamped to the nearest allowed value.
     #[serde(default = "default_scale")]
     pub ui_scale: u8,
+    /// docs/18 §4.1 (Q54): the export dialog's column picker, remembered
+    /// per device. None = every column. The dialog is the one reader and
+    /// writer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub export_columns: Option<Vec<String>>,
 }
 
 pub const UI_SCALES: [u8; 5] = [85, 92, 100, 112, 125];
@@ -28,7 +33,7 @@ fn default_scale() -> u8 { 100 }
 impl Default for Settings {
     fn default() -> Self {
         Settings { proxy_url: String::new(), firm_token: String::new(), remember_password: false,
-                   last_user_id: String::new(), ui_scale: default_scale() }
+                   last_user_id: String::new(), ui_scale: default_scale(), export_columns: None }
     }
 }
 
