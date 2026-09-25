@@ -28,6 +28,19 @@ pub fn export_clients(state: State<AppState>, path: String) -> AppResult<usize> 
     export::export_clients(&con, &path)
 }
 
+/// docs/18 §7: the run log of one sweep.
+#[tauri::command]
+pub fn export_sweep_run(state: State<AppState>, sweep_id: String, path: String) -> AppResult<usize> {
+    let con = lock_db(&state)?;
+    export::export_sweep_run(&con, &sweep_id, &path)
+}
+
+#[tauri::command]
+pub fn sweep_run_export_name(state: State<AppState>, sweep_id: String) -> AppResult<String> {
+    let con = lock_db(&state)?;
+    Ok(export::sweep_run_file_name(&con, &sweep_id))
+}
+
 #[tauri::command]
 pub fn clients_export_name() -> String {
     export::clients_file_name()

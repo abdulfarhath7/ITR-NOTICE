@@ -658,6 +658,80 @@ pub fn clients_file_name() -> String {
     format!("LCC_clients_{}.xlsx", chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%Y-%m-%d"))
 }
 
+/// docs/18 §7: one row per client per run for one sweep. Never a credential.
+pub const SWEEP_RUN_COLUMNS: [&str; 9] = [
+    "S.No", "Client", "PAN", "Started", "Finished", "Result", "New items", "AO-viewed flips", "Failure reason",
+];
+
+pub fn export_sweep_run(con: &Connection, sweep_id: &str, path: &str) -> AppResult<usize> {
+    use crate::repo::queue;
+    let styles = Styles::new();
+    let prov = provenance(con)?;
+    let sweep = queue::sweep(con, sweep_id)?.ok_or_else(|| AppError::not_found("sweep"))?;
+    let jobs = queue::jobs(con, sweep_id)?;
+    let end = sweep.finished_at.clone().unwrap_or_else(crate::ids::now);
+    // One row per login: its client, the worst job status, the runs' counts.
+    let mut by_login: std::collections::BTreeMap<String, Vec<&queue::Job>> = std::collections::BTreeMap::new();
+    for j in &jobs { by_login.entry(j.login_ref.clone()).or_default().push(j); }
+    let mut rows: Vec<Vec<Cell>> = Vec::new();
+    for (i, (login, js)) in by_login.iter().enumerate() {
+        let client_id = js.iter().find_map(|j| j.client_id.clone());
+        let (name, pan): (String, String) = match &client_id {
+            Some(id) => con.query_row("SELECT name, pan FROM clients WHERE id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?)))
+                .optional()?.unwrap_or_else(|| ("Client not in the book".into(), login.clone())),
+            None => ("Client not in the book".into(), login.clone()),
+        };
+        let started = js.iter().filter_map(|j| j.started_at.clone()).min();
+        let finished = js.iter().filter_map(|j| j.finished_at.clone()).max();
+        let worst = js.iter().map(|j| j.status.as_str()).min_by_key(|st| match *st {
+            "parked" => 0, "failed" => 1, "incomplete" => 2, "cancelled" => 3, "queued" | "running" | "awaiting_operator" => 4, _ => 5 }).unwrap_or("queued");
+        let unchanged = js.iter().all(|j| j.status == "done" && j.cursor().unchanged);
+        let result = match worst {
+            "parked" => "Login failed", "failed" => "Failed", "incomplete" => "Incomplete", "cancelled" => "Cancelled",
+            "queued" | "running" | "awaiting_operator" => "Not run", _ => if unchanged { "Unchanged" } else { "OK" },
+        };
+        let (new_items, flips): (i64, i64) = match &client_id {
+            Some(id) => (
+                con.query_row(
+                    "SELECT coalesce(sum(coalesce(json_extract(gaps, '$.indexed'), 0) + coalesce(json_extract(gaps, '$.fetched'), 0)), 0)
+                       FROM ingestion_runs WHERE client_id = ?1 AND run_at >= ?2 AND run_at <= ?3 AND json_valid(gaps)",
+                    rusqlite::params![id, sweep.started_at, end], |r| r.get(0))?,
+                con.query_row(
+                    "SELECT count(*) FROM proceeding_events e JOIN proceedings p ON p.id = e.proceeding_id
+                       JOIN year_contexts y ON y.id = p.year_context_id
+                      WHERE y.client_id = ?1 AND e.kind = 'ao_viewed' AND e.at >= ?2 AND e.at <= ?3",
+                    rusqlite::params![id, sweep.started_at, end], |r| r.get(0))?,
+            ),
+            None => (0, 0),
+        };
+        let reason = js.iter().filter(|j| matches!(j.status.as_str(), "parked" | "failed" | "incomplete"))
+            .find_map(|j| j.last_error.clone()).map(|e| crate::mask::text(&e));
+        rows.push(vec![
+            Cell::Int(i as i64 + 1), Cell::Text(name), Cell::Text(pan),
+            match &started { Some(t) => Cell::Text(ist_of(t)), None => Cell::Blank },
+            match &finished { Some(t) => Cell::Text(ist_of(t)), None => Cell::Blank },
+            Cell::Text(result.into()), Cell::Int(new_items), Cell::Int(flips), text(reason.as_deref()),
+        ]);
+    }
+    let mut wb = Workbook::new();
+    let ws = wb.add_worksheet();
+    ws.set_name("Sweep runs").map_err(|e| AppError::state(e.to_string()))?;
+    let meta = SheetMeta { title: "Sweep runs", module: "Sweep", client_scope: format!("{} clients", rows.len()), status: "every status".into() };
+    header_block(ws, &styles, &header_lines(&prov, &format!("Sweep run {}", ist_of(&sweep.started_at)), &meta, rows.len(), 0))?;
+    finish_sheet(ws, &SWEEP_RUN_COLUMNS, &styles, &rows)?;
+    wb.save(path).map_err(|e| AppError::Io { message: format!("could not write the workbook: {e}") })?;
+    Ok(rows.len())
+}
+
+/// `LCC_sweep_<yyyy-mm-dd>.xlsx`, dated by the run.
+pub fn sweep_run_file_name(con: &Connection, sweep_id: &str) -> String {
+    let day = crate::repo::queue::sweep(con, sweep_id).ok().flatten()
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s.started_at).ok())
+        .map(|t| t.with_timezone(&chrono_tz::Asia::Kolkata).format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%Y-%m-%d").to_string());
+    format!("LCC_sweep_{day}.xlsx")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,4 +1,4 @@
-/** Screen 5 — Sync (docs/17 §6.1, was Ingestion; docs/09 screen 5). The
+/** Screen 5 — Sweep (docs/17 §6.1, docs/18 §7; was Ingestion, then Sync). The
  *  head starts or pauses a sweep; the run card says how far tonight's run
  *  has got; the queue table lists every portal client in the frozen order
  *  with its scope, status and cadence. The live session (challenge entry,
@@ -24,6 +24,8 @@ import EmptyState from "../ui/empty-state";
 import Field from "../ui/field";
 import Icon from "../ui/icons";
 import { Page, PageBody, PageHead } from "../ui/page";
+import DeepFetchCard from "./sweep-deep-card";
+import NightlyCard from "./sweep-nightly-card";
 
 const OVERVIEW_KEY = "sync:overview";
 
@@ -528,7 +530,7 @@ export default function IngestionScreen({ filter }: { filter?: "failed" }) {
 
   return (
     <Page>
-      <PageHead title="Sync" meta={o ? plural(rows.length, "client") : undefined}>
+      <PageHead title="Sweep" meta={o ? plural(rows.length, "client") : undefined}>
         <button className="btn accent" disabled={running || !rows.length || allPaused}
                 title={running ? "A run is in progress" : undefined}
                 onClick={() => { void ing.start({ kind: "all" }, true).then(() => invalidate(OVERVIEW_KEY)); }}>
@@ -557,6 +559,13 @@ export default function IngestionScreen({ filter }: { filter?: "failed" }) {
             : <div className="sync-run muted">Loading</div>}
         </div>
 
+        {o ? (
+          <div className="sweep-cards">
+            <NightlyCard o={o} running={running} now={now}
+                         onRunNow={() => { void ing.start({ kind: "all" }, true).then(() => invalidate(OVERVIEW_KEY)); }} />
+            <DeepFetchCard running={running} />
+          </div>
+        ) : null}
         <LiveSession ing={ing} open={liveOpen} onToggle={setLiveOpen} />
         <MoreOptions ing={ing} finishedAt={s?.finished_at ?? null} />
 

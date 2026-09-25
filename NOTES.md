@@ -806,3 +806,63 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
 10. **Dormant.** A client with no open items and nothing in 90 days goes
     `weekly` after its sweep and shows `Dormant` / `Weekly · Sun` on Sync.
 11. Then answer Q42–Q48 in `QUESTIONS.md` (and Q41 from Build 2).
+
+## Session 7 — 2026-09-25, Build 4 (Phases 25–29)
+
+### Install
+- `files.zip` carried `18-build-4.md`, the Phase 25–30 tasks and nine seeded
+  questions. The questions were renumbered **Q49–Q57** (the notes said
+  Q46–Q54, already used by Build 3); every reference in the spec and tasks
+  was rewritten. The mockup PNGs (`docs/mockups/build-4/`) did not arrive:
+  built from the spec's prose (Q58).
+
+### Built
+- **25** cumulative windows (`lib/windows.ts`), risk strip, hint line,
+  saved-view and filter migration on read (`lib/filters-migrate.ts`, Q49),
+  Calendar next-days strip.
+- **26** migration 0023 (`ao_viewed_first_seen_at`,
+  `type_registry.is_assessment`, synced `proceeding_events`), the
+  not-viewed-by-AO predicate as one SQL fragment (Q53), `set_limitation_date`
+  with its event, AO / limitation cells everywhere, notice-type pill and Type
+  chip, Updates groups AO viewed and Limitation.
+- **27** export: declarative proceedings column table (16 + Viewed by AO +
+  Limitation Date + Owner + Note), four-row header block with the filter-line
+  grammar, `preview_export_sheet`, filename slug, the dialog with the column
+  picker (remembered in `Settings.export_columns`, Q54) and sheet preview.
+- **28** `export_clients` (17 columns, never a credential), per-client sync
+  health, Result column, registered / with sync failures count, GSTIN search,
+  footer copy.
+- **29** Sweep screen: Nightly card (role pill, five stats, Run now, Export
+  run log → `export_sweep_run`), Deep fetch card, `deep_probe_info`,
+  `indexed` and `ao_viewed_flips` on the sweep summary, Clients failures
+  filter (`#/clients?failures`), nav label Sweep.
+
+### TODOs pushed through
+- TODO(blocked): mockups absent; layout follows the spec text and the design
+  system (Q58). Refit when the PNGs land.
+- The Build 2 "Drafts to review" and "No due date" tiles are off the strip
+  (Q59); rank 4 still groups the no-date rows and the Calendar link lands on
+  a hidden `nodate` tile filter.
+- Row 3 of the header block (Client · Module · Status) is read from the
+  rows each sheet holds, since `ExportScope::View` gained no fields.
+- Nothing was run in the app; `./scripts/check.sh` is the only gate.
+
+### Manual test list (Build 4)
+1. Attention: pick Issued Last 15 — the hint line names the dates; Last 7 ≤
+   Last 15 ≤ Last 30 counts; a saved view from Build 2 that held "8–15 d"
+   opens as Last 15.
+2. Risk tiles filter; the AO tile and the Limitation tile set chips.
+3. An assessment proceeding shows Viewed by AO and Limitation columns; other
+   rows show —; the columns hide when no assessment row is listed.
+4. Work item: set a limitation date; Updates shows a Limitation entry; the
+   header shows days left; the thread's trailing event carries the date.
+5. After a sweep where a reply's "viewed by AO" date appears: the response
+   card shows the event with "first seen", Updates shows AO viewed, the
+   Sweep card counts one AO-viewed flip.
+6. Export · N rows: the dialog's preview matches the sheet; untick Note and
+   reopen — it stays unticked; the file name is `LCC_issued-15d_<date>.xlsx`.
+7. Clients: Result column, "n registered · m with sync failures", Export all
+   clients writes 17 columns and no password; search by GSTIN.
+8. Sweep: role pill, stats from the last run, Export run log; Deep fetch one
+   client with Everything / Last 3 AYs / Since date, Index + download PDFs.
+9. Then answer Q49–Q60 in `QUESTIONS.md`.

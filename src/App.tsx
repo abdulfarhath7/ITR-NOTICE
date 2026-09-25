@@ -29,7 +29,7 @@ const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "updates" }, label: "Updates", icon: "bell" },
   { route: { name: "calendar" }, label: "Calendar", icon: "calendar" },
   { route: { name: "clients" }, label: "Clients", icon: "users" },
-  { route: { name: "ingestion" }, label: "Sync", icon: "refresh" },
+  { route: { name: "ingestion" }, label: "Sweep", icon: "refresh" },
   { route: { name: "devices" }, label: "Devices", icon: "monitor" },
   { route: { name: "settings" }, label: "Settings", icon: "sliders" },
 ];
@@ -86,7 +86,7 @@ export default function App() {
   let screen: React.ReactNode;
   switch (route.name) {
     case "attention": screen = <AttentionScreen />; break;
-    case "clients": screen = <ClientsScreen />; break;
+    case "clients": screen = <ClientsScreen filter={route.filter} />; break;
     case "client": screen = <ClientDetailScreen key={route.id} id={route.id} tab={route.tab} />; break;
     case "item": screen = <WorkItemScreen key={route.id} module={route.module} id={route.id} />; break;
     case "ingestion": screen = <IngestionScreen filter={route.filter} />; break;

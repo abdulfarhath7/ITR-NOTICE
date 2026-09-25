@@ -718,9 +718,18 @@ impl<R: tauri::Runtime> Runner<R> {
                 if js.iter().all(|j| j.cursor().unchanged) { skipped += 1; } else { swept += 1; }
             }
         }
+        // docs/18 §7: what the run indexed, and the AO-viewed flips it saw
+        // (the `ao_viewed` events written since the sweep started).
+        let started_at: String = con.query_row("SELECT started_at FROM ingestion_sweeps WHERE id = ?1", [&self.sweep_id], |r| r.get(0))
+            .unwrap_or_default();
+        let indexed: i64 = con.query_row(
+            "SELECT coalesce(sum(coalesce(json_extract(gaps, '$.indexed'), 0)), 0) FROM ingestion_runs
+              WHERE run_at >= ?1 AND scope = 'sweep' AND json_valid(gaps)", [&started_at], |r| r.get(0)).unwrap_or(0);
+        let ao_viewed_flips: i64 = con.query_row(
+            "SELECT count(*) FROM proceeding_events WHERE kind = 'ao_viewed' AND at >= ?1", [&started_at], |r| r.get(0)).unwrap_or(0);
         json!({
             "swept": swept, "skipped_unchanged": skipped, "failed": failed, "parked": parked,
-            "deep_done": deep_done, "warm_cached": warm_cached,
+            "deep_done": deep_done, "warm_cached": warm_cached, "indexed": indexed, "ao_viewed_flips": ao_viewed_flips,
             "duration_s": self.started.elapsed().as_secs(), "window_closed": window_closed,
         })
     }

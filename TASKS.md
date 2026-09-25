@@ -398,12 +398,12 @@ Read `docs/18-build-4.md` §5–6. UI reference: `clients.png`.
 
 Read `docs/18-build-4.md` §7 and `docs/17-scrape-scopes.md`. UI reference: `sweep.png`. If Phase 23 already built a Sync screen, rework it; do not build a second one.
 
-- [ ] **29.1** Nav tab named Sweep. Left card per §7 with the five stat rows; Failed links to Clients filtered to failures; Run now and Export run log buttons.
-- [ ] **29.2** Right card: Deep fetch one client with Scope Everything / Last N AYs / Since date and Fetch Index only / Index + download PDFs, wired to the docs/17 deep-fetch command. Everything = full-history. Stepper appears on Last N AYs, date field on Since date.
-- [ ] **29.3** Estimate line from the docs/17 listing probe; `Estimate after probe` when none.
-- [ ] **29.4** Rust: `export_sweep_run` writing the `Sweep runs` sheet per §7 with the header block.
-- [ ] **29.5** Sweep run summary counts `ao_viewed` ledger entries as AO-viewed flips.
-- [ ] **29.6** `./scripts/check.sh` green. Commit. Add the Build 4 session entry to `NOTES.md` listing every TODO pushed through.
+- [x] **29.1** Nav tab named Sweep. Left card per §7 with the five stat rows; Failed links to Clients filtered to failures; Run now and Export run log buttons.
+- [x] **29.2** Right card: Deep fetch one client with Scope Everything / Last N AYs / Since date and Fetch Index only / Index + download PDFs, wired to the docs/17 deep-fetch command. Everything = full-history. Stepper appears on Last N AYs, date field on Since date.
+- [x] **29.3** Estimate line from the docs/17 listing probe; `Estimate after probe` when none.
+- [x] **29.4** Rust: `export_sweep_run` writing the `Sweep runs` sheet per §7 with the header block.
+- [x] **29.5** Sweep run summary counts `ao_viewed` ledger entries as AO-viewed flips.
+- [x] **29.6** `./scripts/check.sh` green. Commit. Add the Build 4 session entry to `NOTES.md` listing every TODO pushed through.
 
 ## Phase 30 — Apply the answered questions (reserved)
 

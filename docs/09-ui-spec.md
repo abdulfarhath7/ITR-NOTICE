@@ -10,7 +10,7 @@ Read `10-design-system.md` alongside this.
 | 2 | Clients | The client book. |
 | 3 | Client detail | One client, years down the side, modules across. |
 | 4 | Work item detail | One proceeding, demand, return or form with its documents. |
-| 5 | Sync | The run, the queue in tonight's order, operator challenges, pause and resume (Build 3; was Ingestion monitor). |
+| 5 | Sweep | The nightly run and deep fetch of one client, the queue in tonight's order, operator challenges, pause and resume (Build 4; was Ingestion monitor, then Sync). |
 | 6 | Devices | Roster, collector nomination, sync state. |
 | 7 | Settings | Sectioned like a desktop app: General, Sweeps, Drafting, Notifications, Data, Firm and sync, About. |
 | 8 | First-run wizard | Firm setup, admin, recovery code, collector. |
@@ -152,10 +152,24 @@ day's list. Client and module come from the Attention filters and show as
 chips. Items with no due date never appear on a day; "n without a due date
 →" opens Attention on the No due date tile. Detail in §5 of `16`.
 
-## 5 — Sync (was Ingestion monitor)
+## 5 — Sweep (was Ingestion monitor, then Sync)
 
-Build 3, `17-scrape-scopes.md` §6.1. The route stays `#/ingestion`; the nav
-label is **Sync**.
+Build 3, `17-scrape-scopes.md` §6.1, reworked by Build 4 (`18-build-4.md`
+§7). The route stays `#/ingestion`; the nav label is **Sweep**.
+
+Two cards under the run card:
+- **Nightly sweep** (left): pill `This device · runs 01:00` or `Not this
+  device`; Scope, Time budget, Last run; five stat rows (Clients checked,
+  Skipped, New items indexed, AO-viewed flips, Failed → Clients filtered to
+  failures); `Run now` and `Export run log` (one sheet, `Sweep runs`, one
+  row per client for the run).
+- **Deep fetch one client** (right): client picker; Scope **Everything /
+  Last N AYs / Since date** (a stepper or a date field appears on
+  selection); Fetch **Index only / Index + download PDFs**; the estimate
+  line `AY <first> → <last> · ~n items · ~m min` once a listing probe has
+  run, else `Estimate after probe`; `Start fetch`. Everything is the full
+  history from the first AY the portal lists; it runs in the foreground
+  with no time budget (Q57), and Stop cancels it.
 
 - **Head:** `Sweep all now · ≈ 42 min` and `Pause`.
 - **Run card:** "Tonight's run · started 01:00 · window ends 06:00" and

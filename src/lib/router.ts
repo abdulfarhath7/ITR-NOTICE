@@ -6,7 +6,7 @@ export type Route =
   | { name: "attention" }
   | { name: "updates" }
   | { name: "calendar" }
-  | { name: "clients" }
+  | { name: "clients"; filter?: "failures" }
   | { name: "client"; id: string; tab?: string }
   | { name: "item"; module: string; id: string }
   | { name: "ingestion"; filter?: "failed" }
@@ -19,7 +19,7 @@ export function href(route: Route): string {
     case "attention": return "#/attention";
     case "updates": return "#/updates";
     case "calendar": return "#/calendar";
-    case "clients": return "#/clients";
+    case "clients": return route.filter ? `#/clients?${route.filter}` : "#/clients";
     case "client": return `#/clients/${encodeURIComponent(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "item": return `#/items/${route.module}/${encodeURIComponent(route.id)}`;
     case "ingestion": return route.filter ? `#/ingestion/${route.filter}` : "#/ingestion";
@@ -30,10 +30,11 @@ export function href(route: Route): string {
 }
 
 export function parse(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  const parts = hash.replace(/^#\/?/, "").split("?")[0].split("/").filter(Boolean).map(decodeURIComponent);
   switch (parts[0]) {
     case "clients":
-      return parts[1] ? { name: "client", id: parts[1], ...(parts[2] ? { tab: parts[2] } : {}) } : { name: "clients" };
+      return parts[1] ? { name: "client", id: parts[1], ...(parts[2] ? { tab: parts[2] } : {}) }
+        : hash.includes("?failures") ? { name: "clients", filter: "failures" } : { name: "clients" };
     case "items":
       return parts[1] && parts[2] ? { name: "item", module: parts[1], id: parts[2] } : { name: "attention" };
     case "ingestion": return parts[1] === "failed" ? { name: "ingestion", filter: "failed" } : { name: "ingestion" };

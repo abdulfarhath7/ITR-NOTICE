@@ -1,6 +1,6 @@
 /** Screen 2 — Clients. The client book: search, sortable columns, and a
  *  status pill that says the one thing worth knowing about each client. */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { api, describeError } from "../lib/api";
 import { toast, toastError } from "../lib/toast";
@@ -72,8 +72,10 @@ function HistoryCell({ c }: { c: ClientSummary }) {
   );
 }
 
-export default function ClientsScreen() {
+export default function ClientsScreen({ filter }: { filter?: "failures" }) {
   const [search, setSearch] = useState("");
+  const [onlyFailures, setOnlyFailures] = useState(filter === "failures");
+  useEffect(() => setOnlyFailures(filter === "failures"), [filter]);
   const [sort, setSort] = useState<Sort>({ key: "name", dir: 1 });
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -95,10 +97,10 @@ export default function ClientsScreen() {
   };
 
   const rows = useMemo(() => {
-    const list = [...(q.data ?? [])];
+    const list = [...(q.data ?? [])].filter((c) => !onlyFailures || c.last_result_tone === "danger" || c.last_result_tone === "warning");
     list.sort((a, b) => sort.dir * compare(a, b, sort.key) || a.name.localeCompare(b.name));
     return list;
-  }, [q.data, sort]);
+  }, [q.data, sort, onlyFailures]);
   const summary = useMemo(() => {
     const all = q.data ?? [];
     return { total: all.length, overdue: all.filter((c) => c.overdue_count).length, never: all.filter((c) => !c.last_sync_at).length,
@@ -122,6 +124,13 @@ export default function ClientsScreen() {
         <button className="btn accent" onClick={() => setAdding(true)}><Icon name="plus" /><span>Add client</span></button>
       </PageHead>
       <PageBody>
+        {onlyFailures ? (
+          <div className="banner" role="status">
+            <Icon name="alert" /><span>Showing clients whose last sweep failed or needs a person.</span>
+            <span className="grow" />
+            <button className="btn small" onClick={() => { setOnlyFailures(false); navigate({ name: "clients" }); }}>Show all</button>
+          </div>
+        ) : null}
         {q.data && !search && summary.total ? (
           <div className="row meta">
             {summary.overdue ? <span className="due danger">{plural(summary.overdue, "client")} with overdue items</span> : <span>No client has an overdue item</span>}

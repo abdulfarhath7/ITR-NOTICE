@@ -59,3 +59,21 @@ tr.sync-row:hover .sync-next, tr.sync-row:focus-within .sync-next, tr.sync-row:f
 .sync-table .sync-pick { width: 2.25rem; text-align: center; padding-left: 0.5rem; padding-right: 0; }
 .sync-table .sync-pick input { margin: 0; cursor: pointer; }
 .sync-table tr.selected td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+/* Sweep screen cards (docs/18 §7) */
+.sweep-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+@media (max-width: 900px) { .sweep-cards { grid-template-columns: 1fr; } }
+.sweep-card .card-head .pill { margin-left: auto; }
+.sweep-kv dd { overflow-wrap: anywhere; }
+.sweep-stats { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-control); }
+.sweep-stat { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.375rem 0.625rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
+.sweep-stat:last-child { border-bottom: 0; }
+.sweep-stat-value { font-variant-numeric: tabular-nums; }
+.sweep-stat-value.danger { color: var(--danger); }
+.sweep-stat-value.success { color: var(--success); }
+.sweep-radios { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0; padding: 0.375rem 0.625rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-control); }
+.sweep-radios legend { padding: 0 0.25rem; font-size: 0.75rem; color: var(--text-muted); }
+.sweep-radios label.check { font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.375rem; }
+.sweep-stepper { width: 3.5rem; height: 1.5rem; padding: 0 0.375rem; }
+.sweep-date { height: 1.5rem; padding: 0 0.375rem; }
+.sweep-estimate { margin: 0; }

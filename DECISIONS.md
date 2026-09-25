@@ -632,3 +632,15 @@ Date: 2026-09-25
 Context: docs/18 §3.3 shows `Yes · date` or `No`. A notice with no reply cannot have been viewed by the AO yet; `No` there would read as a delay on the department's side.
 Decision: `—` until the latest notice has a reply, then `No` or `Yes · date`. The same rule feeds the export cell (blank / No / Yes).
 Reversible: easily; one branch in `ui/ao-cells.tsx` and the export cell.
+
+## D-065 — The Sweep screen keeps the Build 3 queue under the two Build 4 cards
+Date: 2026-09-25
+Context: docs/18 §7 draws a Nightly sweep card and a Deep fetch card; docs/17 §6.1 drew the run card and the frozen-order queue. Both are specified; §7 says rework, not replace.
+Decision: the run card stays on top, the two cards sit under it, then the live session and the queue. The old "More sweep options" section stays collapsed. Nav label is Sweep.
+Reversible: easily.
+
+## D-066 — The deep-fetch estimate reads the listing probe's row counts
+Date: 2026-09-25
+Context: docs/18 §7 wants `AY <first> → <last> · ~n items · ~m min` "from the listing probe", else `Estimate after probe`. The probe stores a hash and a row count per panel (docs/17 §2.2), not AYs.
+Decision: `deep_probe_info` returns the AYs the client already holds, the sum of the probe's row counts (None until a probe has run), and docs/17 §2.9's seconds. The line reads `Estimate after probe` until `probe_rows` exists.
+Reversible: easily.

@@ -158,6 +158,27 @@ To get more:
 - **Sync now** on a client, or **Sweep all now** on the Sync screen, runs a
   sweep straight away.
 
+## Windows, risk and the two new columns
+
+The Attention screen counts from today: Last 7 sits inside Last 15, which
+sits inside Last 30, and the same for Due. Pick one Issued window and one
+Due window; the line under the chips says exactly which dates are shown.
+The four tiles at the top are the risks: overdue, due within three days,
+a reply the AO has not viewed yet, and a limitation date within 60 days.
+
+On assessment proceedings the table also shows **Viewed by AO** (`Yes ·
+date` or `No` once a reply is filed) and **Limitation** (the date and the
+days left, red inside 30 days). Other proceedings show a dash. The
+limitation date is entered on the work item until the portal states it.
+The **Type** pill names the notice (143(2) scrutiny, 148 reassessment,
+271 penalty …), and the Type chip filters by it.
+
+**Export · N rows** writes every row of the current view. The dialog shows
+what will be exported, lets you untick columns, and previews the sheet.
+Rows 1–4 of the sheet say which filter made it. **Export all clients** on
+the Clients screen writes the registration fields; portal passwords are
+never exported.
+
 ## Exports
 
 Attention, Clients and a client's page each have **Export**. One workbook,

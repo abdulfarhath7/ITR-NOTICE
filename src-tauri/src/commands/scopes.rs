@@ -204,6 +204,9 @@ pub struct SyncOverview {
     pub dormant_weekday: u32,
     /// IST `YYYY-MM-DD HH:MM` of the next scheduled start, when one is set.
     pub next_run_at: Option<String>,
+    /// Who runs the overnight sweep (docs/18 §7): `this` device, an `other`
+    /// device that holds the collector role, or `none` set.
+    pub collector: String,
     pub estimate_all_s: i64,
     pub deep_queued: i64,
     pub rows: Vec<SyncRow>,
@@ -349,14 +352,44 @@ pub fn get_sync_overview(state: State<AppState>) -> AppResult<SyncOverview> {
         (None, None) => a.client_name.to_lowercase().cmp(&b.client_name.to_lowercase()),
     });
 
+    let collector = match (crate::relay::config(&con)?, local::get(&con, crate::relay::KEY_COLLECTOR_ID)?) {
+        (None, _) => "this".to_string(),
+        (Some(_), Some(id)) if id == local::device_id(&con)? => "this".to_string(),
+        (Some(_), Some(_)) => "other".to_string(),
+        (Some(_), None) => "none".to_string(),
+    };
     Ok(SyncOverview {
-        run, last_summary, schedule_enabled: settings.enabled,
+        run, last_summary, schedule_enabled: settings.enabled, collector,
         window_start: settings.run_window_start.clone(), window_end: settings.run_window_end.clone(),
         dormant_weekday: settings.dormant_weekday, next_run_at: next_run_at(&settings),
         estimate_all_s: scopes::sweep_estimate(&con, &scopes::book_client_ids(&con)?)?,
         deep_queued: deep.iter().filter(|d| d.status == "queued").count() as i64,
         rows,
     })
+}
+
+/// docs/18 §7 estimate line: the AYs the client holds, the row count the
+/// last listing probe saw (None until a probe has run), and the seconds
+/// docs/17 §2.9 estimates for the depth.
+#[derive(Debug, Serialize)]
+pub struct DeepProbeInfo {
+    pub first_ay: Option<String>,
+    pub last_ay: Option<String>,
+    pub probe_rows: Option<i64>,
+    pub seconds: i64,
+}
+
+#[tauri::command]
+pub fn deep_probe_info(state: State<AppState>, client_id: String, depth: String, depth_value: Option<String>) -> AppResult<DeepProbeInfo> {
+    let con = lock_db(&state)?;
+    let (first_ay, last_ay): (Option<String>, Option<String>) = con.query_row(
+        "SELECT min(assessment_year), max(assessment_year) FROM year_contexts WHERE client_id = ?1 AND assessment_year IS NOT NULL",
+        [&client_id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    let probe_rows: Option<i64> = con.query_row(
+        "SELECT sum(p.rows) FROM probe_state p JOIN clients c ON coalesce(c.portal_login_ref, c.pan) = p.login_ref WHERE c.id = ?1",
+        [&client_id], |r| r.get(0)).optional()?.flatten();
+    let seconds = scopes::deep_estimate(&con, &client_id, &depth, depth_value.as_deref())?;
+    Ok(DeepProbeInfo { first_ay, last_ay, probe_rows, seconds })
 }
 
 /// The Updates screen's first card (§2.8).

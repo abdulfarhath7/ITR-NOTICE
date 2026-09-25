@@ -6,7 +6,7 @@ import type {
   RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
-  DeepDepth, DeepFetchRequest, DeletePreview, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
+  DeepDepth, DeepFetchRequest, DeepProbeInfo, DeletePreview, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
 } from "./types";
 
 export const api = {
@@ -130,6 +130,10 @@ export const api = {
   exportColumns: () => invoke<string[]>("export_columns"),
   exportClients: (path: string) => invoke<number>("export_clients", { path }),
   clientsExportName: () => invoke<string>("clients_export_name"),
+  exportSweepRun: (sweepId: string, path: string) => invoke<number>("export_sweep_run", { sweepId, path }),
+  sweepRunExportName: (sweepId: string) => invoke<string>("sweep_run_export_name", { sweepId }),
+  deepProbeInfo: (clientId: string, depth: DeepDepth, depthValue: string | null) =>
+    invoke<DeepProbeInfo>("deep_probe_info", { clientId, depth, depthValue }),
 
   dataDir: () => invoke<DataDirInfo>("get_data_dir"),
   openDataDir: () => invoke<void>("open_data_dir"),

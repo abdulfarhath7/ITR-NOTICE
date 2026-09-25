@@ -682,6 +682,17 @@ export interface SweepSummary {
   warm_cached: number;
   duration_s: number;
   window_closed: boolean;
+  /** docs/18 §7 (added in Build 4; older summaries lack them). */
+  indexed?: number;
+  ao_viewed_flips?: number;
+}
+
+/** docs/18 §7 estimate line. `probe_rows` is null until a listing probe has run. */
+export interface DeepProbeInfo {
+  first_ay: string | null;
+  last_ay: string | null;
+  probe_rows: number | null;
+  seconds: number;
 }
 
 export interface SummaryCard {
@@ -762,6 +773,8 @@ export interface SyncOverview {
   dormant_weekday: number;
   /** IST "YYYY-MM-DD HH:MM" */
   next_run_at: string | null;
+  /** Who runs the overnight sweep: this device, another one, or none set. */
+  collector: "this" | "other" | "none";
   estimate_all_s: number;
   deep_queued: number;
   rows: SyncRow[];
