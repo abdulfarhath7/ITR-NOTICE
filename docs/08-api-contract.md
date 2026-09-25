@@ -30,6 +30,17 @@ client_delete_preview(client_id) -> { name, years, work_items, communications, d
 delete_client(client_id)       // children first, each a ledgered delete; refused while a run is in flight
 ```
 
+### Statutory calendar (Build 5, docs/19 §9)
+```
+list_statutory(from, to, scope?)      -> StatutoryItem[]   // statutory + firm rows in force; applies_count under scope=applies
+refresh_statutory()                   -> FetchOutcome[]    // plain HTTPS, no credentials, one row per year
+statutory_status()                    -> { last_fetched_at, last_status, last_error, last_ok_at, deadlines, years, next_due }
+get_calendar_settings() / set_calendar_settings(settings)
+list_firm_dates() / upsert_firm_date(id?, due_on, title, note?) / delete_firm_date(id)
+export_statutory_ics(fy_start_year, path) -> path         // statutory and firm layers only
+set_client_calendar_profile(client_id, entity_kind?, audit_case, tp_case, tds_deductor)
+```
+
 ### Work items
 ```
 list_work_items(filter) -> WorkItemRow[]      // across all four modules

@@ -6,6 +6,7 @@ import type { useTheme } from "../../lib/theme";
 import Icon, { type IconName } from "../../ui/icons";
 import { Page, PageBody, PageHead } from "../../ui/page";
 import About from "./about";
+import Calendar from "./calendar";
 import Data from "./data";
 import Drafting from "./drafting";
 import Firm from "./firm";
@@ -16,6 +17,7 @@ import Sweeps from "./sweeps";
 const SECTIONS = [
   { id: "general", label: "General", icon: "sliders", blurb: "Appearance and the keyboard" },
   { id: "sweeps", label: "Sweeps", icon: "download", blurb: "Cadence, schedule, workers" },
+  { id: "calendar", label: "Calendar", icon: "calendar", blurb: "Portal dates, firm dates, .ics" },
   { id: "drafting", label: "Drafting", icon: "sparkles", blurb: "The AI proxy and its token" },
   { id: "notifications", label: "Notifications", icon: "bell", blurb: "Desktop and email alerts" },
   { id: "data", label: "Data", icon: "database", blurb: "Storage, backup, transfer" },
@@ -37,6 +39,7 @@ export default function SettingsScreen({ section, theme }: { section?: string; t
   switch (current) {
     case "general": body = <General theme={theme} />; break;
     case "sweeps": body = <Sweeps />; break;
+    case "calendar": body = <Calendar />; break;
     case "drafting": body = <Drafting />; break;
     case "notifications": body = <Notifications />; break;
     case "data": body = <Data />; break;

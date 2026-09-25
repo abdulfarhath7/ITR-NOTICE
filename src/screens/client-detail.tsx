@@ -215,6 +215,42 @@ function HistoryLine({ c, onFetch }: { c: ClientDetail; onFetch: () => void }) {
   );
 }
 
+/** docs/19 §2.4, §8: the four fields the calendar's Applies-to-us scope
+ *  reads. Set by a person, never inferred from scraped data. */
+function CalendarProfileCard({ c, onSaved }: { c: ClientDetail; onSaved: () => void }) {
+  const [kind, setKind] = useState(c.entity_kind ?? "");
+  const [audit, setAudit] = useState(c.audit_case === 1);
+  const [tp, setTp] = useState(c.tp_case === 1);
+  const [tds, setTds] = useState(c.tds_deductor === 1);
+  const dirty = kind !== (c.entity_kind ?? "") || audit !== (c.audit_case === 1) || tp !== (c.tp_case === 1) || tds !== (c.tds_deductor === 1);
+  const save = async () => {
+    try { await api.setClientCalendarProfile(c.id, kind || null, audit, tp, tds); toast("Calendar profile saved."); onSaved(); }
+    catch (e) { toastError(describeError(e)); }
+  };
+  const Toggle = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) => (
+    <label className="c360-sync"><span>{label}</span>
+      <span className="switch"><input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} aria-label={label} /><span className="track" /></span>
+    </label>
+  );
+  return (
+    <div className="card">
+      <div className="card-head"><h2>Calendar profile</h2><span className="meta">Used only for the calendar's Applies-to-us scope</span></div>
+      <div className="card-body stack">
+        <label className="c360-sync"><span>Entity type</span>
+          <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Entity type">
+            <option value="">Not set</option>
+            {[["individual", "Individual"], ["huf", "HUF"], ["firm", "Firm"], ["llp", "LLP"], ["company", "Company"], ["trust", "Trust"], ["other", "Other"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <Toggle label="Books audited" value={audit} onChange={setAudit} />
+        <Toggle label="Transfer pricing" value={tp} onChange={setTp} />
+        <Toggle label="TDS deductor" value={tds} onChange={setTds} />
+        {dirty ? <div><button className="btn small accent" onClick={() => { void save(); }}>Save</button></div> : null}
+      </div>
+    </div>
+  );
+}
+
 /** Client detail — Client 360 (docs/16 §7): header with the sync switch,
  *  five summary tiles, then tabs. The module tabs reuse the per-module
  *  list, filtered to the chosen year. */
@@ -376,6 +412,7 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
             </div>
             <CredentialCard clientId={c.id} hasCredential={c.has_credential}
                             loginRef={c.login_ref_effective} ownLogin={!c.portal_login_ref} />
+            <CalendarProfileCard c={c} onSaved={() => { invalidate(`clients:${id}`); invalidate("statutory"); }} />
           </div>
         ) : tab === "notes" ? (
           <ClientNotes clientId={c.id} saved={c.note ?? ""} />

@@ -662,3 +662,21 @@ Date: 2026-09-25
 Context: docs/19 §3.1 puts the fetch at the start of the overnight pipeline, with no lock and no budget charge.
 Decision: `Runner::run` fetches when `fetch_due` says so, before `take_lease`, so a device that is not the collector never fetches on a nightly run, and the fetch never touches a client session. `Refresh now` in Settings runs the same code on demand from any device.
 Reversible: easily.
+
+## D-070 — Overlay collapses the sidebar with one class on the shell
+Date: 2026-09-25
+Context: docs/19 §5 wants the sidebar to icons while full screen is open and restored on close (vcfo's unpin/restore). LCC's shell has no pinned/auto sidebar mode.
+Decision: the overlay adds `nav-collapsed` to `.shell` on mount and removes it on unmount unless it was already set; CSS narrows the nav to 3.5rem and hides labels, the search, the footer and the mini block (a calendar icon with a badge shows instead). The overlay's left edge is that width.
+Reversible: easily.
+
+## D-071 — Build 4's limitation dates stay in the Notices layer
+Date: 2026-09-25
+Context: Build 4 (Q56) drew limitation dates on the Calendar as items. docs/19 has two layers only.
+Decision: limitation dates count in the Notices pill and list under the day's notices with their own "Limitation" pill; the Statutory legend is untouched. Dropping Q56 later removes one call (`limitationByDay`).
+Reversible: easily.
+
+## D-072 — "Open" on a day's notices goes to Attention's Due window within 30 days (Q64)
+Date: 2026-09-25
+Context: docs/19 §4: Attention with the Due bucket that contains the day, else the day list.
+Decision: days 0–6 → Next 7, 7–14 → Next 15, 15–29 → Next 30 (the cumulative windows of Build 4); beyond, or in Issued mode, the agenda expands that day in place.
+Reversible: easily.

@@ -451,9 +451,9 @@ Same operating rules as Builds 1–4. Installed as Build 5 / Phase 31 because Bu
 
 ### 31.D Settings, profile, export, docs
 
-- [ ] **31.16** Settings → Calendar rows (§8) and the Firm dates manager; client Profile tab fields (§8 last paragraph).
-- [ ] **31.17** `.ics` export (§7) via `export_statutory_ics`, saved through the existing save dialog; "Print month" stylesheet.
-- [ ] **31.18** Docs: `09-ui-spec.md` (Calendar screen, overlay, sidebar, settings), `02-data-model.md`, `08-api-contract.md`, `11-exports.md` (ics), `USER-GUIDE.md` one section "The calendar: portal dates, your dates, and notices". `DECISIONS.md` entries. Final `NOTES.md` with the manual test list. `./scripts/check.sh` exits 0. Commit.
+- [x] **31.16** Settings → Calendar rows (§8) and the Firm dates manager; client Profile tab fields (§8 last paragraph).
+- [x] **31.17** `.ics` export (§7) via `export_statutory_ics`, saved through the existing save dialog; "Print month" stylesheet.
+- [x] **31.18** Docs: `09-ui-spec.md` (Calendar screen, overlay, sidebar, settings), `02-data-model.md`, `08-api-contract.md`, `11-exports.md` (ics), `USER-GUIDE.md` one section "The calendar: portal dates, your dates, and notices". `DECISIONS.md` entries. Final `NOTES.md` with the manual test list. `./scripts/check.sh` exits 0. Commit.
 
 ## Phase 32 — Apply the answered questions (do not start until answers exist)
 

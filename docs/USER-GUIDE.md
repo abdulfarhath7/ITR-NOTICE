@@ -179,6 +179,32 @@ Rows 1–4 of the sheet say which filter made it. **Export all clients** on
 the Clients screen writes the registration fields; portal passwords are
 never exported.
 
+## The calendar: portal dates, your dates, and notices
+
+The Calendar draws two layers on one month. **Statutory** dates come from
+the Income Tax Department's public tax calendar (no login; refreshed
+weekly, nightly around 1 April) and from the **firm dates** you add in
+Settings → Calendar. **Notices** are your open items on their due day, as
+before. Dots under a day show which categories fall there; the pill shows
+how many notices are due.
+
+The legend on the right counts this month by category. Click a row to
+mute it, Shift-click to see only it, "Show all" to reset. The scope at the
+top narrows to **Applies to us** (deadlines that match at least one
+client's Calendar profile: entity type, books audited, transfer pricing,
+TDS deductor, set on the client's Profile tab) or **Overdue**.
+
+Click a day to see its agenda; press `t` for today, `[` and `]` to change
+month, `F` (or the Full screen button) for the full-screen view with
+Month, Year and Agenda (`1` `2` `3`), and Esc to leave it. An extended
+deadline shows the old date struck through and the circular. When the
+portal moves a date, Updates shows it under "Deadline extended".
+
+The sidebar lists the next three deadlines; the Attention strip's "Next
+statutory" tile names the nearest one. `.ics` (full screen or Settings →
+Calendar) exports the statutory and firm dates for the year; notices are
+never exported that way.
+
 ## Exports
 
 Attention, Clients and a client's page each have **Export**. One workbook,

@@ -911,3 +911,28 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
   collapsed) and the Attention "Next statutory" tile (strip is five wide).
 - Updates: "Deadline extended" after "Due date changed"; "Calendar
   changed" last. Route `#/calendar/<day>` opens the day.
+
+### 31.D
+- Settings → Calendar (`settings/calendar.tsx`): portal status and Refresh
+  now, cadence, first day, default scope, sidebar toggle, firm dates
+  manager (add / edit / delete), `.ics` export. Client Profile tab gains
+  the Calendar profile card. Docs 09, 02, 08, 11 and the user guide.
+
+### Manual test list (Build 5)
+1. Settings → Calendar → **Refresh now**. Expect a failure toast until the
+   portal answers from your network ("Access denied" here); the Calendar
+   shows "Portal calendar unavailable since <date>". When it succeeds, the
+   agenda fills, Updates shows "Calendar changed" entries.
+2. Calendar: dots and counts, click a day (flash-scroll), `t`, `[`, `]`,
+   arrows / Home / End / Enter on the grid, mute a legend row, Shift-click
+   to solo, Show all, the Notices Due / Issued toggle.
+3. Press `F`: the sidebar collapses, the overlay opens; `1` `2` `3` switch
+   views; Year heat squares click to a month; Agenda `j`/`k`; Esc returns
+   focus to Full screen. Reopen the Calendar screen: it comes back
+   maximized (prefs); other screens do not.
+4. Set one client's Calendar profile (Profile tab); switch scope to
+   Applies to us; rows show "applies to n clients".
+5. Add, edit and delete a firm date; it appears on the grid and in `.ics`.
+6. Sidebar "Next deadlines" and the Attention "Next statutory" tile open
+   the Calendar on the day.
+7. Then answer Q61–Q67 in `QUESTIONS.md`.

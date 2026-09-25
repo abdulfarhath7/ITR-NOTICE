@@ -217,6 +217,33 @@ docs_policy (index|download), mode (tonight|now), status
 started_at, finished_at, progress (JSON), last_error`. Queuing a request for
 a client replaces that client's queued one.
 
+### statutory_deadlines  (Build 5, migration 0024, docs/19 §2.2)
+`id` (sha256(source date ‖ normalised title)[:16]), `due_on`, `original_on`,
+`title`, `category`, `note`, `circular`, `applies` (JSON tags),
+`source_year`, `first_seen_at`, `last_seen_at`, `removed_at`. Written only
+by the fetcher; never deleted, `removed_at` marks a row that left the
+portal page. Synced.
+
+### statutory_fetches  (0024)
+One row per fetch attempt per calendar year: `status` ok · unchanged ·
+failed, `page_hash`, `rows`, `error` (masked). Synced.
+
+### statutory_events  (0024)
+One immutable row per fetch change: `kind` statutory_added ·
+statutory_extended · statutory_removed · statutory_unparsed, JSON
+`payload` {title, from, to, circular, note, category}, `at`. The Updates
+screen's "Deadline extended" and "Calendar changed" groups read it. Synced.
+
+### firm_dates  (0024)
+User-authored dates on the calendar: `due_on`, `title`, `category`
+(`firm`), `note`, `created_by`. Synced like `work_item_meta`.
+
+### clients — calendar profile  (0024)
+`entity_kind` (individual · huf · firm · llp · company · trust · other,
+NULL until set), `audit_case`, `tp_case`, `tds_deductor` (0/1). Set by a
+person on the Profile tab, never inferred; the calendar's Applies-to-us
+scope reads them (docs/19 §2.4).
+
 ### ledger
 See `03-sync-and-ledger.md`.
 

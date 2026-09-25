@@ -111,6 +111,15 @@ preview and the workbook can never disagree.
 A stale export must be self-evident on its face (Q15). Someone will email this
 workbook to a partner; it has to carry its own provenance.
 
+## Calendar `.ics` (Build 5, docs/19 §7)
+
+`export_statutory_ics(fy_start_year, path)` writes the statutory and firm
+layers of one financial year as all-day `VEVENT`s: `UID` = row id,
+`SUMMARY` = title, `DESCRIPTION` = note and circular, `CATEGORIES` = the
+legend label. Notices are client data and are never exported here. Offered
+from the overlay's top bar and Settings → Calendar, through the save
+dialog, as `LCC_calendar_FY_<yyyy>-<yy>.ics`.
+
 ## Scope selector
 
 Current filtered view · all clients · one client. Default is the current view,

@@ -144,13 +144,49 @@ fetched** group lists completed deep fetches: "History fetched · <client> ·
 
 ## 9 — Calendar
 
-A month grid (Monday first, IST) of open items on their effective due date,
-or their issued date with the Due/Issued toggle. Count pills per day: danger
-for a past day still holding open items, warning for today and tomorrow.
-‹ Today ›, arrow keys move the day, `t` jumps to today, Enter focuses the
-day's list. Client and module come from the Attention filters and show as
-chips. Items with no due date never appear on a day; "n without a due date
-→" opens Attention on the No due date tile. Detail in §5 of `16`.
+Build 5 (`19-statutory-calendar.md`): the statutory calendar, two layers on
+one grid. **Statutory** is the Income Tax Department's public tax calendar
+(fetched without a login) plus the firm's own dates; **Notices** is Build 2's
+layer — open items on their effective due (or issued) day, count pills per
+day (danger past, warning today/tomorrow), client and module from the
+Attention filters shown as chips.
+
+**Minimized card** (the screen): head with the FY badge, scope All ·
+Applies to us · Overdue, and Full screen; month line with clamped ‹ Today ›;
+a six-row Monday-first grid (`role="grid"`, arrows/Home/End/Enter/Space,
+`t`, `[` `]`, `F`) with up to three category dots and the Notices pill per
+cell; the legend with this month's counts (click mutes, Shift-click solos,
+Show all), then the Notices row with its Due/Issued toggle; the agenda for
+the selected day or the month (today first), with status labels
+(Overdue · Today · Tomorrow · n days · Upcoming), extensions as
+`~old~ Extended to <date> · Circular n`, "applies to n clients" under
+Applies to us, and Open on the Notices row (Attention's Due window within
+30 days, else the day list). A grid click flash-scrolls the agenda group.
+Empty states: "Nothing falls due in <month> for these filters · Show all",
+"Calendar not fetched yet · Refresh", and the slim "Portal calendar
+unavailable since <date>" warning.
+
+**Full screen** (`ui/calendar-overlay.tsx`): a fixed overlay over the
+content column; the sidebar collapses to icons and restores on close;
+body scroll locked; Escape returns focus to the button. Top bar: view
+Month · Year · Agenda (`1` `2` `3`), scope, category chips, ‹ month ›,
+Today, `.ics`, Print month, Exit full screen (Esc). Month: trimmed weeks,
+three pill slots and "+n more", a "n notices due" line, the selected day's
+agenda in the right panel. Year: 4×3 mini-months with heat squares,
+today outlined, hover tooltip, click to the month. Agenda: the FY grouped
+by month and day, Today pinned, `j`/`k`. Mode, view, mutes, scope and the
+Notices date persist per device (`lcc.calendar.prefs.v1`).
+
+**Sidebar** "Next deadlines": the next three statutory rows (Applies to
+us when any profile is set, else All); collapsed, a calendar icon with a
+badge of deadlines in the next 7 days. **Attention strip** gains the fifth
+tile "Next statutory".
+
+**Settings → Calendar**: Portal calendar (last fetch, Refresh now),
+Refresh (Weekly / Nightly), First day of week, Default scope, Sidebar
+"Next deadlines", Firm dates (Manage: add, edit, delete), Export `.ics for
+FY`. The client Profile tab gains a Calendar profile card: Entity type,
+Books audited, Transfer pricing, TDS deductor.
 
 ## 5 — Sweep (was Ingestion monitor, then Sync)
 
