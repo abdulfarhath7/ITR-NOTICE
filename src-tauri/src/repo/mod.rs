@@ -10,6 +10,7 @@ pub mod client_delete;
 pub mod clients;
 pub mod documents;
 pub mod drafts;
+pub mod events;
 pub mod local;
 pub mod meta;
 pub mod model;

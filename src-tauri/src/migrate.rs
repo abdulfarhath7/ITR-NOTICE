@@ -58,6 +58,7 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(20, "clients_note", "0020_clients_note.sql"),
     sql!(21, "ledger_received", "0021_ledger_received.sql"),
     sql!(22, "scrape_scopes", "0022_scrape_scopes.sql"),
+    sql!(23, "build4", "0023_build4.sql"),
 ];
 
 #[derive(Debug, Error)]

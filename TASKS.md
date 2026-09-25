@@ -344,15 +344,15 @@ Same rules as Builds 1–3. Each phase ends with `./scripts/check.sh` green and 
 
 Read `docs/18-build-4.md` §2 in full first. UI reference: `docs/mockups/build-4/attention.png`.
 
-- [ ] **25.1** Replace the lane bucket logic with one `windowRange(kind, days, today)` helper in `src/lib/windows.ts` returning `[from, to]` inclusive, today-anchored, per the table in §2. Both Attention and Calendar import it; nothing else computes a window.
+- [x] **25.1** Replace the lane bucket logic with one `windowRange(kind, days, today)` helper in `src/lib/windows.ts` returning `[from, to]` inclusive, today-anchored, per the table in §2. Both Attention and Calendar import it; nothing else computes a window.
   - *Done when:* there is exactly one place a window is turned into dates.
-- [ ] **25.2** Remove the Issued/Due lane components from Attention. Keep the risk strip slot, chip bar and ranked table. Ranking unchanged from `docs/09-ui-spec.md` §1.
-- [ ] **25.3** Chip bar: Issued Last 7 / 15 / 30 and Due Next 7 / 15 / 30 as single-select groups; both groups may be active at once. Existing client, module, status chips unchanged.
-- [ ] **25.4** Hint line under the chips with the `Days 1–N` pill and the computed date range; `Showing all open items.` when no window chip is active. Copy literal from §2.
-- [ ] **25.5** Risk strip: four tiles per the mockup. Overdue and Due in 3 days from the effective due date; Reply not yet viewed by AO and Limitation within 60 days per §3. Each tile click applies the matching chip.
-- [ ] **25.6** Migration: rewrite saved views that store lane buckets into window chips (§2, Q49).
-- [ ] **25.7** Calendar screen's "next N days" strip uses `windowRange`.
-- [ ] **25.8** `./scripts/check.sh` green. Commit.
+- [x] **25.2** Remove the Issued/Due lane components from Attention. Keep the risk strip slot, chip bar and ranked table. Ranking unchanged from `docs/09-ui-spec.md` §1.
+- [x] **25.3** Chip bar: Issued Last 7 / 15 / 30 and Due Next 7 / 15 / 30 as single-select groups; both groups may be active at once. Existing client, module, status chips unchanged.
+- [x] **25.4** Hint line under the chips with the `Days 1–N` pill and the computed date range; `Showing all open items.` when no window chip is active. Copy literal from §2.
+- [x] **25.5** Risk strip: four tiles per the mockup. Overdue and Due in 3 days from the effective due date; Reply not yet viewed by AO and Limitation within 60 days per §3. Each tile click applies the matching chip.
+- [x] **25.6** Migration: rewrite saved views that store lane buckets into window chips (§2, Q49).
+- [x] **25.7** Calendar screen's "next N days" strip uses `windowRange`.
+- [x] **25.8** `./scripts/check.sh` green. Commit.
 
 ## Phase 26 — Viewed by AO and Limitation, everywhere
 

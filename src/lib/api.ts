@@ -35,6 +35,8 @@ export const api = {
   demand: (id: string) => invoke<DemandDetail>("get_demand", { id }),
   return_: (id: string) => invoke<ReturnDetail>("get_return", { id }),
   filedForm: (id: string) => invoke<FiledFormDetail>("get_filed_form", { id }),
+  setLimitationDate: (proceedingId: string, date: string | null) =>
+    invoke<void>("set_limitation_date", { proceedingId, date }),
   setManualDueDate: (proceedingId: string, date: string | null) =>
     invoke<void>("set_manual_due_date", { proceedingId, date }),
   registry: (registryName: string) => invoke<TypeEntry[]>("list_registry", { registryName }),

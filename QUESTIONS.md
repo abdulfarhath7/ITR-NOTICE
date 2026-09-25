@@ -478,3 +478,19 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** layout polish only, per screen, once the PNGs are added; no data or command changes.
 - **Answer:**
 - **Resolved:** no
+
+### Q59 — Risk strip replaces the "No due date" and "Drafts to review" tiles
+- **Context:** docs/18 §2 makes the strip the four risk tiles. Build 2's strip had Overdue · Due in 48h · No due date · Drafts to review (Q33 kept the drafts tile).
+- **Options:** A the four risk tiles only; "No due date" stays reachable as rank 4 in the table and through the Calendar link; drafts to review stays in the draft drawer / B six tiles / C four tiles plus a small "n drafts to review" line under the strip
+- **Default used:** A — docs/18 wins where it disagrees with docs/16, and the strip is one row.
+- **Blast radius:** `RISK_TILES` in `src/lib/windows.ts` (a list); the old tile predicates are two lines away.
+- **Answer:**
+- **Resolved:** no
+
+### Q60 — Ledger event kinds are rows of a synced table
+- **Context:** docs/18 §3.4 asks for ledger entry kinds `ao_viewed` and `limitation_changed`. A ledger entry here is a table upsert (docs/03), and `apply` rejects an unknown entity type, so a bare "kind" would break sync on every other device.
+- **Options:** A a synced `proceeding_events` table (one immutable row per change; entity type `proceeding_events`) / B widen the ledger with a free-text `kind` and teach `apply` to store non-table entries
+- **Default used:** A — nothing in sync, snapshots or bundles changes; Updates reads the rows like any other table.
+- **Blast radius:** `repo/events.rs` (writers), migration 0023 (the table); B would touch `ledger.rs`, `merge.rs`, `snapshot.rs`, the relay.
+- **Answer:**
+- **Resolved:** no

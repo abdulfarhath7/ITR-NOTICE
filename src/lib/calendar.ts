@@ -2,7 +2,7 @@
  *  grid in IST calendar dates, and open items grouped by day. `today` is
  *  always a parameter. A NULL date never lands on a day. */
 import { dayNumber, parseDate, toIso, type Ymd } from "./dates";
-import { effectiveDue } from "./buckets";
+import { effectiveDue } from "./windows";
 import { isSettled, parseStatus } from "./status";
 import type { WorkItemRow } from "./types";
 

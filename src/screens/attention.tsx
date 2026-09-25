@@ -1,8 +1,9 @@
-/** Screen 1 — Attention (docs/16 §1). Top to bottom: the sync line, the
- *  needs-action strip, the filter bar with its chips, the Issued and Due
- *  lanes, then the list card with saved views. Every count is computed
- *  after the filter bar and before the tile or bucket selection, so a
- *  selected bucket never shrinks its own number to zero. */
+/** Screen 1 — Attention (docs/16 §1, docs/18 §2–§3). Top to bottom: the
+ *  sync line, the risk strip, the filter bar with the window chips, the
+ *  active chips, the hint line, then the ranked list card with saved views.
+ *  Windows are cumulative (Last 7 ⊂ Last 15 ⊂ Last 30). Every count is
+ *  computed after the filter bar and before the tile or window selection,
+ *  so a selected window never shrinks its own number to zero. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useClients } from "../hooks/use-clients";
 import { useDraft } from "../hooks/use-draft";
@@ -12,11 +13,11 @@ import { useAttention, useWorkItems } from "../hooks/use-work-items";
 import { api, describeError } from "../lib/api";
 import { RANK_LABEL, RANK_TONE, type Rank, type RankedItem } from "../lib/attention";
 import {
-  BUCKET_LABEL, BUCKET_SUMMARY, DUE_BUCKETS, ISSUED_BUCKETS, TILES, TILE_LABEL, TILE_TONE,
-  countBuckets, dueBucket, effectiveDue, inTile, issuedBucket,
-  type DueBucket, type IssuedBucket, type Tile,
-} from "../lib/buckets";
-import { parseDate, todayIst, type Ymd } from "../lib/dates";
+  RISK_LABEL, RISK_TILES, RISK_TONE, WINDOW_DAYS, countWindows, inLimitation, inTileFilter, inWindow, rangeText,
+  windowDays, windowLabel, windowRange, windowSummary, type RiskTile, type WindowDays, type WindowKind, type WindowValue,
+} from "../lib/windows";
+import { migrateAttentionFilters } from "../lib/filters-migrate";
+import { todayIst, type Ymd } from "../lib/dates";
 import { describeDueShort, shortDateOf } from "../lib/due";
 import { MODULES, MODULE_LABEL, MODULE_NOUN, plural } from "../lib/labels";
 import { DEFAULT_FILTERS, type AttentionFilters } from "../lib/attention-filters";
@@ -70,14 +71,14 @@ function SyncLineView({ today }: { today: Ymd }) {
   );
 }
 
-// ------------------------------------------------------------------ strip and lanes
+// ------------------------------------------------------------------ risk strip, windows, hint
 
-function Strip({ counts, active, onPick }: { counts: Record<Tile, number>; active: "" | Tile; onPick: (t: Tile) => void }) {
+function RiskStrip({ counts, active, onPick }: { counts: Record<RiskTile, number>; active: (t: RiskTile) => boolean; onPick: (t: RiskTile) => void }) {
   return (
-    <div className="att-strip" role="group" aria-label="Needs action">
-      {TILES.map((t) => (
-        <button key={t} type="button" className={`att-tile ${TILE_TONE[t]}`} aria-pressed={active === t} onClick={() => onPick(t)}>
-          <span className="label">{TILE_LABEL[t]}</span>
+    <div className="att-strip" role="group" aria-label="Risk">
+      {RISK_TILES.map((t) => (
+        <button key={t} type="button" className={`att-tile ${RISK_TONE[t]}`} aria-pressed={active(t)} onClick={() => onPick(t)}>
+          <span className="label">{RISK_LABEL[t]}</span>
           <span className="value">{counts[t]}</span>
         </button>
       ))}
@@ -85,45 +86,77 @@ function Strip({ counts, active, onPick }: { counts: Record<Tile, number>; activ
   );
 }
 
-function Bucket({ label, count, active, warn, onClick }: {
-  label: string; count: number; active: boolean; warn?: boolean; onClick: () => void;
+/** One single-select group: Last 7 / 15 / 30 or Next 7 / 15 / 30, with
+ *  counts. Clicking the active one clears it. */
+function WindowGroup({ kind, counts, active, onPick }: {
+  kind: WindowKind; counts: Record<WindowDays, number>; active: WindowValue; onPick: (v: WindowValue) => void;
 }) {
   return (
-    <button type="button" className={`att-bucket${warn && !active && count > 0 ? " warning" : ""}`} aria-pressed={active} onClick={onClick}>
-      <span className="label">{label}</span>
-      <span className="value">{count}</span>
-    </button>
+    <span className="att-window-group">
+      <span className="att-window-label">{kind === "issued" ? "Issued" : "Due"}</span>
+      <span className="segmented" role="radiogroup" aria-label={kind === "issued" ? "Issued window" : "Due window"}>
+        {WINDOW_DAYS.map((n) => {
+          const v = String(n) as WindowValue;
+          return (
+            <button key={n} type="button" role="radio" aria-checked={active === v} onClick={() => onPick(active === v ? "" : v)}>
+              {windowLabel(kind, n)}<span className="att-window-count">{counts[n]}</span>
+            </button>
+          );
+        })}
+      </span>
+    </span>
   );
 }
 
-function Lanes({ issued, due, activeIssued, activeDue, onIssued, onDue }: {
-  issued: Record<IssuedBucket, number>; due: Record<DueBucket, number>;
-  activeIssued: "" | IssuedBucket; activeDue: "" | DueBucket;
-  onIssued: (b: IssuedBucket) => void; onDue: (b: DueBucket) => void;
-}) {
+/** docs/18 §2: literal copy, one sentence per active window. */
+function HintLine({ issued, due, today }: { issued: WindowValue; due: WindowValue; today: Ymd }) {
+  const i = windowDays(issued);
+  const d = windowDays(due);
+  if (!i && !d) return <p className="att-hint">Showing all open items.</p>;
   return (
-    <div className="att-lanes">
-      <section className="att-lane" aria-label="Issued">
-        <h3 className="att-lane-label"><Icon name="calendar" />Issued</h3>
-        <div className="att-buckets cols-3">
-          {ISSUED_BUCKETS.map((b) => (
-            <Bucket key={b} label={BUCKET_LABEL[b]} count={issued[b]} active={activeIssued === b} onClick={() => onIssued(b)} />
+    <p className="att-hint">
+      {i ? (
+        <span className="att-hint-part">
+          <span className="pill att-days">Days 1–{i}</span>
+          <span>Showing notices issued {rangeText(windowRange("issued", i, today))}. Last 7 is inside Last 15, which is inside Last 30.</span>
+        </span>
+      ) : null}
+      {d ? (
+        <span className="att-hint-part">
+          <span className="pill att-days">Days 1–{d}</span>
+          <span>Showing notices due {rangeText(windowRange("due", d, today))}. Next 7 is inside Next 15, which is inside Next 30.</span>
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+/** `Limitation ≤ 90d` with a 30 / 60 / 90 menu (docs/18 §3.3). Click
+ *  applies the default; the menu changes the days; the active chip's ×
+ *  clears it. */
+function LimitationChip({ value, onPick }: { value: "" | "30" | "60" | "90"; onPick: (v: "" | "30" | "60" | "90") => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+  return (
+    <span className="att-lim">
+      <button type="button" className={`chip${value ? " on" : ""}`} aria-pressed={!!value}
+              onClick={() => onPick(value ? "" : "90")}>Limitation ≤ {value || "90"}d</button>
+      <button type="button" className="chip att-lim-menu" aria-label="Limitation days" aria-haspopup="menu" aria-expanded={open}
+              onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}><Icon name="chevron-down" /></button>
+      {open ? (
+        <span className="att-menu" role="menu">
+          {(["30", "60", "90"] as const).map((d) => (
+            <button key={d} type="button" role="menuitem" aria-checked={value === d}
+                    onClick={() => { setOpen(false); onPick(d); }}>≤ {d} days</button>
           ))}
-        </div>
-      </section>
-      <section className="att-lane" aria-label="Due">
-        <h3 className="att-lane-label"><Icon name="clock" />Due</h3>
-        <div className="att-buckets cols-5">
-          {DUE_BUCKETS.map((b) => (
-            <Bucket key={b} label={BUCKET_LABEL[b]} count={due[b]} active={activeDue === b} warn={b === "next7"} onClick={() => onDue(b)} />
-          ))}
-          <a className="att-bucket link" href={href({ name: "calendar" })}>
-            <span className="label"><Icon name="calendar" />Calendar</span>
-            <span className="open">Open</span>
-          </a>
-        </div>
-      </section>
-    </div>
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -199,7 +232,7 @@ function NameDialog({ title, initial, onSave, onClose }: {
         <label htmlFor="view-name">Name</label>
         <input id="view-name" className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)}
                onKeyDown={(e) => { if (e.key === "Enter" && ok) onSave(name); }} placeholder="View name" />
-        <span className="hint">Saves the selects, owner, tile and buckets. Search text is not saved.</span>
+        <span className="hint">Saves the selects, owner, tile, windows and chips. Search text is not saved.</span>
       </div>
     </Dialog>
   );
@@ -274,7 +307,7 @@ async function latestOpenNotice(proceedingId: string) {
 // ------------------------------------------------------------------ screen
 
 export default function AttentionScreen() {
-  const [f, setF] = usePersistedFilters<AttentionFilters>("attention", DEFAULT_FILTERS);
+  const [f, setF] = usePersistedFilters<AttentionFilters>("attention", DEFAULT_FILTERS, migrateAttentionFilters);
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
   useEffect(() => {
@@ -286,7 +319,7 @@ export default function AttentionScreen() {
   const [owning, setOwning] = useState<string | null>(null);
   const [naming, setNaming] = useState<{ mode: "save" } | { mode: "rename"; view: SavedView<AttentionFilters> } | null>(null);
   const [deleting, setDeleting] = useState<SavedView<AttentionFilters> | null>(null);
-  const saved = useSavedViews<AttentionFilters>("attention");
+  const saved = useSavedViews<AttentionFilters>("attention", migrateAttentionFilters);
   const owners = useOwners();
   const draft = useDraft();
   const [draftSource, setDraftSource] = useState<string | null>(null);
@@ -308,32 +341,39 @@ export default function AttentionScreen() {
       return true;
     });
   }, [ranked, f.owner, owners.me, search]);
-  const counts = useMemo(() => countBuckets(afterBar.map((i) => i.row), today), [afterBar, today]);
+  const counts = useMemo(() => countWindows(afterBar.map((i) => i.row), today), [afterBar, today]);
 
-  const matching = useMemo(() => {
-    let out = afterBar.filter(({ row }) =>
-      (!f.tile || inTile(row, f.tile, today))
-      && (!f.issued || issuedBucket(row, today) === f.issued)
-      && (!f.due || dueBucket(row, today) === f.due));
-    // Inside a bucket: soonest due first, or newest issued first.
-    const dayOf = (iso: string | null) => { const d = parseDate(iso); return d ? Date.UTC(d.y, d.m - 1, d.d) : 0; };
-    if (f.due) out = [...out].sort((a, b) => dayOf(effectiveDue(a.row)) - dayOf(effectiveDue(b.row)));
-    else if (f.issued) out = [...out].sort((a, b) => dayOf(b.row.issued_on) - dayOf(a.row.issued_on));
-    return out;
-  }, [afterBar, f.tile, f.issued, f.due, today]);
+  // Windows, tiles and chips all AND together; the ranking never changes
+  // (docs/18 §2: the chip bar is the only place a window is chosen).
+  const issuedDays = windowDays(f.issued);
+  const dueDays = windowDays(f.due);
+  const limitationDays = f.limitation ? Number(f.limitation) : null;
+  const matching = useMemo(() => afterBar.filter(({ row }) =>
+    inTileFilter(row, f.tile, today)
+    && (!issuedDays || inWindow(row, "issued", issuedDays, today))
+    && (!dueDays || inWindow(row, "due", dueDays, today))
+    && (!f.notViewedByAo || row.not_viewed_by_ao)
+    && (limitationDays === null || inLimitation(row, limitationDays, today))),
+  [afterBar, f.tile, issuedDays, dueDays, f.notViewedByAo, limitationDays, today]);
   const visible = useMemo(() => matching.slice(0, limit), [matching, limit]);
-  useEffect(() => { setLimit(PAGE); }, [f.clientId, f.ay, f.module, f.status, f.owner, f.tile, f.issued, f.due, search]);
+  useEffect(() => { setLimit(PAGE); }, [f.clientId, f.ay, f.module, f.status, f.owner, f.tile, f.issued, f.due, f.notViewedByAo, f.limitation, search]);
 
   const years = useMemo(
     () => [...new Set((q.data ?? []).map((r) => r.assessment_year).filter((y): y is string => !!y))].sort().reverse(),
     [q.data]);
   const clientName = (id: string) => clients.data?.find((c) => c.id === id)?.name ?? "Client";
 
-  const pickTile = (t: Tile) => setF((cur) => ({ ...cur, tile: cur.tile === t ? "" : t, issued: "", due: "" }));
-  const pickIssued = (b: IssuedBucket) => setF((cur) => ({ ...cur, issued: cur.issued === b ? "" : b, tile: "" }));
-  const pickDue = (b: DueBucket) => setF((cur) => ({ ...cur, due: cur.due === b ? "" : b, tile: "" }));
+  // A tile click applies the matching chip (docs/18 §2 25.5): two tiles
+  // are a filter of their own, the other two toggle a chip.
+  const tileActive = (t: RiskTile) =>
+    t === "ao" ? f.notViewedByAo : t === "limitation60" ? f.limitation === "60" : f.tile === t;
+  const pickTile = (t: RiskTile) => setF((cur) => {
+    if (t === "ao") return { ...cur, notViewedByAo: !cur.notViewedByAo };
+    if (t === "limitation60") return { ...cur, limitation: cur.limitation === "60" ? "" : "60" };
+    return { ...cur, tile: cur.tile === t ? "" : t };
+  });
   const clearAll = () => { setF(DEFAULT_FILTERS); setSearchText(""); setSearch(""); };
-  const clearWindow = () => setF({ tile: "", issued: "", due: "" });
+  const clearWindow = () => setF({ tile: "", issued: "", due: "", notViewedByAo: false, limitation: "" });
 
   const chips: Chip[] = [];
   if (f.clientId) chips.push({ key: "client", label: clientName(f.clientId), clear: () => setF({ clientId: "" }) });
@@ -341,19 +381,22 @@ export default function AttentionScreen() {
   if (f.module) chips.push({ key: "module", label: MODULE_LABEL[f.module], clear: () => setF({ module: "" }) });
   if (f.status) chips.push({ key: "status", label: STATUS_LABEL[f.status as keyof typeof STATUS_LABEL] ?? f.status, clear: () => setF({ status: "" }) });
   if (f.owner) chips.push({ key: "owner", label: f.owner === MINE ? "Mine" : `Owner: ${f.owner}`, clear: () => setF({ owner: "" }) });
-  if (f.tile) chips.push({ key: "tile", label: TILE_LABEL[f.tile], clear: () => setF({ tile: "" }) });
-  if (f.issued) chips.push({ key: "issued", label: BUCKET_SUMMARY[f.issued], clear: () => setF({ issued: "" }) });
-  if (f.due) chips.push({ key: "due", label: BUCKET_SUMMARY[f.due], clear: () => setF({ due: "" }) });
+  const tileLabel = f.tile === "nodate" ? "No due date" : f.tile ? RISK_LABEL[f.tile] : "";
+  if (f.tile) chips.push({ key: "tile", label: tileLabel, clear: () => setF({ tile: "" }) });
+  if (issuedDays) chips.push({ key: "issued", label: windowSummary("issued", issuedDays), clear: () => setF({ issued: "" }) });
+  if (dueDays) chips.push({ key: "due", label: windowSummary("due", dueDays), clear: () => setF({ due: "" }) });
+  if (f.notViewedByAo) chips.push({ key: "ao", label: "Not viewed by AO", clear: () => setF({ notViewedByAo: false }) });
+  if (f.limitation) chips.push({ key: "limitation", label: `Limitation ≤ ${f.limitation}d`, clear: () => setF({ limitation: "" }) });
 
   const noun = f.module === "proceedings" ? "notice" : "item";
   const summary = [
     plural(matching.length, noun),
     f.status ? STATUS_LABEL[f.status as keyof typeof STATUS_LABEL] : "Open",
-    ...(f.tile ? [TILE_LABEL[f.tile]] : []),
-    ...(f.issued ? [BUCKET_SUMMARY[f.issued]] : []),
-    ...(f.due ? [BUCKET_SUMMARY[f.due]] : []),
+    ...(f.tile ? [tileLabel] : []),
+    ...(issuedDays ? [windowSummary("issued", issuedDays)] : []),
+    ...(dueDays ? [windowSummary("due", dueDays)] : []),
   ].join(" · ");
-  const sortLabel = f.due ? "Sort: due date ↑" : f.issued ? "Sort: issued date ↓" : "Sort: urgency";
+  const sortLabel = "Sort: urgency";
 
   const openAt = useCallback((i: number) => {
     const it = visible[i];
@@ -361,19 +404,17 @@ export default function AttentionScreen() {
   }, [visible]);
   const nav = useRowNav(visible.length, openAt);
 
-  // Group headers by rank only in the default order; inside a bucket the
-  // rows are sorted by date and a rank header would split them.
-  const grouped = !f.issued && !f.due;
+  // The ranking holds whatever window is chosen (docs/18 §2).
   const groups = useMemo(() => {
     const out: { rank: Rank | null; items: { item: RankedItem; index: number }[] }[] = [];
     visible.forEach((item, index) => {
-      const rank = grouped ? item.rank : null;
+      const rank: Rank | null = item.rank;
       const last = out[out.length - 1];
       if (last && last.rank === rank) last.items.push({ item, index });
       else out.push({ rank, items: [{ item, index }] });
     });
     return out;
-  }, [visible, grouped]);
+  }, [visible]);
 
   const startDraft = async (row: WorkItemRow) => {
     try {
@@ -394,8 +435,8 @@ export default function AttentionScreen() {
   };
 
   const noneAtAll = !ranked.length && !chips.length;
-  const windowActive = !!(f.tile || f.issued || f.due);
-  const windowLabel = f.tile ? TILE_LABEL[f.tile] : [f.issued && BUCKET_SUMMARY[f.issued], f.due && BUCKET_SUMMARY[f.due]].filter(Boolean).join(" and ");
+  const windowActive = !!(f.tile || f.issued || f.due || f.notViewedByAo || f.limitation);
+  const windowText = chips.filter((c) => ["tile", "issued", "due", "ao", "limitation"].includes(c.key)).map((c) => c.label).join(" and ");
 
   return (
     <Page>
@@ -404,7 +445,7 @@ export default function AttentionScreen() {
       </PageHead>
       <PageBody>
         <SyncLineView today={today} />
-        <Strip counts={counts.tiles} active={f.tile} onPick={pickTile} />
+        <RiskStrip counts={counts.tiles} active={tileActive} onPick={pickTile} />
 
         <div className="toolbar">
           <select className="select" value={f.clientId} aria-label="Client" onChange={(e) => setF({ clientId: e.target.value })}>
@@ -436,9 +477,16 @@ export default function AttentionScreen() {
           <span className="grow" />
           <span className="meta">↑ ↓ to move · Enter to open</span>
         </div>
+        <div className="att-windows" role="group" aria-label="Windows and chips">
+          <WindowGroup kind="issued" counts={counts.issued} active={f.issued} onPick={(v) => setF({ issued: v })} />
+          <WindowGroup kind="due" counts={counts.due} active={f.due} onPick={(v) => setF({ due: v })} />
+          <span className="att-window-sep" />
+          <button type="button" className={`chip${f.notViewedByAo ? " on" : ""}`} aria-pressed={f.notViewedByAo}
+                  onClick={() => setF({ notViewedByAo: !f.notViewedByAo })}>Not viewed by AO<span className="att-window-count">{counts.tiles.ao}</span></button>
+          <LimitationChip value={f.limitation} onPick={(v) => setF({ limitation: v })} />
+        </div>
         <Chips chips={chips} onClearAll={clearAll} />
-
-        <Lanes issued={counts.issued} due={counts.due} activeIssued={f.issued} activeDue={f.due} onIssued={pickIssued} onDue={pickDue} />
+        <HintLine issued={f.issued} due={f.due} today={today} />
 
         <div className="att-card">
           <div className="att-card-head">
@@ -461,9 +509,9 @@ export default function AttentionScreen() {
                           body="Open proceedings, demands, returns and forms appear here once a sweep has run. Settled items stay in client detail and in exports."
                           action={<a className="btn" href={href({ name: "ingestion" })}>Go to ingestion</a>} />
             ) : windowActive && afterBar.length ? (
-              <EmptyState title={`Nothing in ${windowLabel}.`}
+              <EmptyState title={`Nothing in ${windowText}.`}
                           body="No open item falls in this window with the current filters. The other windows above still count theirs."
-                          action={<button className="btn" onClick={clearWindow}>Show all windows</button>} />
+                          action={<button className="btn" onClick={clearWindow}>Show all open items</button>} />
             ) : (
               <EmptyState title="Nothing open matches these filters."
                           body="Clear a filter to see the rest of the open items."

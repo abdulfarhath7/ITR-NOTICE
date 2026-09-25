@@ -159,6 +159,15 @@ export interface WorkItemRow {
   amount: number | null;
   /** Documents indexed but not fetched yet (docs/17 §6.4). */
   pending_documents: number;
+  /** docs/18 §3: proceedings only; false / null elsewhere. */
+  is_assessment: boolean;
+  /** Latest inbound communication's `ao_viewed_on`. */
+  ao_viewed_on: string | null;
+  ao_viewed_first_seen_at: string | null;
+  /** A reply to the latest inbound communication is on record. */
+  response_filed: boolean;
+  /** The Rust `NOT_VIEWED_BY_AO_WHERE` predicate for this row (Q53). */
+  not_viewed_by_ao: boolean;
 }
 
 /** Owner and note a person authored for one item (docs/16 §2.2). */
@@ -204,6 +213,8 @@ export interface CommunicationView {
   served_on: string | null;
   response_due_date: string | null;
   ao_viewed_on: string | null;
+  /** When this device first saw `ao_viewed_on` set (docs/18 §3.1). */
+  ao_viewed_first_seen_at?: string | null;
   status: string;
   direction: "inbound";
   verified_flag: number;
@@ -275,12 +286,27 @@ export interface ProceedingDetail {
   financial_year: string | null;
   type_label: string;
   type_category: string | null;
+  /** docs/18 §3.2 (Q50): Viewed by AO and Limitation apply only when true. */
+  is_assessment: boolean;
   section: string | null;
   gaps: string[];
   communications: CommunicationView[];
   responses: ResponseRow[];
   adjournments: AdjournmentRow[];
   documents: Document[];
+  /** docs/18 §3.4, oldest first. */
+  events: ProceedingEvent[];
+}
+
+/** One immutable change record (docs/18 §3.4, migration 0023). */
+export interface ProceedingEvent {
+  id: string;
+  proceeding_id: string;
+  communication_id: string | null;
+  kind: "ao_viewed" | "limitation_changed";
+  /** JSON: ao_viewed {ao_viewed_on, first_seen_at}; limitation_changed {from, to, source} */
+  payload: string;
+  at: string;
 }
 
 export interface ItemContext {
@@ -397,6 +423,8 @@ export interface TypeEntry {
   statute: string | null;
   sort_order: number;
   active: number;
+  /** docs/18 §3.2 (Q50) */
+  is_assessment: number;
 }
 
 export interface Draft {

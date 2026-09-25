@@ -9,13 +9,22 @@ export interface SavedView<F> { id: string; name: string; filters: F }
 
 const key = (screen: string) => `lcc.views.${screen}`;
 
-function read<F>(screen: string): SavedView<F>[] {
+/** Rewrites one view's filters from an older shape (docs/18 Q49). */
+export type MigrateView = (filters: Record<string, unknown>) => boolean;
+
+function read<F>(screen: string, migrate?: MigrateView): SavedView<F>[] {
   try {
     const raw = localStorage.getItem(key(screen));
     const v = raw ? JSON.parse(raw) as unknown : [];
-    return Array.isArray(v)
+    const views = Array.isArray(v)
       ? (v as SavedView<F>[]).filter((x) => x && typeof x.id === "string" && typeof x.name === "string" && x.filters)
       : [];
+    if (migrate) {
+      let changed = false;
+      for (const view of views) if (migrate(view.filters as Record<string, unknown>)) changed = true;
+      if (changed) write(screen, views);
+    }
+    return views;
   } catch { return []; }
 }
 
@@ -23,8 +32,8 @@ function write<F>(screen: string, views: SavedView<F>[]): void {
   try { localStorage.setItem(key(screen), JSON.stringify(views)); } catch { /* a locked-down profile is fine */ }
 }
 
-export function useSavedViews<F>(screen: string) {
-  const [views, setViews] = useState<SavedView<F>[]>(() => read<F>(screen));
+export function useSavedViews<F>(screen: string, migrate?: MigrateView) {
+  const [views, setViews] = useState<SavedView<F>[]>(() => read<F>(screen, migrate));
   const commit = useCallback((next: SavedView<F>[]) => { write(screen, next); setViews(next); }, [screen]);
 
   const save = useCallback((name: string, filters: F): SavedView<F> | null => {

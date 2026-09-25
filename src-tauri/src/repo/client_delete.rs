@@ -122,6 +122,7 @@ pub fn delete(con: &mut Connection, client_id: &str) -> AppResult<(String, bool)
         delete_all(&tx, "returns", &leaves)?;
     }
     delete_all(&tx, "filed_forms", &ids(&tx, &format!("SELECT id FROM filed_forms WHERE year_context_id IN ({CLIENT_YEARS})"), c)?)?;
+    delete_all(&tx, "proceeding_events", &ids(&tx, &format!("SELECT id FROM proceeding_events WHERE proceeding_id IN ({CLIENT_PROCEEDINGS})"), c)?)?;
     delete_all(&tx, "proceedings", &ids(&tx, CLIENT_PROCEEDINGS, c)?)?;
     delete_all(&tx, "year_contexts", &ids(&tx, CLIENT_YEARS, c)?)?;
 

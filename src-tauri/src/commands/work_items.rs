@@ -39,6 +39,26 @@ pub fn set_manual_due_date(state: State<AppState>, proceeding_id: String, date: 
     proceedings::set_manual_due_date(&con, &proceeding_id, iso.as_deref())
 }
 
+/// docs/18 §3: the statutory clock, entered by a person until the portal
+/// parser confirms a label (Q52). Every change is a `limitation_changed`
+/// event with `source = manual`.
+#[tauri::command]
+pub fn set_limitation_date(state: State<AppState>, proceeding_id: String, date: Option<String>) -> AppResult<()> {
+    let con = lock_db(&state)?;
+    let p = proceedings::get(&con, &proceeding_id)?.ok_or_else(|| AppError::not_found("proceeding"))?;
+    if !Status::parse(&p.status).allows_manual_due_date() {
+        return Err(AppError::state("this item is settled; its dates are no longer editable"));
+    }
+    let date = date.map(|d| d.trim().to_string()).filter(|d| !d.is_empty());
+    if let Some(d) = &date {
+        if crate::dates::parse_portal_date(d).is_none() {
+            return Err(AppError::invalid("enter the date as YYYY-MM-DD"));
+        }
+    }
+    let iso = date.and_then(|d| crate::dates::to_iso(Some(&d)));
+    proceedings::set_limitation_date(&con, &proceeding_id, iso.as_deref(), "manual")
+}
+
 #[tauri::command]
 pub fn list_registry(state: State<AppState>, registry_name: String) -> AppResult<Vec<crate::repo::model::TypeEntry>> {
     let con = lock_db(&state)?;

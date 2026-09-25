@@ -12,6 +12,7 @@ fn entry(r: &Row) -> rusqlite::Result<TypeEntry> {
         field_template: r.get("field_template")?, status_set: r.get("status_set")?,
         sort_order: r.get("sort_order")?, active: r.get("active")?,
         created_at: r.get("created_at")?, updated_at: r.get("updated_at")?,
+        is_assessment: r.get("is_assessment").unwrap_or(0),
     })
 }
 

@@ -61,7 +61,33 @@ pub struct WorkItemRow {
     /// Documents indexed but not fetched yet (docs/17 §6.4 cloud-down icon).
     #[serde(default)]
     pub pending_documents: i64,
+    /// docs/18 §3. Proceedings only; false / None elsewhere.
+    #[serde(default)]
+    pub is_assessment: bool,
+    /// Latest inbound communication's `ao_viewed_on`.
+    #[serde(default)]
+    pub ao_viewed_on: Option<String>,
+    #[serde(default)]
+    pub ao_viewed_first_seen_at: Option<String>,
+    /// A reply to the latest inbound communication is on record.
+    #[serde(default)]
+    pub response_filed: bool,
+    /// `NOT_VIEWED_BY_AO_WHERE` evaluated for the row (Q53): the chip and
+    /// the risk tile both read this, never their own predicate.
+    #[serde(default)]
+    pub not_viewed_by_ao: bool,
 }
+
+/// Q53 default A: an assessment proceeding whose latest inbound notice has
+/// a reply on record and no "viewed by AO" date. `x` is the proceeding,
+/// `t` its registry row. Change this fragment and the chip and tile follow.
+pub const NOT_VIEWED_BY_AO_WHERE: &str =
+    "t.is_assessment = 1 AND EXISTS (
+        SELECT 1 FROM communications lc
+         WHERE lc.id = (SELECT c9.id FROM communications c9 WHERE c9.proceeding_id = x.id AND c9.direction = 'inbound'
+                         ORDER BY c9.issued_on DESC, c9.created_at DESC LIMIT 1)
+           AND lc.ao_viewed_on IS NULL
+           AND EXISTS (SELECT 1 FROM responses r9 WHERE r9.in_reply_to = lc.id))";
 
 fn gaps(json: Option<String>) -> Vec<String> {
     json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
@@ -146,13 +172,20 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
                 (SELECT max(c4.issued_on) FROM communications c4 WHERE c4.proceeding_id = x.id AND c4.direction = 'inbound'),
                 m.assignee, coalesce(m.note, '') <> '', substr(m.note, 1, 120),
                 (SELECT count(*) FROM drafts dr JOIN communications c5 ON c5.id = dr.communication_id
-                  WHERE c5.proceeding_id = x.id AND dr.reviewed_at IS NULL)
+                  WHERE c5.proceeding_id = x.id AND dr.reviewed_at IS NULL),
+                t.is_assessment,
+                lc.ao_viewed_on, lc.ao_viewed_first_seen_at,
+                EXISTS (SELECT 1 FROM responses r8 WHERE r8.in_reply_to = lc.id),
+                ( NOT_VIEWED_BY_AO )
          FROM proceedings x
          JOIN year_contexts yc ON yc.id = x.year_context_id
          JOIN clients cl ON cl.id = yc.client_id
          JOIN type_registry t ON t.id = x.proceeding_type_id
          LEFT JOIN work_item_meta m ON m.id = 'proceedings:' || x.id
-         WHERE 1 = 1");
+         LEFT JOIN communications lc ON lc.id =
+              (SELECT c8.id FROM communications c8 WHERE c8.proceeding_id = x.id AND c8.direction = 'inbound'
+                ORDER BY c8.issued_on DESC, c8.created_at DESC LIMIT 1)
+         WHERE 1 = 1").replace("NOT_VIEWED_BY_AO", NOT_VIEWED_BY_AO_WHERE);
     let mut binds: Vec<rusqlite::types::Value> = Vec::new();
     sql.push_str(&common_filter(f, "x.display_name", "x.din_reference", &mut binds));
 
@@ -171,6 +204,8 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
             verified_flag: r.get(18)?, gap_flags: gaps(r.get(19)?), document_count: r.get(20)?,
             open_communications: r.get(21)?, last_seen_at: r.get(22)?,
             issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, note_preview: r.get(26)?, drafts_to_review: r.get(27)?, amount: None, pending_documents: 0,
+            is_assessment: r.get::<_, i64>(28)? == 1, ao_viewed_on: r.get(29)?, ao_viewed_first_seen_at: r.get(30)?,
+            response_filed: r.get::<_, i64>(31)? == 1, not_viewed_by_ao: r.get::<_, i64>(32)? == 1,
         })
     })?;
     let mut out: Vec<WorkItemRow> = rows.collect::<Result<Vec<_>, _>>()?;
@@ -215,6 +250,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
             issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, pending_documents: 0,
+            is_assessment: false, ao_viewed_on: None, ao_viewed_first_seen_at: None, response_filed: false, not_viewed_by_ao: false,
             amount: outstanding.or(r.get::<_, Option<f64>>(9)?),
         })
     })?;
@@ -256,6 +292,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
             document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
             issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, note_preview: r.get(20)?, drafts_to_review: 0, amount: None, pending_documents: 0,
+            is_assessment: false, ao_viewed_on: None, ao_viewed_first_seen_at: None, response_filed: false, not_viewed_by_ao: false,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -288,6 +325,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
             issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, amount: None, pending_documents: 0,
+            is_assessment: false, ao_viewed_on: None, ao_viewed_first_seen_at: None, response_filed: false, not_viewed_by_ao: false,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -343,9 +381,13 @@ pub struct ProceedingDetail {
     pub financial_year: Option<String>,
     pub type_label: String,
     pub type_category: Option<String>,
+    /// docs/18 §3.2 (Q50): Viewed by AO and Limitation apply only when true.
+    pub is_assessment: bool,
     pub section: Option<String>,
     pub gaps: Vec<String>,
     pub communications: Vec<CommunicationView>,
+    /// docs/18 §3.4, oldest first.
+    pub events: Vec<crate::repo::model::ProceedingEvent>,
     pub responses: Vec<Response>,
     pub adjournments: Vec<AdjournmentRequest>,
     pub documents: Vec<Document>,
@@ -386,10 +428,12 @@ pub fn proceeding_detail(con: &Connection, id: &str) -> AppResult<Option<Proceed
         client_id, client_name, client_code, pan_masked: mask::pan(&pan),
         assessment_year: ay, financial_year: fy,
         type_label: t.as_ref().map(|t| t.label.clone()).unwrap_or_else(|| "Proceeding".into()),
+        is_assessment: t.as_ref().map(|t| t.is_assessment == 1).unwrap_or(false),
         type_category: t.and_then(|t| t.category),
         section: render_section(p.section_2025.as_deref(), p.section_1961.as_deref()),
         gaps: gaps(p.gap_flags.clone()),
         communications: comms,
+        events: crate::repo::events::for_proceeding(con, id)?,
         responses: proceedings::responses_for(con, id)?,
         adjournments: proceedings::adjournments_for(con, id)?,
         documents: documents::for_parent(con, "proceeding", id)?,

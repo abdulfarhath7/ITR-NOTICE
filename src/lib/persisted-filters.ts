@@ -5,11 +5,18 @@ import { useCallback, useEffect, useState } from "react";
 
 const key = (screen: string) => `lcc.filters.${screen}`;
 
-export function readFilters<T extends object>(screen: string, defaults: T): T {
+/** A per-screen rewrite of an old stored shape, applied once on read and
+ *  written straight back (docs/18 Q49). Returns whether it changed anything. */
+export type Migrate = (raw: Record<string, unknown>) => boolean;
+
+export function readFilters<T extends object>(screen: string, defaults: T, migrate?: Migrate): T {
   try {
     const raw = localStorage.getItem(key(screen));
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<T>;
+    if (migrate && migrate(parsed as Record<string, unknown>)) {
+      try { localStorage.setItem(key(screen), JSON.stringify(parsed)); } catch { /* read-only profile */ }
+    }
     // Only known keys, only the default's type: a stale or hand-edited
     // object never puts a wrong shape into a select.
     const out = { ...defaults };
@@ -28,12 +35,12 @@ export function writeFilters<T extends object>(screen: string, value: T): void {
 
 /** State backed by the screen's key. Another screen writing the same key
  *  (the Calendar writes Attention's client and module) is picked up. */
-export function usePersistedFilters<T extends object>(screen: string, defaults: T):
+export function usePersistedFilters<T extends object>(screen: string, defaults: T, migrate?: Migrate):
   [T, (patch: Partial<T> | ((cur: T) => T)) => void] {
-  const [value, setValue] = useState<T>(() => readFilters(screen, defaults));
+  const [value, setValue] = useState<T>(() => readFilters(screen, defaults, migrate));
   useEffect(() => {
     const on = (e: Event) => {
-      if ((e as CustomEvent<string>).detail === screen) setValue(readFilters(screen, defaults));
+      if ((e as CustomEvent<string>).detail === screen) setValue(readFilters(screen, defaults, migrate));
     };
     window.addEventListener("lcc:filters", on);
     return () => window.removeEventListener("lcc:filters", on);

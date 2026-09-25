@@ -33,6 +33,7 @@ pub fn communication_row(r: &Row) -> rusqlite::Result<Communication> {
         din: r.get("din")?, section_2025: r.get("section_2025")?, section_1961: r.get("section_1961")?,
         description: r.get("description")?, issued_on: r.get("issued_on")?, served_on: r.get("served_on")?,
         response_due_date: r.get("response_due_date")?, ao_viewed_on: r.get("ao_viewed_on")?,
+        ao_viewed_first_seen_at: r.get("ao_viewed_first_seen_at").unwrap_or(None),
         status: r.get("status")?, direction: r.get("direction")?, verified_flag: r.get("verified_flag")?,
         gap_flags: r.get("gap_flags")?, row_hash: r.get("row_hash")?,
         first_seen_at: r.get("first_seen_at")?, last_seen_at: r.get("last_seen_at")?,
@@ -127,6 +128,20 @@ pub fn refresh_due_date(con: &Connection, proceeding_id: &str) -> AppResult<()> 
 }
 
 /// Add or remove one column name in a JSON gap list.
+/// The limitation date, entered by a person (Q52: the portal does not
+/// state it yet) or, once the parser learns it, by intake with
+/// `source = "portal"`. Any change writes a `limitation_changed` event.
+pub fn set_limitation_date(con: &Connection, proceeding_id: &str, date: Option<&str>, source: &str) -> AppResult<()> {
+    let Some(mut p) = get(con, proceeding_id)? else { return Ok(()); };
+    if p.limitation_date.as_deref() == date { return Ok(()); }
+    let from = p.limitation_date.clone();
+    p.limitation_date = date.map(str::to_string);
+    p.gap_flags = Some(with_gap(p.gap_flags.as_deref(), "limitation_date", date.is_none()));
+    p.updated_at = crate::ids::now();
+    save(con, &p)?;
+    crate::repo::events::limitation_changed(con, proceeding_id, from.as_deref(), date, source)
+}
+
 pub fn with_gap(current: Option<&str>, column: &str, is_gap: bool) -> String {
     let mut gaps: Vec<String> = current
         .and_then(|s| serde_json::from_str(s).ok())

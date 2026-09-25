@@ -105,6 +105,10 @@ pub struct Communication {
     pub served_on: Option<String>,
     pub response_due_date: Option<String>,
     pub ao_viewed_on: Option<String>,
+    /// Migration 0023 (docs/18 §3.1): when this device first saw
+    /// `ao_viewed_on` set. Unset means "leave the column alone".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ao_viewed_first_seen_at: Option<String>,
     pub status: String,
     pub direction: String,
     pub verified_flag: i64,
@@ -198,6 +202,24 @@ pub struct TypeEntry {
     pub status_set: Option<String>,
     pub sort_order: i64,
     pub active: i64,
+    pub created_at: String,
+    pub updated_at: String,
+    /// Migration 0023 (docs/18 §3.2, Q50). Data, not code: the seed decides.
+    #[serde(default)]
+    pub is_assessment: i64,
+}
+
+/// docs/18 §3.4, migration 0023. One immutable row per change.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProceedingEvent {
+    pub id: String,
+    pub proceeding_id: String,
+    pub communication_id: Option<String>,
+    /// `ao_viewed` | `limitation_changed`
+    pub kind: String,
+    /// JSON
+    pub payload: String,
+    pub at: String,
     pub created_at: String,
     pub updated_at: String,
 }

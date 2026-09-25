@@ -434,6 +434,8 @@ contract: the file and shape named here is where Phase 30 will look.
 | Q56 | Limitation dates on Calendar | one item-source function in the Calendar screen | a function returning items; remove the call to drop |
 | Q57 | Deep-fetch budget | one `FetchBudget` argument on the deep-fetch runner | `None` today; an answer sets it |
 | Q58 | Mockups absent | each Build 4 screen file | layout and spacing only; copy and colours already follow the spec |
+| Q59 | Which tiles the strip shows | `RISK_TILES` in `src/lib/windows.ts` | a list; add or remove an entry and its predicate |
+| Q60 | Event kinds as a synced table | `repo/events.rs` + migration 0023 | writers in one file; the table is the storage |
 
 Two general rules that make this hold:
 

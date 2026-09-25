@@ -299,6 +299,10 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
     let comm = match proceedings::communication_by_reference(con, &reference_id)? {
         Some(existing) => {
             let changed = existing.row_hash != hash;
+            // docs/18 §3.1: the first sighting of "viewed by AO" is stamped
+            // once, and the flip from unseen to seen is an event.
+            let flipped = existing.ao_viewed_on.is_none() && ao_viewed_on.is_some();
+            let first_seen = if flipped { Some(ts.clone()) } else { existing.ao_viewed_first_seen_at.clone() };
             let c = Communication {
                 proceeding_id: proceeding.id.clone(), communication_type_id: type_id,
                 din: clean(&n.doc_ref_id).or(existing.din),
@@ -307,6 +311,7 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
                 issued_on: issued_on.or(existing.issued_on),
                 served_on: served_on.or(existing.served_on),
                 response_due_date, ao_viewed_on: ao_viewed_on.or(existing.ao_viewed_on),
+                ao_viewed_first_seen_at: first_seen,
                 status: status.as_str().into(),
                 verified_flag: if changed { 0 } else { existing.verified_flag },
                 gap_flags: Some(gap_json), row_hash: hash,
@@ -315,6 +320,11 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
                 ..existing
             };
             proceedings::save_communication(con, &c)?;
+            if flipped {
+                if let Some(seen) = c.ao_viewed_on.as_deref() {
+                    crate::repo::events::ao_viewed(con, &proceeding.id, &c.id, seen, &ts)?;
+                }
+            }
             c
         }
         None => {
@@ -322,6 +332,9 @@ fn absorb_notice(con: &Connection, proceeding: &Proceeding, n: &NoticeCard) -> A
                 id: new_id(), proceeding_id: proceeding.id.clone(), communication_type_id: type_id,
                 reference_id: reference_id.clone(), din: clean(&n.doc_ref_id), section_2025: None,
                 section_1961: section, description, issued_on, served_on, response_due_date,
+                // A notice first seen already viewed: the sighting is now,
+                // but there was no flip to report.
+                ao_viewed_first_seen_at: ao_viewed_on.as_ref().map(|_| ts.clone()),
                 ao_viewed_on, status: status.as_str().into(), direction: "inbound".into(),
                 verified_flag: 0, gap_flags: Some(gap_json), row_hash: hash,
                 first_seen_at: ts.clone(), last_seen_at: ts.clone(),

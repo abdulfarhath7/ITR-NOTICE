@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useClients } from "../hooks/use-clients";
 import { useWorkItems } from "../hooks/use-work-items";
 import { ATTENTION_SCREEN, DEFAULT_FILTERS, type AttentionFilters } from "../lib/attention-filters";
-import { effectiveDue } from "../lib/buckets";
+import { effectiveDue, inWindow, windowLabel, WINDOW_DAYS } from "../lib/windows";
 import { MONTH_NAMES, WEEKDAYS, addDays, dayTone, groupByDay, monthGrid, type DayField } from "../lib/calendar";
 import { dayNumber, parseDate, toIso, todayIst, type Ymd } from "../lib/dates";
 import { describeDueShort } from "../lib/due";
@@ -66,6 +66,12 @@ export default function CalendarScreen() {
   const q = useWorkItems({ client_ids: filters.clientId ? [filters.clientId] : null, module: filters.module || null });
 
   const byDay = useMemo(() => groupByDay(q.data ?? [], field), [q.data, field]);
+  // docs/18 §2: the same cumulative windows as Attention, from one helper.
+  const nextCounts = useMemo(() => WINDOW_DAYS.map((n) => [n, (q.data ?? []).filter((r) => inWindow(r, "due", n, today)).length] as const), [q.data, today]);
+  const openWindow = (n: number) => {
+    writeFilters(ATTENTION_SCREEN, { ...filters, tile: "", issued: "", due: String(n) as AttentionFilters["due"] });
+    navigate({ name: "attention" });
+  };
   const noDate = useMemo(() => (q.data ?? []).filter((r) => !isSettled(parseStatus(r.status)) && !parseDate(effectiveDue(r))).length, [q.data]);
   const weeks = useMemo(() => monthGrid(month.y, month.m), [month]);
   const selectedIso = toIso(selected);
@@ -128,6 +134,16 @@ export default function CalendarScreen() {
           <span className="grow" />
           {field === "due" && noDate ? <button className="btn quiet" onClick={openNoDate}>{plural(noDate, "item")} without a due date →</button> : null}
         </div>
+        {field === "due" ? (
+          <div className="cal-next" role="group" aria-label="Due in the next days">
+            {nextCounts.map(([n, count]) => (
+              <button key={n} type="button" className="chip" onClick={() => openWindow(n)} title={`Open Attention · ${windowLabel("due", n)}`}>
+                {windowLabel("due", n)}<span className="att-window-count">{count}</span>
+              </button>
+            ))}
+            <span className="meta">Next 7 is inside Next 15, which is inside Next 30.</span>
+          </div>
+        ) : null}
 
         {q.error ? <div className="banner danger" role="alert">{q.error}</div> : (
           <div className="cal-grid" role="grid" aria-label={`${MONTH_NAMES[month.m - 1]} ${month.y}`}>

@@ -88,6 +88,7 @@ pub fn run() {
             commands::clients::derive_from_gstin, commands::clients::set_client_file_no,
             commands::clients::import_clients_csv,
             commands::clients::set_client_sync_enabled, commands::clients::set_client_note, commands::clients::client_delete_preview, commands::clients::delete_client,
+            commands::work_items::set_limitation_date,
             commands::clients::set_client_credential, commands::clients::forget_client_credential,
             commands::work_items::list_work_items, commands::work_items::get_proceeding,
             commands::work_items::set_manual_due_date, commands::work_items::list_registry,
