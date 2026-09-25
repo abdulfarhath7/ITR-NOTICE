@@ -60,9 +60,18 @@ only place sequentiality lives (Q08, D-028). Nothing else assumes it.
 second attempt risks locking the taxpayer out of their own account. Surface it
 as "credentials need attention", not as an error to retry.
 
-**Document first, row second.** Fetch the PDF, hash it, store it, then write
-the index row referencing the hash. A row pointing at a document that was
-never stored is worse than no row.
+**Document first, row second, whenever a document is fetched.** Fetch the
+PDF, hash it, store it, then write the index row that references the hash. A
+row pointing at a document that was never stored is worse than no row.
+
+Index-only rows are allowed (docs/17 §5, Build 3). A sweep records a header
+and leaves its document on the portal. The invariant is now:
+
+- a `documents` row in state `stored` has a `file_hash` and a `storage_path`;
+- a row in state `pending` has a `source_url` of the form
+  `portal:<parent_type>:<reference>`, or a parent that carries the portal
+  reference (a return's or form's acknowledgement number), so an item fetch
+  can find it.
 
 **Zero is a finding.** A panel that returns nothing writes an `ingestion_runs`
 row with `records_found = 0`. Skipping a panel and recording nothing are
@@ -85,6 +94,42 @@ the streak correctly.
 
 Reset the streak on any change. Never stop on the first match — portals
 reorder rows.
+
+## Scopes and the overnight run (Build 3, docs/17)
+
+Three scopes share the queue, the runner and the sidecar:
+
+- **Sweep**, nightly or `Sync now`. New rows issued within `lookback_days`
+  (default 30) plus every stored row, index only.
+- **Deep fetch**, one client, on request, to a depth: everything, the last N
+  AYs, or since a date. Index or download. No early stop.
+- **Item fetch**, one proceeding or return, downloads its documents.
+
+A settled item is never touched by a sweep. Only a deep or item fetch reads
+it again.
+
+**The probe.** Before walking a login, the runner asks the sidecar to hash
+the first two pages of each panel from portal row content only. When every
+hash matches the stored one, the job is done with `records_found = 0` and
+`notes = 'unchanged'`. A login with open items is never skipped (D-050). A
+failed probe or a first sweep is never skipped either.
+
+**The window.** A scheduled run keeps to `run_window_start`–`run_window_end`
+(default 01:00–06:00 IST). It checks the clock between clients and between
+panels. At the end it saves the cursor and marks the sweep `stopped`, with
+`window_closed` in its summary. The next scheduled sweep starts with the
+unfinished jobs. A job that runs past `client_timeout_min` (default 3) is
+`incomplete` with its cursor saved. Running out of time is never a failure.
+
+**The pipeline.** Order the clients (§2.1 of docs/17, frozen into
+`ingestion_jobs.position`). Probe, then sweep. Then drain the deep requests
+queued for tonight, and warm the cache when at least 20% of the window is
+left. Last comes the summary.
+
+**The tiers.** After its sweep a client moves to `weekly` when it has no open
+items, nothing issued in `dormant_after_days` (default 90), and no deep fetch
+queued. It moves back to `nightly` on any change. Weekly clients join the run
+on `dormant_weekday` only. A pinned client (`cadence_pinned`) stays nightly.
 
 ## Parsing discipline
 

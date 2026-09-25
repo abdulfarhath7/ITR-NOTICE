@@ -1,0 +1,3937 @@
+[
+ {
+  "method": "POST",
+  "path": "/iec/bulkserviceapi/auth/getEntity/getBulkFilingDetails",
+  "status": 200,
+  "seen_on": [
+   "View Bulk Filed Forms Status (15CA/145)"
+  ],
+  "request_shape": {
+   "entityNum": "str",
+   "formCode": "str",
+   "tokenNum": "str",
+   "startDate": "str",
+   "endDate": "str",
+   "financialYear": "str",
+   "formName": "str",
+   "loggedInUserId": "str",
+   "header": {
+    "formName": "str"
+   }
+  },
+  "response_shape": {
+   "header": {
+    "formName": "null"
+   },
+   "messages": [
+    {
+     "code": "str",
+     "type": "str",
+     "desc": "str",
+     "fieldName": "null"
+    }
+   ],
+   "errors": [],
+   "bulkFilings15CaCb": [
+    {
+     "srNo": "int",
+     "tokenNum": "str",
+     "ackNum": "null",
+     "txnNum": "str",
+     "formName": "str",
+     "filingDate": "null",
+     "createdDate": "str",
+     "processedDate": "null",
+     "status": "str",
+     "statusDesc": "null",
+     "filledBy": "null",
+     "remitterName": "null",
+     "remitterPan": "null",
+     "satDocId": "str",
+     "financialYear": "null",
+     "fileName": "null",
+     "errorMessage": "null",
+     "refYear": "null",
+     "refYearType": "null"
+    }
+   ],
+   "tokenSearchDtoList": "null"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/chlncorrectionapi/auth/challanCorrection/fetchChallanCorrection",
+  "status": 200,
+  "seen_on": [],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "formData": {
+    "entityNum": "str",
+    "challanType": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": {
+   "header": {
+    "formName": "null"
+   },
+   "messages": [],
+   "successFlag": "bool",
+   "challanCorrectionList": []
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/i18n/chunked/condonation/en.f32715eadc04a813.json",
+  "status": 200,
+  "seen_on": [
+   "Condonation Request"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "condonation": {
+    "headers": {
+     "condonation": "str",
+     "conReqTitle": "str",
+     "condonation_request": "str",
+     "raise_condonation_request": "str",
+     "details_of_taxpayer_assessee": "str",
+     "subject_matter_for_condonation": "str",
+     "please_tick_the_nature": "str",
+     "details_of_delay_in_making_statutory": "str",
+     "provide_details": "str",
+     "conReqsubTitle": "str",
+     "selectOptionDesc": "str",
+     "whether_any_search_and_seizure_action": "str",
+     "details_of_any_survey": "str",
+     "viewDetailsTitle": "str",
+     "viewDetailsSubDesc": "str",
+     "conReqsf": "str",
+     "sfDetailsofAssessee": "str",
+     "delayTitle": "str",
+     "details_of_form": "str"
+    },
+    "labels": {
+     "4": "str",
+     "5": "str",
+     "6": "str",
+     "7": "str",
+     "8": "str",
+     "9": "str",
+     "10": "str",
+     "11": "str",
+     "12": "str",
+     "13": "str",
+     "14": "str",
+     "conReqITRV": "str",
+     "size_of_each_attachment_should_not_exceed_5MB": "str",
+     "all_the_attachments_together_should_not_exceed_25_MB": "str",
+     "all_the_attachments_should_be_in_Pdf_Zip_format_only": "str",
+     "please_note": "str",
+     "any_other_attachments": "str",
+     "specify_the_document": "str",
+     "upload_duly_filled_application": "str",
+     "download_application_form": "str",
+     "kindly_upload_duly_filled": "str",
+     "p_a_n": "str",
+     "assessment_Year_Financial_Year": "str",
+     "view_assessment_Year_Financial_Year": "str",
+     "summaryOfOutcomeOfThePreviousAppeal": "str",
+     "CIT": "str",
+     "high_court_supreme_court": "str",
+     "ITAT": "str",
+     "please_attach_the_copy_of_assessment_order": "str",
+     "total_Amount_of_relief_claimed": "str",
+     "is_it_claim_of_refund": "str",
+     "amount_of_such_refund": "str",
+     "is_it_claim_of_carry_forward_of_loss": "str",
+     "amount_of_such_loss": "str",
+     "is_it_any_other_claim_or_relief_sought": "str",
+     "ITR_1": "str",
+     "ITR_2": "str",
+     "ITR_3": "str",
+     "ITR_4": "str",
+     "ITR_5": "str",
+     "ITR_6": "str",
+     "ITR_7": "str",
+     "son": "str",
+     "daughter": "str",
+     "wife": "str",
+     "condonation": "str",
+     "name": "str",
+     "viewName": "str",
+     "status": "str",
+     "viewStatus": "str",
+     "resident_non_resident": "str",
+     "viewResident_non_resident": "str",
+     "resident": "str",
+     "nonResident": "str",
+     "pan": "str",
+     "viewPan": "str",
+     "correspondence_address": "str",
+     "email_for_communication": "str",
+     "jurisdictional_assessing_officer": "str",
+     "viewCorrespondence_address": "str",
+     "viewEmail_for_communication": "str",
+     "viewJurisdictional_assessing_officer": "str",
+     "filing_of_return": "str",
+     "filing_of_chapter": "str",
+     "filing_of_chapter_VI": "str",
+     "claim_any_other_chapter_XIIB": "str",
+     "filing_related_to_chapter_III": "str",
+     "filing_of_chapter_IV": "str",
+     "claim_related_to_chapter_XVII": "str",
+     "claim_relief_under_any_other_provision_of_the_act": "str",
+     "pursuance_of_any_NCLT_high_court_supreme_court_order": "str",
+     "pursuance_of_any_NCLT_high_court_supreme_court_orderf": "str",
+     "view_pursuance_of_any_NCLT_high_court_supreme_court_order": "str",
+     "specify_order_details": "str",
+     "nclt": "str",
+     "high_court": "str",
+     "supreme_court": "str",
+     "yes": "str",
+     "yes_small": "str",
+     "no": "str"
+    },
+    "errors": {
+     "condonation": "str",
+     "error": "str",
+     "mandatory_to_enter": "str",
+     "please_enter_the_mandatory_details": "str",
+     "please_enter_the_mandatory_details1": "str",
+     "roiReasonsOfDelayErrorMsg": "str",
+     "attachment_is_mandatory": "str",
+     "please_specify_the_document_attached": "str",
+     "please_enter_valid_12_digit_Aadhaar_Number": "str"
+    },
+    "placeholders": {
+     "select": "str",
+     "please_select": "str",
+     "reasonText": "str"
+    },
+    "validations": {
+     "CODE1": "str",
+     "CODE5": "str",
+     "CODE10": "str",
+     "itr_already_submitted_note": "str",
+     "mandatory_field": "str",
+     "only_pdf_zip": "str",
+     "note": "str",
+     "attachmentNote": "str",
+     "max_file_size": "str",
+     "con_Req_alrady_submitted_note": "str",
+     "noteValidateJson": "str",
+     "detailsOfTaxpayer.name_M": "str",
+     "detailsOfTaxpayer.name_I": "str",
+     "detailsOfTaxpayer.status_M": "str",
+     "detailsOfTaxpayer.status_I": "str",
+     "detailsOfTaxpayer.isResident_M": "str",
+     "detailsOfTaxpayer.isResident_I": "str",
+     "detailsOfTaxpayer.pan_M": "str",
+     "detailsOfTaxpayer.pan_I": "str",
+     "detailsOfTaxpayer.correspondenceAddress_M": "str",
+     "detailsOfTaxpayer.correspondenceAddress_I": "str",
+     "detailsOfTaxpayer.emailForCommunication_M": "str",
+     "detailsOfTaxpayer.emailForCommunication_I": "str",
+     "detailsOfTaxpayer.jurisdictionalAssessingOfficer_M": "str",
+     "detailsOfTaxpayer.jurisdictionalAssessingOfficer_I": "str",
+     "subjectMatterForCondonation.natureOfClaim_M": "str",
+     "subjectMatterForCondonation.natureOfClaim_I": "str",
+     "subjectMatterForCondonation.isInPursuanceOfAnyCourtOrder_M": "str",
+     "subjectMatterForCondonation.isInPursuanceOfAnyCourtOrder_I": "str",
+     "subjectMatterForCondonation.orderDetails_M": "str",
+     "subjectMatterForCondonation.pleaseSpecify_M": "str",
+     "subjectMatterForCondonation.pleaseSpecify_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.assessmentYear_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.assessmentYear_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.itrFormWhichHasNotBeenFiledInTime_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.itrFormWhichHasNotBeenFiledInTime_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dueDate_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dueDate_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.isFilingAfterExpiryOfDueDate_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.isFilingAfterExpiryOfDueDate_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.acknowledgementNumber_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.acknowledgementNumber_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dateOfFiling_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dateOfFiling_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.durationOfDelay_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.durationOfDelay_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.natureOfClaimImpacted_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.natureOfClaimImpacted_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.claimOfRefundAndAmount_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.claimOfRefundAndAmount_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dateAndCopyOf143Order_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.dateAndCopyOf143Order_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.isApplicationForCondonationIsMade_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.isApplicationForCondonationIsMade_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.whenWasApplicationFiled_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.whenWasApplicationFiled_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfClaim_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfClaim_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfCarry_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfCarry_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.pleaseSpecifyClaim_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.pleaseSpecifyClaim_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfRelief_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.amountOfRelief_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.copyOfOrder_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.copyOfOrder_I": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.copyOf143Order_M": "str",
+     "detailsOfDelayInMakingStatutoryCompliances.copyOf143Order_I": "str",
+     "detailsOfRoiFiled.assessmentYear_M": "str",
+     "detailsOfRoiFiled.assessmentYear_I": "str",
+     "detailsOfRoiFiled.dateOfFillingOfRoi_M": "str",
+     "detailsOfRoiFiled.dateOfFillingOfRoi_I": "str",
+     "detailsOfRoiFiled.dueDateOfFillingOfRoi_M": "str",
+     "detailsOfRoiFiled.dueDateOfFillingOfRoi_I": "str",
+     "detailsOfRoiFiled.reasonForDelay_M": "str",
+     "detailsOfRoiFiled.reasonForDelay_I": "str",
+     "detailsOfRoiFiled.remarksIfAny_M": "str",
+     "detailsOfRoiFiled.remarksIfAny_I": "str",
+     "detailsOfStatutoryFormsFiled.assessmentYear_M": "str",
+     "detailsOfStatutoryFormsFiled.assessmentYear_I": "str"
+    },
+    "buttons": {
+     "proceed_to_e_verify": "str",
+     "submit": "str",
+     "cancel": "str",
+     "save": "str",
+     "addRow": "str",
+     "update": "str",
+     "add_another": "str",
+     "edit": "str",
+     "delete": "str",
+     "downloadPdfForm": "str",
+     "back": "str",
+     "continue": "str",
+     "resumeDraft": "str",
+     "startNewFiling": "str",
+     "createCondonationReq": "str",
+     "viewDetails": "str",
+     "proceed_to_ver": "str",
+     "provideDetail": "str",
+     "go_to_dashboard": "str",
+     "attachFile": "str",
+     "validate": "str",
+     "viewCondonationReq": "str",
+     "addFile": "str",
+     "saveAsDraft": "str",
+     "downloadJson": "str",
+     "downloadXml": "str"
+    },
+    "tooltip": {
+     "applicable_if_return_is_already_filed": "str"
+    },
+    "table": {
+     "due_Date_of_filling_Tax_audit_reports_other_forms": "str",
+     "no_entries": "str",
+     "ay": "str",
+     "dateOfFillingOfRoi": "str",
+     "reasonForDelay": "str",
+     "reasonForDelay_non_filing": "str",
+     "remarksIfAny": "str",
+     "nameOfStatutoryform": "str",
+     "dateOfItrOriginallyFiled": "str",
+     "returnedIncomeAsPerItr": "str",
+     "dateOfFillingOfStatutoryForm": "str",
+     "date_of_ITR_originally_filed": "str",
+     "dateOfItrFiledAfterSearch": "str",
+     "detailsOfIncomeDeclaredITRSearch": "str",
+     "dateOfItrFiledAfterSurvey": "str",
+     "detailsOfIncomeDeclaredITRSurvey": "str",
+     "lossClaimed": "str",
+     "setOffClaimed": "str",
+     "matOrAmtCreditClaimed": "str",
+     "pleaseDiscussInBrief": "str",
+     "reasonForDisallowingTheClaim": "str",
+     "detailsOfAdditionsOrDisallowances": "str",
+     "amountOfPenaltyImposed": "str",
+     "detailsOfAppealsPendingAgainstPenalty": "str",
+     "whetherPendingInITATAppeals": "str",
+     "whetherPendingInHighCourtSupremeCourt": "str",
+     "sectionUnderWhichPenaltyImposed": "str",
+     "sino": "str",
+     "name": "str",
+     "documentDescription": "str",
+     "whetherAnyAppealPending": "str",
+     "summaryOfOutcomeOfThePreviousAppeal": "str"
+    },
+    "declaration": {
+     "declarationHeading": "str",
+     "declaration1a": "str",
+     "declaration1b": "str",
+     "declaration2V": "str",
+     "declaration2a": "str",
+     "of": "str",
+     "of_shri_Smt": "str",
+     "declaration1": "str",
+     "declaration2": "str",
+     "declaration3": "str",
+     "declaration1sf": "str",
+     "declaration3sf": "str",
+     "declarationP3": "str",
+     "declarationHeadingSf": "str",
+     "i_am_competent_to_make_this_application_and_verify_it": "str"
+    },
+    "textbox": {
+     "textbox_detailOfProsecutionProceeding": "str",
+     "textbox_genuineHardshipCausedToAssesse": "str",
+     "textbox_reasonForDelay": "str",
+     "textbox_anyOtherPoint": "str"
+    },
+    "submit": {
+     "requestForFilling": "str",
+     "theReturnWillBeProcessed": "str",
+     "youCanTrackStatus": "str",
+     "requestCR": "str",
+     "anEmailHasBeenSent": "str",
+     "communicationSent": "str",
+     "userEmail": "str",
+     "andMobile": "str",
+     "userMobile": "str",
+     "requestForFillingSf": "str",
+     "approvalOfrequest": "str",
+     "successMsg1": "str",
+     "successMsg2": "str",
+     "successMsg3": "str"
+    }
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/i18n/chunked/en.bcf4f{id}d9a0c.json",
+  "status": 200,
+  "seen_on": [
+   "Change Password",
+   "Condonation Request",
+   "File ITR-A",
+   "File Income Tax Forms",
+   "Know Your Refund Status",
+   "My Profile"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "0": "str",
+   "1": "str",
+   "2": "str",
+   "3": "str",
+   "4": "str",
+   "5": "str",
+   "6": "str",
+   "7": "str",
+   "8": "str",
+   "9": "str",
+   "10": "str",
+   "11": "str",
+   "12": "str",
+   "13": "str",
+   "14": "str",
+   "15": "str",
+   "16": "str",
+   "17": "str",
+   "18": "str",
+   "19": "str",
+   "20": "str",
+   "21": "str",
+   "22": "str",
+   "23": "str",
+   "24": "str",
+   "25": "str",
+   "26": "str",
+   "27": "str",
+   "28": "str",
+   "29": "str",
+   "30": "str",
+   "31": "str",
+   "50": "str",
+   "91": "str",
+   "100": "str",
+   "148": "str",
+   "1157": "str",
+   "2000": "str",
+   "2001": "str",
+   "2002": "str",
+   "2003": "str",
+   "2004": "str",
+   "2005": "str",
+   "2006": "str",
+   "2007": "str",
+   "2008": "str",
+   "2009": "str",
+   "2010": "str",
+   "2011": "str",
+   "2012": "str",
+   "2013": "str",
+   "2014": "str",
+   "2015": "str",
+   "2016": "str",
+   "2017": "str",
+   "2018": "str",
+   "2019": "str",
+   "2020": "str",
+   "23344": "str",
+   "38570": "str",
+   "39727": "str",
+   "123456": "str",
+   "155400": "str",
+   "254543": "str",
+   "400057": "str",
+   "560071": "str",
+   "630350": "str",
+   "785748": "str",
+   "1122334": "str",
+   "5055000": "str",
+   "6945712": "str",
+   "834532134": "str",
+   "Banking Capital": "str",
+   "udinYearType": "str",
+   "processedDate": "str",
+   "udinYear": "str",
+   "udinApplicableAct": "str",
+   "Capital Account": "str",
+   "Charges for the use of intellectual property n.i.e": "str",
+   "Construction Services": "str"
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/i18n/chunked/foVerify/en.310ded9ca28ee1f3.json",
+  "status": 200,
+  "seen_on": [
+   "Condonation Request",
+   "File Income Tax Forms",
+   "Know Your Refund Status",
+   "My Profile",
+   "View Filed Forms",
+   "Worklist"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "foVerify": {
+    "headers": {
+     "e_verify": "str",
+     "ver_type": "str",
+     "dsc_verify": "str",
+     "data_Sign": "str"
+    },
+    "labels": {
+     "e_Verification": "str",
+     "dsc_Verification": "str",
+     "loading": "str",
+     "select_method_of_verification": "str",
+     "select_method_of_return_verification": "str",
+     "verify": "str",
+     "enter_details_upload_itr": "str",
+     "select_return": "str",
+     "add_deductor_buyer_details": "str",
+     "select_request_to_be_accepted": "str",
+     "select_request_to_be_rejected": "str",
+     "select_form_to_be_accepted": "str",
+     "select_form_to_be_rejected": "str",
+     "select_bank_account": "str",
+     "add_deductee_seller_details": "str",
+     "add_deduction_transaction_details": "str",
+     "auth_rep_req_accepted_successfully": "str",
+     "auth_rep_req_rejected_successfully": "str",
+     "auth_sign_req_accepted_successfully": "str",
+     "auth_sign_req_rejected_successfully": "str",
+     "form_success_accept_verif": "str",
+     "form_success_rejected": "str",
+     "submission_of_request": "str",
+     "return_verified_condonation_submitted": "str",
+     "return_verified_successfully": "str",
+     "submit": "str",
+     "pan": "str",
+     "tan": "str",
+     "itr": "str",
+     "service": "str",
+     "acknowledgement_no": "str",
+     "assessmnt_year": "str",
+     "name_of_assessee": "str",
+     "notice_reference_id": "str",
+     "din_number": "str",
+     "proceeding_name": "str",
+     "pan_of_assessee": "str",
+     "tan_of_assessee": "str",
+     "mobNum_of_assessee": "str",
+     "emailId_of_assessee": "str",
+     "name_of_eProceeding": "str",
+     "status_of_eProceeding": "str",
+     "reason": "str",
+     "response_due_date": "str",
+     "pending_since": "str",
+     "period_of_authorisation": "str",
+     "task_for_authorisation_given": "str",
+     "form_no": "str",
+     "financial_year": "str",
+     "filing_type": "str",
+     "udin": "str",
+     "udin_status": "str",
+     "not_available": "str",
+     "user_id": "str",
+     "verifier_s_pan": "str",
+     "month": "str",
+     "quarter": "str",
+     "bank_accounts": "str",
+     "bank_accounts_popup_open": "str",
+     "generate_evc_atm": "str",
+     "evc_banklist": "str",
+     "otp_resend_aadhar_mobNum": "str",
+     "note": "str",
+     "appropriate_verification_mode_note_dynamic": "str",
+     "e_verify_aadhaar_otp": "str",
+     "e_verify_dcs": "str",
+     "e_verify_efiling_otp": "str",
+     "generate_EVC": "str",
+     "e_verify_net_banking": "str",
+     "e_verify_bank_account": "str",
+     "e_verify_demat_account": "str",
+     "e_verify_evc": "str",
+     "e_verify_otp_generated": "str",
+     "to_know_more": "str",
+     "linkNow_text": "str",
+     "clickHere_aadhaar_pan_text": "str",
+     "learnMore_NetBanking_text": "str",
+     "myProfile": "str",
+     "through_net_banking_msg": "str",
+     "my_bank_account": "str"
+    },
+    "validations": {
+     "warning": "str",
+     "eVerify_err_aadhar_not_linked_with_pan": "str",
+     "everifLib_invalid_otp_msg": "str",
+     "everifLib_invalid_evc_msg": "str",
+     "invalid_mob_otp": "str",
+     "invalid_email_otp": "str",
+     "invalidFormDropdownOption": "str",
+     "AUTH_FAILED": "str",
+     "mandatory_field": "str",
+     "EMB122": "str",
+     "EMB125": "str",
+     "EF00000": "str",
+     "EF00001": "str",
+     "EF00006": "str",
+     "EF00009": "str",
+     "EF00016": "str",
+     "EF00028": "str",
+     "EF00099": "str",
+     "EF00100": "str",
+     "EF00101": "str",
+     "EF00102": "str",
+     "EF00103": "str",
+     "EF00104": "str",
+     "EF00105": "str",
+     "EF00106": "str",
+     "EF00107": "str",
+     "EF00108": "str",
+     "EF00128": "str",
+     "EF00096": "str",
+     "EF00224": "str",
+     "EF00234": "str",
+     "EF00226": "str",
+     "EF00232": "str",
+     "EF00233": "str",
+     "EF20096": "str",
+     "EF20097": "str",
+     "EF20098": "str",
+     "EF20099": "str",
+     "EF20100": "str",
+     "EF20101": "str",
+     "EF20102": "str",
+     "EF20103": "str",
+     "EF20104": "str",
+     "EF20105": "str",
+     "EF20106": "str",
+     "EF20107": "str",
+     "EF20108": "str",
+     "EF20109": "str",
+     "EF20110": "str",
+     "EF20111": "str",
+     "EF20112": "str",
+     "EF20113": "str",
+     "EF20127": "str",
+     "EF20128": "str",
+     "EF20131": "str",
+     "EF20132": "str",
+     "EF20133": "str",
+     "EF20134": "str",
+     "EF20136": "str",
+     "EF20139": "str",
+     "EF40012": "str",
+     "EF40014": "str",
+     "EF99999": "str",
+     "EF111199": "str",
+     "EF111200": "str",
+     "EF111201": "str",
+     "EF111202": "str",
+     "EF111205": "str",
+     "EF500055": "str",
+     "EF500062": "str",
+     "EF500063": "str",
+     "EF500064": "str",
+     "EF500065": "str",
+     "EF500066": "str",
+     "EF500067": "str",
+     "EF500068": "str",
+     "EF500069": "str",
+     "EF500070": "str",
+     "EF500071": "str",
+     "EF500072": "str"
+    },
+    "messages": {
+     "server_error": "str",
+     "AADHAR_PAN_LINKAGE_CONSTANT": "str",
+     "pan_and_aadhar_not_link": "str",
+     "dsc_not_attached_ind": "str",
+     "dsc_not_attached_huf": "str",
+     "dsc_not_attached_rep": "str",
+     "e_verify_efiling_otp_registered_maskedMobNum_maskedEmailId": "str",
+     "eVerify_err_bank_ac_not_validated": "str",
+     "eVerify_err_demat_ac_details_not_added": "str",
+     "evc_has_been_generated_successfully": "str",
+     "SMS_EMAIL_CONSTANT": "str",
+     "EMAIL_CONSTANT": "str",
+     "SMS_CONSTANT": "str",
+     "e_filing_otp_generated_success": "str",
+     "e_filing_otp_generated_success_msg_maskedMobNum_maskedEmailId": "str",
+     "Bank_VAL_INFO_CONSTANT": "str",
+     "BANK_VAL_INFO_PRINCIPAL_CONSTANT": "str",
+     "DEMAT_VAL_INFO_CONSTANT": "str",
+     "DEMAT_VAL_INFO_PRINCIPAL_CONSTANT": "str"
+    },
+    "errors": {
+     "error": "str",
+     "invalid_option": "str"
+    },
+    "buttons": {
+     "click_here": "str",
+     "linkNow": "str",
+     "learn_more": "str",
+     "view_more": "str",
+     "list_of_bank_conf_evc_atm": "str",
+     "close_popup": "str",
+     "continue": "str",
+     "back": "str",
+     "ok": "str",
+     "close": "str",
+     "cancel": "str",
+     "generate_aadhaar_otp": "str",
+     "resend_otp": "str",
+     "resend_evc": "str",
+     "e_verify": "str",
+     "validate": "str",
+     "sign": "str"
+    }
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/i18n/chunked/legalEntityIdentifier/en.f3e7b37c11444c79.json",
+  "status": 200,
+  "seen_on": [
+   "Legal Entity Identifier (LEI)"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "headings": {
+    "legal_entity_identifier": "str"
+   },
+   "labels": {
+    "no_entries": "str",
+    "sino": "str",
+    "lei_number": "str",
+    "lei_validity_start_date": "str",
+    "lei_validity_end_date": "str",
+    "expanded": "str",
+    "disclaimer": "str",
+    "add_lei_disclaimer": "str",
+    "lei_number_guide": "str",
+    "declaration": "str",
+    "items_per_page": "str",
+    "item_of": "str",
+    "of": "str",
+    "pages": "str",
+    "items": "str"
+   },
+   "messages": {
+    "server_error": "str"
+   },
+   "validations": {
+    "error": "str",
+    "enter_lei_number": "str",
+    "lei_entered_val": "str",
+    "start_date_entered_val": "str",
+    "start_date_enter_blank": "str",
+    "end_date_entered_val": "str",
+    "end_date_enter_blank": "str",
+    "mandatory_field": "str",
+    "EF00000": "str",
+    "EF00001": "str",
+    "EF40071": "str",
+    "EF500190": "str",
+    "EF500191": "str",
+    "EF500192": "str"
+   },
+   "buttons": {
+    "add_lei": "str",
+    "submit": "str",
+    "cancel": "str",
+    "back": "str"
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/need-help.json",
+  "status": 200,
+  "seen_on": [
+   "Authorize another person to act on behalf of self",
+   "Change Password",
+   "For Your Information",
+   "Register as Representative Assessee",
+   "Register to act on behalf of another person",
+   "Tax Credit Mismatch"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "Register": [
+    {
+     "text": "str",
+     "link": "str"
+    }
+   ],
+   "changePassword": [
+    {
+     "text": "str",
+     "link": "str"
+    }
+   ],
+   "fileItr": [
+    {
+     "text": "str",
+     "link": "str"
+    }
+   ]
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/preLoginMenu.json",
+  "status": 200,
+  "seen_on": [
+   "Compliance Portal"
+  ],
+  "request_shape": null,
+  "response_shape": [
+   {
+    "server": "str",
+    "children": [],
+    "newPage": "str",
+    "menuType": "str",
+    "label": "str",
+    "hindiLabel": "str",
+    "url": "str"
+   }
+  ]
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/statforms/i18n/chunked/en.4dfbd{id}cc1.json",
+  "status": 200,
+  "seen_on": [
+   "View Filed Forms"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "0": "str",
+   "1": "str",
+   "2": "str",
+   "3": "str",
+   "4": "str",
+   "5": "str",
+   "6": "str",
+   "7": "str",
+   "8": "str",
+   "9": "str",
+   "10": "str",
+   "11": "str",
+   "12": "str",
+   "13": "str",
+   "14": "str",
+   "15": "str",
+   "16": "str",
+   "17": "str",
+   "18": "str",
+   "19": "str",
+   "20": "str",
+   "21": "str",
+   "22": "str",
+   "23": "str",
+   "24": "str",
+   "25": "str",
+   "26": "str",
+   "27": "str",
+   "28": "str",
+   "29": "str",
+   "30": "str",
+   "31": "str",
+   "50": "str",
+   "91": "str",
+   "100": "str",
+   "148": "str",
+   "1157": "str",
+   "2000": "str",
+   "2001": "str",
+   "2002": "str",
+   "2003": "str",
+   "2004": "str",
+   "2005": "str",
+   "2006": "str",
+   "2007": "str",
+   "2008": "str",
+   "2009": "str",
+   "2010": "str",
+   "2011": "str",
+   "2012": "str",
+   "2013": "str",
+   "2014": "str",
+   "2015": "str",
+   "2016": "str",
+   "2017": "str",
+   "2018": "str",
+   "2019": "str",
+   "2020": "str",
+   "23344": "str",
+   "38570": "str",
+   "39727": "str",
+   "123456": "str",
+   "155400": "str",
+   "254543": "str",
+   "400057": "str",
+   "560071": "str",
+   "630350": "str",
+   "785748": "str",
+   "1122334": "str",
+   "5055000": "str",
+   "6945712": "str",
+   "834532134": "str",
+   "Banking Capital": "str",
+   "udinYearType": "str",
+   "processedDate": "str",
+   "udinYear": "str",
+   "udinApplicableAct": "str",
+   "Capital Account": "str",
+   "Charges for the use of intellectual property n.i.e": "str",
+   "Construction Services": "str"
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/statforms/i18n/chunked/foforms/en.aaeaae9f80578cea.json",
+  "status": 200,
+  "seen_on": [
+   "File Income Tax Forms",
+   "View Filed Forms"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "0": "str",
+   "1": "str",
+   "2": "str",
+   "3": "str",
+   "4": "str",
+   "5": "str",
+   "6": "str",
+   "7": "str",
+   "8": "str",
+   "9": "str",
+   "10": "str",
+   "11": "str",
+   "12": "str",
+   "13": "str",
+   "14": "str",
+   "15": "str",
+   "16": "str",
+   "17": "str",
+   "18": "str",
+   "19": "str",
+   "20": "str",
+   "21": "str",
+   "22": "str",
+   "23": "str",
+   "24": "str",
+   "25": "str",
+   "26": "str",
+   "27": "str",
+   "28": "str",
+   "29": "str",
+   "30": "str",
+   "31": "str",
+   "50": "str",
+   "91": "str",
+   "100": "str",
+   "148": "str",
+   "1157": "str",
+   "2000": "str",
+   "2001": "str",
+   "2002": "str",
+   "2003": "str",
+   "2004": "str",
+   "2005": "str",
+   "2006": "str",
+   "2007": "str",
+   "2008": "str",
+   "2009": "str",
+   "2010": "str",
+   "2011": "str",
+   "2012": "str",
+   "2013": "str",
+   "2014": "str",
+   "2015": "str",
+   "2016": "str",
+   "2017": "str",
+   "2018": "str",
+   "2019": "str",
+   "2020": "str",
+   "23344": "str",
+   "38570": "str",
+   "39727": "str",
+   "123456": "str",
+   "155400": "str",
+   "254543": "str",
+   "400057": "str",
+   "560071": "str",
+   "630350": "str",
+   "785748": "str",
+   "1122334": "str",
+   "5055000": "str",
+   "6945712": "str",
+   "834532134": "str",
+   "labels": {
+    "form1FadsAnx1A2Ei": "str",
+    "partCpostRmtnceDtAfterProposedDate": "str",
+    "form1FadsAnx1A2Eii": "str",
+    "form1FadsAnx1A2F": "str",
+    "form1FadsAnx1A2G": "str",
+    "form1FadsAnx1A2H": "str",
+    "form1FadsHeader": "str",
+    "form1FadsPanel3A3DiamondLessCarat": "str",
+    "form1FadsPanel3A3OtherMetals": "str",
+    "form1Things5": "str",
+    "form1FADS26Submit": "str",
+    "firstNamePartA": "str",
+    "middleNamePartA": "str",
+    "lastNamePartA": "str",
+    "addressPartA": "str",
+    "panPartA": "str",
+    "passportNumPartA": "str",
+    "passportDtlAttachPartA": "str",
+    "labelPartB": "str",
+    "checkbox1": "str",
+    "checkbox2": "str",
+    "checkbox3": "str",
+    "checkbox4": "str",
+    "form1FadsPartAFirstName": "str",
+    "form1FadsPartAMiddleName": "str",
+    "form1FadsPartALastName": "str",
+    "form1FadsPartAAddress": "str",
+    "form1FadsPartAPan": "str",
+    "form1FadsPartAPassportNumber": "str",
+    "form1FadsPartAPassportDetails": "str",
+    "form1FadsPartBTypeOfAssetLabel": "str",
+    "form1FadsAssetType1": "str",
+    "form1FadsAssetType2": "str",
+    "form1FadsAssetType3": "str",
+    "form1FadsAssetType4": "str",
+    "form1FadsPanel3Section3i": "str",
+    "form1FadsPanel4Header": "str",
+    "form1FadsPanel4Section3ii": "str",
+    "form1FadsPanel5Header": "str",
+    "form1FadsPanel5Section3iii": "str",
+    "form1FadsPanel6Header": "str",
+    "form1FadsPanel6Section3iv": "str",
+    "form1FadsPartAHeader": "str",
+    "form1FadsPartASubheading": "str",
+    "form1FadsPartBHeader": "str",
+    "form1FadsPartBSubheading": "str",
+    "form1FadsPanel3Header": "str",
+    "form1FadsPanel3A1": "str",
+    "form1FadsPanel3A2": "str",
+    "form1FadsPanel3A3": "str",
+    "form1FadsPanel3A3Gold": "str",
+    "form1FadsPanel3A3Diamond1Carat": "str",
+    "form1FadsPanel3A4": "str",
+    "form1FadsPanel3A5": "str",
+    "form1FadsPanel3A6": "str",
+    "form1FadsPanel3I1": "str",
+    "form1FadsPanel7Header": "str",
+    "form1FadsPanel7Summary": "str",
+    "attachComputationLabel": "str",
+    "attachValuationReportLabel": "str",
+    "attachSupportingDocumentsLabel": "str",
+    "formFads26Annex1OtherMetalCountry": "str",
+    "formFads26Annex1OtherMetalValue": "str",
+    "formFads26Annex1AnyIncomeAttach": "str",
+    "formFads26Annex1OtherMetalMarktVal": "str",
+    "form1FadsVerificationI": "str",
+    "form1FadsVerificationHaving": "str",
+    "form1FadsDeclarationText": "str",
+    "form1FadsDeclarationBoldText": "str",
+    "form1FadsDeclarationTextEnd": "str",
+    "form1FadsCertificationText": "str",
+    "form1FadsPlace": "str",
+    "form1FadsDate": "str",
+    "form1FadsIpAddress": "str",
+    "form1FadsSignatureLabel": "str",
+    "form1FadsPanel7PartCHeader": "str",
+    "form1FadsPanel7Field4i": "str",
+    "form1FadsPanel7Field4ii": "str",
+    "form1FadsPanel7Field4iii": "str",
+    "form1FadsPanel7Field4iv": "str"
+   },
+   "headers": {
+    "form1FadsHeader": "str",
+    "form1FadsFormName": "str",
+    "form1FadsSubHeader": "str",
+    "form3cb-cdpurpose": "str",
+    "formT10F2FormPreview": "str",
+    "form99purpose": "str",
+    "form99formName": "str",
+    "form99subHeader": "str",
+    "form99Desc": "str",
+    "form148hdr": "str",
+    "form148purposerule": "str",
+    "form1FadsPreviewFormNo": "str",
+    "form1FadsPreviewRefAct": "str",
+    "tyform2swfformname": "str",
+    "tyform2swfsubheader": "str",
+    "form175Purpose": "str",
+    "form175Name": "str",
+    "tyform147Purpose": "str",
+    "tyform147Header": "str",
+    "form148labelpartA1": "str",
+    "form148labelpartA2": "str",
+    "form148labelpartA3": "str",
+    "form148labelpartA4": "str",
+    "form148labelpartA5": "str",
+    "form148labelpartA6": "str",
+    "form92label1": "str",
+    "form92formname": "str",
+    "form163Header": "str",
+    "form163FormName": "str",
+    "form163SubHeader": "str",
+    "tyForm147PanelHeader": "str",
+    "tyForm147Heading2": "str",
+    "form175Heading1": "str",
+    "form99textinstrctn6": "str",
+    "formtds_submit1": "str",
+    "form142FormNamePreview": "str",
+    "tyform2swfformname1": "str",
+    "form163FormNamePreview": "str",
+    "form19BF13TFormNameHeader": "str",
+    "form148namepreview": "str",
+    "formt1f11SubHeading": "str",
+    "form50RulePurpose": "str",
+    "form121Rule": "str",
+    "formsvf01SubHead": "str",
+    "f103SeeRule": "str",
+    "tyformTXIF02FormNamePreview": "str",
+    "112formlabelhdr": "str",
+    "T112formlabels24": "str",
+    "new112formdec": "str",
+    "T112formlabels25": "str",
+    "T112formlabels8": "str",
+    "f2BMformName": "str",
+    "form042Rule": "str",
+    "form103Purpose": "str",
+    "form103formname": "str",
+    "form105formname": "str",
+    "form105Purpose": "str",
+    "form10f6rule": "str",
+    "form19BF13TPurpose": "str",
+    "form19BF13TPurpose1": "str",
+    "form19BF7FormNo": "str",
+    "form19BF7PrevFormNo": "str",
+    "form19BF7Rule": "str",
+    "form19BF7SubHeader": "str",
+    "form19BF7Subtitle": "str",
+    "form19BF7formRule": "str",
+    "form19Bf8FormName": "str",
+    "form19Bf8formHeader": "str",
+    "form19Bf8formSubHeader": "str",
+    "form19CF02FormName": "str",
+    "form19CF02FullHeader": "str",
+    "form19CF02PreviewSeeRule": "str",
+    "form19CF02Purpose": "str",
+    "form19CF02Purpose1": "str",
+    "form19CF02Submit": "str",
+    "form19f28Heading": "str",
+    "form19f28Name": "str",
+    "form19f28PreviewHeading": "str",
+    "form19f28Purpose": "str",
+    "form19f28SubHeader": "str"
+   },
+   "sections": {
+    "form142Panel2Desc": "str",
+    "tyForm147h1": "str",
+    "tyForm147h2": "str",
+    "form175h1": "str",
+    "form175h2": "str",
+    "form175h3": "str",
+    "form175h4": "str",
+    "form148labelpartA1": "str",
+    "form148labelpartA2": "str",
+    "form148labelpartA3": "str",
+    "form148labelpartA4": "str",
+    "form148labelpartA5": "str",
+    "form148labelpartA6": "str",
+    "form142Panel1": "str",
+    "form142Panel1Desc": "str",
+    "form142Panel2": "str",
+    "form142Panel3": "str",
+    "form92Parta": "str",
+    "form92Partaa": "str",
+    "form92Partb": "str",
+    "form92Partbb": "str",
+    "form92Partc": "str",
+    "form92Partcc": "str",
+    "tyForm147h1sub": "str",
+    "tyForm147h2sub": "str",
+    "tyForm147h3": "str",
+    "tyForm147h3sub": "str",
+    "tyform54PartBsub": "str",
+    "f19bf13tPanel1Desc": "str",
+    "f19bf13tPanel1Header": "str",
+    "f19bf13tPanel2Desc": "str",
+    "f19bf13tPanel2Header": "str",
+    "f19bf13tPanel3Desc": "str",
+    "f19bf13tPanel3Header": "str",
+    "form020h1": "str",
+    "form020h2": "str",
+    "form020h3": "str",
+    "form103Panel1": "str",
+    "form103Panel1Desc": "str",
+    "form103Panel2": "str",
+    "form103Panel2Desc": "str",
+    "form103Panel3": "str",
+    "form103Panel3Desc": "str",
+    "form103Panel4": "str",
+    "form103Panel4Desc": "str",
+    "form105panel1": "str",
+    "form105panel1Sub": "str",
+    "form105panel2": "str",
+    "form105panel2Sub": "str",
+    "form105panel3": "str",
+    "form105panel3Sub": "str",
+    "form105panel4": "str",
+    "form105panel4Sub": "str",
+    "form105panel5": "str",
+    "form105panel5Sub": "str",
+    "form105panel6": "str",
+    "form105panel6Sub": "str",
+    "form13gf01H1": "str",
+    "form13gf01H1Inside": "str",
+    "form13gf01H1sub": "str",
+    "form13gf01H2": "str",
+    "form13gf01H2sub": "str",
+    "form13gf01H3": "str",
+    "form13gf01H3Inside": "str",
+    "form13gf01H3sub": "str",
+    "form13gf01H4": "str",
+    "form13gf01H4sub": "str",
+    "form13gf01H5": "str",
+    "form13gf01H5sub": "str",
+    "form13gf01H6": "str",
+    "form179h1": "str",
+    "form179h2": "str",
+    "form179h3": "str",
+    "form179h4": "str",
+    "form179subHead1": "str",
+    "form179subHead2": "str",
+    "form179subHead3": "str",
+    "form179subHead4": "str",
+    "form19BF7P3Panel5Header": "str",
+    "form19BF7P3Panel5SubHeader": "str"
+   },
+   "text": {
+    "f1_65_savedSuccess": "str",
+    "appeal_din_errors": "str",
+    "appealSpecialCharachterError": "str",
+    "appealRelevantError": "str",
+    "appeal_order_mandatory_text": "str",
+    "filling_request_appeal_pan": "str",
+    "rectification_appeal_order": "str",
+    "rectification_appeal_order_type": "str",
+    "appeal_select_din": "str",
+    "new_din_tooltip": "str",
+    "appeal_order_din": "str",
+    "appeal_section": "str",
+    "response_cannot_be_modified": "str",
+    "vc_disclaimer_modal_body": "str",
+    "paymentsummary": "str",
+    "amount": "str",
+    "reason3Text": "str",
+    "reason3Textdateoforder": "str",
+    "reason3Textreferencenumberoforder": "str",
+    "reason6Text": "str",
+    "reason6Textcopyofreceipt": "str",
+    "reason7Text": "str",
+    "reason10t": "str",
+    "challanmessage": "str",
+    "minorheadmessage": "str",
+    "gotoDashboard": "str",
+    "AOmessage": "str",
+    "Demandnoticemessage": "str",
+    "norecordMsg": "str",
+    "adj_reason_tooltip": "str",
+    "taxCreditMismatchTDSCreditName": "str",
+    "taxCreditMismatchPANofOtherPerson": "str",
+    "taxCreditMismatchTANOfDeductor": "str",
+    "taxCreditMismatchDeductedYr": "str",
+    "taxCreditMismatchBroughtFwdTDSAmt": "str",
+    "taxCreditMismatchTaxDeductedIncome": "str",
+    "taxCreditMismatchTaxDeductedTDS": "str",
+    "taxCreditMismatchTaxClaimedOwnHands": "str",
+    "taxCreditMismatchTaxClaimedIncome": "str",
+    "taxCreditMismatchTaxClaimedTDS": "str",
+    "taxCreditMismatchTaxClaimedSpouseOthPrsnPAN": "str",
+    "taxCreditMismatchGrossAmount": "str",
+    "taxCreditMismatchHeadOfIncome": "str",
+    "taxCreditMismatchTaxDeductedOwnHands": "str",
+    "taxCreditMismatchAmtCarriedFwd": "str",
+    "taxCreditMismatchInvalidTan": "str",
+    "taxCreditMismatchInvalidPan": "str",
+    "taxCreditMismatchInvalidAadhar": "str",
+    "taxCreditMismatchtaxClaimedOwnHands": "str",
+    "taxCreditMismatchtaxClaimed": "str",
+    "taxCreditMismatchtaxAssesseePan": "str",
+    "taxCreditMismatchConfirmation": "str",
+    "download_template_poa": "str",
+    "doc_num": "str",
+    "snNum": "str",
+    "name": "str",
+    "document_id_number": "str",
+    "date_of_issue": "str",
+    "all_mandatory_field": "str",
+    "netBanking_step1": "str",
+    "netBanking_step2": "str",
+    "netBanking_step2_note": "str",
+    "netBanking_step3": "str",
+    "netBanking_step4": "str",
+    "password_criteria1": "str",
+    "password_criteria2": "str",
+    "password_criteria3": "str",
+    "password_criteria4": "str",
+    "password_criteria5": "str",
+    "form68OrderTooltip2": "str",
+    "form68DINTooltip": "str",
+    "form68OrderTooltip": "str",
+    "form68SectionUnder": "str",
+    "form68OrderPassed": "str",
+    "form68DateOf": "str",
+    "form68OrderText": "str",
+    "form68ServiceDate": "str",
+    "form68AmountIncome": "str",
+    "form68I": "str",
+    "form68declarationText": "str"
+   },
+   "buttons": {
+    "downloadTemplate": "str",
+    "form50DownloadExcelTemplate": "str",
+    "form27bafixbtn1": "str",
+    "form27bafixbtn2": "str",
+    "download_Order_Certificate": "str",
+    "view_Forms_Details": "str",
+    "reject_form": "str",
+    "verify_form": "str",
+    "back_to_dashboard": "str",
+    "next": "str",
+    "challanDetails": "str",
+    "view_or_download_poa": "str",
+    "otp_expire_popup": "str",
+    "max_atempt_popup": "str",
+    "submit_itr": "str",
+    "removeSector": "str",
+    "preview_&_attach": "str",
+    "form10hPreview": "str",
+    "form10hPreview & Attach": "str",
+    "continue_NSDLPortal": "str",
+    "view_All_events": "str",
+    "offlineUtilities": "str",
+    "downloadtemp": "str",
+    "downloadExcelTemplate": "str",
+    "udinCheckSearch": "str",
+    "goto_view_filed_forms": "str",
+    "save_draft_txt": "str",
+    "download_csi": "str",
+    "download_return_btn": "str",
+    "add_serv": "str",
+    "rem_serv": "str",
+    "add_another": "str",
+    "seek_ajourn_button": "str",
+    "seek_video_conf_button": "str",
+    "back_to_adjournment_details": "str",
+    "popup": "str",
+    "successPopup": "str",
+    "view_client": "str",
+    "btn_apply": "str",
+    "button_OK": "str",
+    "f1_65button_OK": "str",
+    "remove_serv": "str",
+    "add": "str",
+    "downloadAttach": "str",
+    "view_challan_correction_status": "str",
+    "download_return": "str",
+    "challan_download": "str",
+    "new_challan_correction": "str",
+    "otp_exceeded_attempts": "str",
+    "otp_sent_again": "str",
+    "otp_expired": "str",
+    "freezedownload": "str",
+    "view_challan_correction_staus": "str",
+    "downloadApprovalOrder": "str",
+    "open_modal": "str",
+    "new_payment": "str",
+    "delete": "str",
+    "apply": "str",
+    "paynow": "str",
+    "save_draft": "str",
+    "homepage": "str",
+    "proceed_login": "str",
+    "verify": "str",
+    "update": "str",
+    "upload_photo": "str",
+    "use_camera": "str",
+    "proceed": "str",
+    "edit": "str",
+    "compare_with_pan_aadhaar": "str",
+    "save": "str",
+    "filter": "str",
+    "download_csv_file": "str",
+    "download_template": "str",
+    "cancel": "str",
+    "continue": "str",
+    "ok": "str",
+    "validate": "str",
+    "back": "str",
+    "goback": "str",
+    "yes": "str"
+   },
+   "validations": {
+    "invalidTaxYear": "str",
+    "This_Please1": "str",
+    "form103point7error": "str",
+    "form103point8error": "str",
+    "form19bf8RgNumError": "str",
+    "form19bf8UdinNumber": "str",
+    "form19bf8requiredDerivedField": "str",
+    "form1DtvsvEmptyF1Form2X&YValidation": "str",
+    "form1dtvsv24f1WhetherOptingToPayTax": "str",
+    "form1dtvsv24flAppellantToTermsOfSections": "str",
+    "form54Errormsg": "str",
+    "formfn001AttachCSV": "str",
+    "invalidDistrictError": "str",
+    "invalidLocalityError": "str",
+    "invalidPostofficeError": "str",
+    "invalidStateError": "str",
+    "invalidZipcodeFormat": "str",
+    "invalidchlnTotlAmtF2": "str",
+    "onlyOneCheckRequired": "str",
+    "tableOneRowReqs": "str",
+    "10eTaxField3Err": "str",
+    "10eTaxField4Err": "str",
+    "fileuploadErrorZipError1": "str",
+    "fileuploadErrorFUVZIPError1": "str",
+    "sumValidation": "str",
+    "tableOneRowReq52a": "str",
+    "invalidPinCodeforms": "str",
+    "invalidZipcodeforms": "str",
+    "please_provide_pan": "str",
+    "attachmentZipPdfLess5MB": "str",
+    "error_occurred": "str",
+    "text_validation": "str",
+    "warning_msg1_sfc": "str",
+    "warning_msg2_sfc": "str",
+    "ackNum_length": "str",
+    "size_restriction": "str",
+    "attachment_mandatory": "str",
+    "active_AR_exist_vc": "str",
+    "prcdng_status_closed": "str",
+    "no_response_due_date": "str",
+    "active_AR_exist": "str",
+    "e_submisson_closed": "str",
+    "mandatory_attachment": "str",
+    "attachment_in_pdf": "str",
+    "max_file_size": "str",
+    "select_date_prior": "str",
+    "select_date_within": "str",
+    "select_date_greater": "str",
+    "reason_for_seeking_adj": "str",
+    "special_char_err": "str",
+    "form3bbAttachCSV": "str",
+    "form3bcAttachCSV": "str",
+    "udinBulkSearchFromDate": "str",
+    "udinBulkSearchMinDate": "str",
+    "invalidResidentF15CAStatusCd": "str",
+    "invalidRescomptype15CAStatusCd": "str",
+    "field_mandatory": "str",
+    "from3cedInvalidSelection": "str",
+    "from3cedsubmittedForm": "str",
+    "udin_valid": "str",
+    "invalid_mob_otp": "str",
+    "invalid_email_otp": "str",
+    "EF99939": "str",
+    "udin_valid1": "str",
+    "udin_valid2": "str",
+    "attributeError": "str",
+    "tableOneRowReqBank1": "str",
+    "EF20126": "str",
+    "auth_sig_Br23": "str",
+    "validMobNumber": "str",
+    "mandatoryMobilenum": "str",
+    "EF00156": "str",
+    "EF00180": "str",
+    "EF00157": "str",
+    "EF00158": "str",
+    "EF00239": "str",
+    "caError": "str",
+    "10eTaxFieldErr": "str",
+    "dropdown_mand": "str",
+    "EF30052": "str"
+   },
+   "placeholders": {
+    "form35DateSearch": "str",
+    "form35DateExecution": "str",
+    "form35BlockStart": "str",
+    "form35BlockEnd": "str",
+    "form34bcplaceholder": "str",
+    "form35YearPlaceHolder": "str",
+    "form35PlaceHolder1": "str",
+    "form35PlaceHolder2": "str",
+    "form35PlaceHolder3": "str",
+    "form35PlaceHolder4": "str",
+    "form35PlaceHolder5": "str",
+    "form35PlaceHolder6": "str",
+    "form35PlaceHolder7": "str",
+    "form35PlaceHolder8": "str",
+    "form35PlaceHolder9": "str",
+    "form35PlaceHolder10": "str",
+    "form35PlaceHolder11": "str",
+    "form35PlaceHolder12": "str",
+    "form35PlaceHolder13": "str",
+    "form35PlaceHolder14": "str",
+    "form35PlaceHolder15": "str",
+    "form35PlaceHolder16": "str",
+    "form35PlaceHolder17": "str",
+    "form56PlaceHolder1": "str",
+    "form9PlaceHolder1": "str",
+    "form9PlaceHolder2": "str",
+    "form9PlaceHolder3": "str",
+    "form9PlaceHolder4": "str",
+    "form9PlaceHolder5": "str",
+    "form9PlaceHolder6": "str",
+    "form9PlaceHolder7": "str",
+    "form9PlaceHolder8": "str",
+    "form9PlaceHolder9": "str",
+    "form9PlaceHolder10": "str",
+    "form9PlaceHolder11": "str",
+    "form9PlaceHolder12": "str",
+    "form10bbplaceholder1": "str",
+    "form10bbplaceholder2": "str",
+    "form10bbplaceholder3": "str",
+    "form10bbplaceholder4": "str",
+    "form10bbplaceholder5": "str",
+    "form10bbplaceholder6": "str",
+    "form29bplaceholder1": "str",
+    "form29bplaceholder2": "str",
+    "form29bplaceholder3": "str",
+    "form29bplaceholder4": "str",
+    "form29bplaceholder5": "str",
+    "form29bplaceholder6": "str",
+    "form29bplaceholder7": "str",
+    "form29bplaceholder8": "str",
+    "form29bplaceholder9": "str",
+    "form29bplaceholder10": "str",
+    "form29bplaceholder11": "str",
+    "form29bplaceholder12": "str",
+    "form29bplaceholder13": "str",
+    "form29bplaceholder14": "str",
+    "form29bplaceholder15": "str",
+    "form29bplaceholder16": "str",
+    "form29bplaceholder17": "str",
+    "form29bplaceholder18": "str",
+    "form29bplaceholder19": "str",
+    "form3cfPlaceHolder1": "str",
+    "form3cfPlaceHolder2": "str",
+    "form3cfPlaceHolder3": "str",
+    "form3cfPlaceHolder4": "str",
+    "form3cfPlaceHolder5": "str",
+    "form3cfPlaceHolder6": "str",
+    "form3cfPlaceHolder7": "str",
+    "form3cfPlaceHolder8": "str",
+    "form3cfPlaceHolder9": "str",
+    "form3cfPlaceHolder10": "str",
+    "form3cfPlaceHolder11": "str",
+    "form3cfPlaceHolder12": "str",
+    "form3cfPlaceHolder13": "str",
+    "form3cfPlaceHolder14": "str",
+    "form3cfPlaceHolder15": "str",
+    "form3cfPlaceHolder16": "str",
+    "form3cfPlaceHolder17": "str",
+    "form3cfPlaceHolder18": "str",
+    "form3cfPlaceHolder19": "str"
+   },
+   "errors": {
+    "form142CSVerrorForA": "str",
+    "form142CSVerrorForB": "str",
+    "form142CSVerrorForAB": "str",
+    "mandatoryFieldError": "str",
+    "form121bderrorcsv1": "str",
+    "form142EmptyCSVRecord": "str",
+    "form103error10": "str",
+    "form103error6": "str",
+    "form103error9": "str",
+    "form103error8": "str",
+    "form103error7": "str",
+    "invalidTaxYear": "str",
+    "19f28err10a": "str",
+    "19f28err10b": "str",
+    "19f28err11a": "str",
+    "19f28err11b": "str",
+    "19f28err12a": "str",
+    "19f28err12b": "str",
+    "19f28err13a": "str",
+    "19f28err13b": "str",
+    "19f28err1a": "str",
+    "19f28err1b": "str",
+    "19f28err2a": "str",
+    "19f28err2b": "str",
+    "19f28err3a": "str",
+    "19f28err3b": "str",
+    "19f28err4a": "str",
+    "19f28err4b": "str",
+    "19f28err5a": "str",
+    "19f28err5b": "str",
+    "19f28err6a": "str",
+    "19f28err6b": "str",
+    "19f28err7a": "str",
+    "19f28err7b": "str",
+    "19f28err7c": "str",
+    "19f28err8a": "str",
+    "19f28err8b": "str",
+    "19f28err9a": "str",
+    "19f28err9b": "str",
+    "19f28errsize": "str",
+    "f3cnValidationError": "str",
+    "form103error1": "str",
+    "form103error2": "str",
+    "form103error3": "str",
+    "form103error4": "str",
+    "form103error5": "str",
+    "form105error1": "str",
+    "form105error2": "str",
+    "form105error3": "str",
+    "form105error4": "str",
+    "form10f2Ackerror": "str",
+    "form10f3AckNumerror": "str",
+    "form15ccackerrmsg": "str",
+    "form15ccdateerrmsg": "str",
+    "form26acsvError1": "str",
+    "form34bcPanel4AssFinYr": "str",
+    "form3ceaetable": "str",
+    "formXiF01DocIdBalanceSheetAttachError": "str",
+    "formXiF01DocIdpprFundAttachError": "str",
+    "formXiF01attachdocIdProofRcptError": "str",
+    "formXiF01docIdDocProofError": "str",
+    "formXif05Error": "str",
+    "formtxiPanel2error": "str",
+    "invalidDropdownOption": "str",
+    "periodOfApaMax5Years": "str",
+    "form35copyAppealAttachError": "str",
+    "form35noticeDemandAttachError": "str",
+    "form10ifaDateOfRegInvalid": "str",
+    "form10ifaResStatusInvalid": "str",
+    "form15cdyesorno": "str",
+    "29Crowerr": "str",
+    "form3cebCSVerr1": "str",
+    "form3cebCSVerr2": "str",
+    "form3cebCSVerr3": "str",
+    "form3cebCSVerr4": "str",
+    "form3cebCSVerr5": "str",
+    "form10bcCSVerr1": "str",
+    "form5baCSVerror1": "str",
+    "form3ekarr2": "str",
+    "amtError": "str"
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/statforms/instructions.json",
+  "status": 200,
+  "seen_on": [
+   "View All"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "F3C-O": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str"
+   },
+   "F3CEFB": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str"
+   },
+   "F3CN": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str"
+   },
+   "F5BA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "FISWF": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str"
+   },
+   "F10-IA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ],
+    "section": "str",
+    "rule": "str"
+   },
+   "FSWF": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str"
+   },
+   "F39": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F10F": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10IG": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10BA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F15H": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F64A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F52A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F9": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEAE": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F15G": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F10CCC": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEAB": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10E": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F64E": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEAC": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F9A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F8": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F49BA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F56FF": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F3": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F62": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F64D": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str"
+   },
+   "F56D": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F15CA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F15CB": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "FTDS": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F65": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F64": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F66": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CFA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F40C": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10BB": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F10": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F49C": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F6B": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10CCBD": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F10A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F15CC": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F67": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10G": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F3CEA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F56": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     [
+      "str"
+     ]
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10B": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F56F": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str"
+   },
+   "F29C": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F3CE": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     [
+      "str"
+     ]
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F1": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   },
+   "F10CCB": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3AD": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CF-III": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CF-I": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F27BA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F27BA-A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "form10ccf": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F10DA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F41": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F35": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F49D": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEAA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEAD": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEK": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F29B": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ],
+    "section": "str",
+    "rule": "str",
+    "helpTopic": "str",
+    "guideTopic": "str",
+    "faqLink": "str",
+    "umLink": "str"
+   },
+   "F3CLA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "form6": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "form3ek": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEJ": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3CEJA": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "FV": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3IDS": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F3AE": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F4": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     [
+      "str"
+     ]
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F2PMGKY": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     "str"
+    ]
+   },
+   "F26A": {
+    "title": "str",
+    "subtitle": "str",
+    "documentsList": [
+     "str"
+    ],
+    "generalInstructions": [
+     "str"
+    ],
+    "thingsYouShouldKnow": [
+     [
+      "str"
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/iec/foservices/assets/tin/i18n/en.json",
+  "status": 200,
+  "seen_on": [
+   "Know Your Refund Status",
+   "e-Pay Tax"
+  ],
+  "request_shape": null,
+  "response_shape": {
+   "accessdenied": {},
+   "accr": {},
+   "activityLogs": {},
+   "breadcrumbs": {},
+   "buttons": {
+    "add": "str",
+    "add_another": "str",
+    "add_details": "str",
+    "attach_file": "str",
+    "back": "str",
+    "back_to_response": "str",
+    "back_to_return": "str",
+    "btn_continue": "str",
+    "btn_ok": "str",
+    "cancel": "str",
+    "challan_download": "str",
+    "close": "str",
+    "confirm": "str",
+    "continue": "str",
+    "copy": "str",
+    "delete": "str",
+    "download": "str",
+    "download_challan_form": "str",
+    "download_csi": "str",
+    "download_mandate_form": "str",
+    "download_receipt_payment": "str",
+    "download_statement": "str",
+    "drnList": "str",
+    "edit": "str",
+    "filter": "str",
+    "filter_challan": "str",
+    "go_to_dashboard": "str",
+    "homepage": "str",
+    "make_another_payment": "str",
+    "new_challan_correction": "str",
+    "new_payment": "str",
+    "no": "str",
+    "ok": "str",
+    "open_modal": "str",
+    "otp_exceeded_attempts": "str",
+    "otp_expired": "str",
+    "otp_sent_again": "str",
+    "pay": "str",
+    "pay_later": "str",
+    "pay_now": "str",
+    "paynow": "str",
+    "proceed": "str",
+    "proceedToEverify": "str",
+    "reset": "str",
+    "save": "str",
+    "save_as_draft": "str",
+    "save_draft": "str",
+    "submit": "str",
+    "submit_to_bank": "str",
+    "view_challan_correction_status": "str",
+    "view_details": "str",
+    "yes": "str"
+   },
+   "collections": {
+    "both": "str",
+    "both_land": "str",
+    "building_with_eg": "str",
+    "commission_brokerage": "str",
+    "contract": "str",
+    "feeForProfServ": "str",
+    "installment": "str",
+    "land": "str",
+    "lumpsum": "str",
+    "no": "str",
+    "non_resident": "str",
+    "resident": "str",
+    "yes": "str"
+   },
+   "common": {},
+   "COMMON": {
+    "FILTER": "str"
+   },
+   "complyToNotice": {},
+   "comprehensiveReview": {},
+   "condonation": {},
+   "DISCLAIMER_MODAL": {
+    "disclaimer_for_redirection_to_other_website_efiling": "str"
+   },
+   "ERI_LIST": {},
+   "error": {},
+   "errors": {
+    "crn_mandate": "str",
+    "demandDateError": "str",
+    "drn_error": "str",
+    "enter_flat_building": "str",
+    "error": "str",
+    "errorCode": "str",
+    "failed_to_load_preview": "str",
+    "incorrect_challan_data": "str",
+    "incorrect_challan_details": "str",
+    "Invalid_cin": "str",
+    "pan_tan_mandatory": "str",
+    "select_country_property": "str",
+    "tan_mandatory": "str"
+   },
+   "fileItrA": {},
+   "footerCoBrowse": {},
+   "formTableheader": {},
+   "foWorklist": {},
+   "headers": {
+    "add_breakup_details": "str",
+    "add_buyer_details": "str",
+    "add_buyer_seller_pan_details": "str",
+    "add_deductee_details": "str",
+    "add_deductee_seller_details": "str",
+    "add_deduction_details": "str",
+    "add_deduction_transaction_details": "str",
+    "add_deductor_buyer_details": "str",
+    "add_deductor_deductee_pan_details": "str",
+    "add_deductor_details": "str",
+    "add_deductorBuyer_deducteeSeller_pan_details": "str",
+    "add_demand_tax_details": "str",
+    "add_landload_tenant_pan_details": "str",
+    "add_landlord_details": "str",
+    "add_nature_payment_details": "str",
+    "add_payment_details": "str",
+    "add_property_rented_details": "str",
+    "add_propertyTrns_details": "str",
+    "add_seller_details": "str",
+    "add_tax_details": "str",
+    "add_tenant_details": "str",
+    "add_trans_details": "str",
+    "challan_correction_submit": "str",
+    "challan_cum_statement": "str",
+    "challan_details_to_update": "str",
+    "deductive_particular": "str",
+    "delete_entry": "str",
+    "delete_type_of_payment": "str",
+    "details_of_deductor": "str",
+    "disclaimer": "str",
+    "e_pay_tax": "str",
+    "existing_challan_detail": "str",
+    "form_19b_desc": "str",
+    "form_19b_label": "str",
+    "identify_challan": "str",
+    "instructionForChallanAttachment": "str",
+    "know_refund_status": "str",
+    "mobile": "str",
+    "new_payment": "str",
+    "pay_now_visit_bank": "str",
+    "payment_details": "str",
+    "preview": "str",
+    "preview_download_challan": "str",
+    "preview_download_mandate_form": "str",
+    "preview_make_payment": "str",
+    "resident_deductive": "str",
+    "select_payment_mode": "str",
+    "selection_attributes": "str",
+    "tax_breakup_details": "str",
+    "tax_deposit_details": "str",
+    "terms_and_conditions": "str",
+    "transaction_details": "str",
+    "transaction_details_Schedule_E": "str",
+    "type_deductee": "str",
+    "update_challan_details": "str",
+    "update_details_correction": "str",
+    "verify_Submit": "str",
+    "view_crn_details_challan_details": "str",
+    "view_crn_details_payment_details": "str",
+    "view_crn_details_taxbreakup_details": "str",
+    "visit_bank_make_payment": "str"
+   },
+   "HOME": {},
+   "instantePan": {},
+   "insufficient_compliance": {},
+   "knowYourTaxpayer": {},
+   "labels": {
+    "aadhaar_number": "str",
+    "aadhaarNumOfBuyer": "str",
+    "aadhaarNumOfDeductee": "str",
+    "aadhaarNumOfDeducteeSeller": "str",
+    "aadhaarNumOfDeductor": "str",
+    "aadhaarNumOfDeductorBuyer": "str",
+    "aadhaarNumOfLandlord": "str",
+    "aadhaarNumOfSeller": "str",
+    "aadhaarNumOfTenant": "str",
+    "ack_no_prefill_info": "str",
+    "ack_number": "str",
+    "ack_number_min_length": "str",
+    "ack_tooltip_combined": "str",
+    "acknowledgement_number_is": "str",
+    "acknowledgement_number_is_qe": "str",
+    "acknowledgeNum": "str",
+    "ackNumber": "str",
+    "ackNumNoteQdemand": "str",
+    "actions": "str",
+    "actionsLabel": "str",
+    "add26date_of_payment": "str",
+    "add26date_of_payment_landlord": "str",
+    "add26date_of_payment_seller": "str",
+    "add_basic_details": "str",
+    "add_tax_breakup": "str",
+    "address": "str",
+    "address_details": "str",
+    "address_details_profile": "str",
+    "address_of_property_rented": "str",
+    "address_of_property_transferred_to_be_transferred": "str",
+    "address_property_rented": "str",
+    "address_property_transferred": "str",
+    "aggregate_less_than_paid": "str",
+    "aggregate_of_payment_credit": "str",
+    "agree_condition": "str",
+    "agreement_booking": "str",
+    "alternateCIN": "str",
+    "Amount": "str",
+    "amount": "str",
+    "amount_deducted": "str",
+    "amount_field_lte_total_consideration": "str",
+    "amount_greater_than_zero": "str",
+    "amount_in_rupee": "str",
+    "amount_in_words": "str",
+    "amount_lte_total_consideration": "str",
+    "amount_of_tax_paid": "str",
+    "amount_paid_credited": "str",
+    "amount_paid_credited_rs": "str",
+    "amount_paid_credited_seller": "str",
+    "amount_paid_credited_seller_TDS": "str",
+    "amount_paid_credited_seller_TDS_label": "str",
+    "amount_paid_or_credited": "str",
+    "amount_paid_present_transaction": "str",
+    "amount_tax_deducted_at_source": "str",
+    "amount_tax_deducted_source_table": "str",
+    "amount_tax_liable_deducted": "str",
+    "amount_tax_liable_deducted_g": "str",
+    "amount_tax_liable_table": "str",
+    "amountRupees": "str",
+    "amt_of_tax_paid": "str",
+    "amt_paid_credited_currently": "str",
+    "amt_paid_credited_currently_label": "str",
+    "amt_paid_for_vda": "str",
+    "amtOfTaxPaid": "str",
+    "appeal_fees": "str",
+    "applicationFee": "str",
+    "applicationFeePanNote": "str",
+    "applicationFeePanTan": "str",
+    "applicationFeeTanNote": "str",
+    "area": "str",
+    "area_locality": "str",
+    "assessment_year_desc": "str",
+    "assessmnt_year": "str",
+    "assesy": "str",
+    "attempts_remaining": "str",
+    "auth_notce_order_year_type": "str",
+    "authorised_bank_name": "str",
+    "authorisedBanksList": "str",
+    "auto_fill_kind_exchange": "str",
+    "available_in": "str"
+   },
+   "LINK_AADHAAR": {},
+   "messages": {
+    "awaiting_bank_header": "str",
+    "awaiting_bank_sub1": "str",
+    "awaiting_bank_sub2": "str",
+    "awaiting_bank_sub3": "str",
+    "ay_challan_submit_msg": "str",
+    "ay_challan_submit_msg1": "str",
+    "ay_challan_submit_msg2": "str",
+    "challan_correction_email_sms_msg": "str",
+    "challan_correction_email_sms_msg1": "str",
+    "challan_correction_email_sms_msg2": "str",
+    "challan_correction_email_sms_msg2_tan": "str",
+    "challan_correction_submitted": "str",
+    "challan_correction_submitted_TAN": "str",
+    "challan_correction_success_msg": "str",
+    "challan_correction_success_msg1": "str",
+    "challan_correction_suggestion_msg": "str",
+    "exceeded_attempt_msg": "str",
+    "incorrect_payment": "str",
+    "incorrect_payment_sub1": "str",
+    "incorrect_payment_sub2": "str",
+    "incorrect_payment_sub3": "str",
+    "mobile_otp": "str",
+    "no_challan_request": "str",
+    "no_open_challan": "str",
+    "noResponse_header": "str",
+    "noResponse_sub1": "str",
+    "noResponse_sub2": "str",
+    "noResponse_sub3": "str",
+    "noResponse_sub4": "str",
+    "payment_failed_header": "str",
+    "payment_failed_sub1": "str",
+    "payment_failed_sub2": "str",
+    "payment_failed_sub3": "str",
+    "payment_initiated": "str",
+    "payment_initiated_sub1": "str",
+    "payment_schedule": "str",
+    "payment_schedule_sub1": "str",
+    "select_challan_correct": "str",
+    "transaction_aborted": "str",
+    "transaction_aborted_sub1": "str",
+    "transaction_id": "str"
+   },
+   "MY_BANK_ACCOUNT": {},
+   "MYERI": {},
+   "notificationBar": {},
+   "pagenotfound": {},
+   "placeholders": {
+    "choose_ass_yr": "str",
+    "choose_tax_yr": "str",
+    "cin_enter": "str",
+    "enter_flat_building": "str",
+    "enter_pin": "str",
+    "enter_road_street": "str",
+    "enter_serial_number": "str",
+    "enterName": "str",
+    "select": "str",
+    "select_ay": "str",
+    "select_country": "str",
+    "select_tax_applicable": "str",
+    "select_tax_year": "str",
+    "select_type_pay": "str",
+    "selectOrEnter": "str"
+   },
+   "RECTIFICATION": {},
+   "sections": {
+    "fileNameDesc": "str",
+    "fileTypeDescription": "str",
+    "keyPointsDesc": "str",
+    "keyPointsDesc1": "str",
+    "keyPointsDesc2": "str",
+    "scanSettingsDesc1": "str",
+    "scanSettingsDesc3": "str",
+    "scanSettingsDesc4": "str",
+    "scanSettingsDesc5": "str",
+    "scanSourceDocumentsDesc1": "str",
+    "scanSourceDocumentsDesc2": "str",
+    "scanSourceDocumentsDesc3": "str",
+    "select_bank": "str"
+   },
+   "serviceUnavailablepage": {},
+   "somethingwentwrong": {},
+   "soonpage": {},
+   "taxcalc": {},
+   "tdsOnCash": {},
+   "text": {
+    "aoChallanExists": "str",
+    "apl_summary_note1": "str",
+    "apl_summary_note2": "str",
+    "assesmentOptionDesc": "str",
+    "assesmentOptionDesc1": "str",
+    "assesmentOptionDesc_block": "str",
+    "assessment_year": "str",
+    "assessmentYearInformationMessage": "str",
+    "assessmentYearInformationMessageTAN": "str",
+    "bank_specific_gateway": "str",
+    "block_assessment": "str",
+    "block_assessment_challan_correction": "str",
+    "building_name": "str",
+    "challan_ao_type": "str",
+    "challan_area_code": "str",
+    "challan_attribute_select": "str",
+    "challan_correction": "str",
+    "challan_correction_request": "str",
+    "challan_correction_submitted_TAN_note": "str",
+    "challan_cum_statement": "str",
+    "challan_cum_statement_desc": "str",
+    "challan_email_id": "str",
+    "challan_identification": "str",
+    "challan_range_code": "str",
+    "challan_transid": "str",
+    "challan_view_details": "str",
+    "challanAlreadyExists": "str",
+    "challanAlreadyExistsAnd30": "str",
+    "challanAlreadyExistsAnd7": "str",
+    "change_in_ay": "str",
+    "change_in_initial_ay": "str",
+    "change_in_initial_ty": "str",
+    "change_in_major_head": "str",
+    "change_in_minor_head": "str",
+    "change_in_tax": "str",
+    "change_in_taxation": "str",
+    "cin_deposit_date_30": "str",
+    "cin_deposit_date_7": "str",
+    "cin_download_tooltip": "str",
+    "cin_number_tooltip": "str",
+    "company_deductee": "str",
+    "debit_card_desc": "str",
+    "deductee_modal_note_line1": "str",
+    "deductee_modal_note_line2": "str",
+    "deductee_modal_note_line3": "str",
+    "demand_challan_cum_statement": "str",
+    "demand_challan_cum_statement_desc": "str",
+    "find_your_tax": "str",
+    "foot_note1": "str",
+    "foot_note2": "str",
+    "foot_note2_ty": "str",
+    "foot_note3": "str",
+    "foot_note3_ty": "str",
+    "foot_note4": "str",
+    "foot_note4_ty": "str",
+    "foot_note5": "str",
+    "foot_note6_ty_a": "str",
+    "foot_note6_ty_b": "str",
+    "foot_note6_ty_c": "str",
+    "foot_note6_ty_intro": "str",
+    "foreign_assets_of_small": "str",
+    "foreign_assets_of_small_text": "str",
+    "foreign_assets_of_small_text_prelogin": "str",
+    "foreign_assets_of_small_text_prelogin_tool": "str",
+    "gatewaySelectBank": "str",
+    "generate_challan": "str",
+    "incomeTaxLink": "str",
+    "indicates_mandatory": "str",
+    "jurisdiction": "str",
+    "knowRefundMovedToPostLoginNote": "str",
+    "modal_note1": "str",
+    "modal_note2": "str",
+    "modal_note3": "str",
+    "modal_note4": "str",
+    "modal_note5": "str",
+    "modal_note6": "str",
+    "modal_note7": "str",
+    "mychallan_heading": "str",
+    "need_help": "str",
+    "net_banking_desc": "str"
+   },
+   "unauthroized": {
+    "access_login": "str",
+    "click_here": "str",
+    "login": "str",
+    "page_notavailable": "str",
+    "Unauthorize_heading": "str"
+   },
+   "validations": {
+    "aggregate_of_payment_credit": "str",
+    "amt_paid_mandatory": "str",
+    "assessment_year_not_selected": "str",
+    "assmt_year_val": "str",
+    "bsr_code_pattern_error": "str",
+    "challan_duplicate_entry": "str",
+    "challan_entry_warning": "str",
+    "challan_entry_warning_ty": "str",
+    "challan_serial_pattern_error": "str",
+    "confirm_pan_tan": "str",
+    "confirm_tan": "str",
+    "csiDateError": "str",
+    "deduction_month_mandatory": "str",
+    "demand_amt_paid_zero": "str",
+    "duplicate_pan": "str",
+    "emailInvalid": "str",
+    "enter_amount": "str",
+    "enter_pincode": "str",
+    "enter_valid_mobile": "str",
+    "enterDeducteePan": "str",
+    "entered_pan_loggedInPan": "str",
+    "enterLandlordPan": "str",
+    "fromgreaterthanto_mandatory_field": "str",
+    "full_name_required": "str",
+    "incorrect_aadhaar_num": "str",
+    "inoperative_pan": "str",
+    "internalServererr": "str",
+    "intimation_reference_number_greater_than_zero": "str",
+    "invalid_ackno": "str",
+    "invalid_confirm_pan": "str",
+    "invalid_deducted_rate": "str",
+    "invalid_deducted_rate_q": "str",
+    "invalid_drn": "str",
+    "invalid_email_id": "str",
+    "invalid_mobile": "str",
+    "invalid_mobile_length": "str",
+    "invalid_mobile_pattern": "str",
+    "invalid_OTP": "str",
+    "invalid_pan": "str",
+    "invalid_pan_tan": "str",
+    "invalid_pan_tan_payment": "str",
+    "invalid_sellerpan": "str",
+    "invalid_tan_error": "str",
+    "lastMnthMandatory": "str",
+    "lessPaidLastMnthQC": "str",
+    "lessPaidQC": "str",
+    "major_head_val": "str",
+    "major_head_val_1": "str",
+    "major_head_val_2": "str",
+    "major_head_val_3": "str",
+    "mandatory_error_schedule": "str",
+    "mandatory_field": "str",
+    "mandatory_year_field": "str",
+    "minor_head_val": "str",
+    "missing_sellerpan": "str",
+    "my_profile": "str",
+    "my_profile_section": "str",
+    "no_ack_found": "str",
+    "no_csi_record_found": "str",
+    "no_record_found": "str",
+    "pan_enter_validation": "str",
+    "pan_tan_confirm_error": "str",
+    "pan_tan_deleted": "str",
+    "pan_tan_not_active": "str",
+    "percentage_required": "str",
+    "PMT9019": "str",
+    "PMT9082": "str",
+    "PMT9083": "str",
+    "PMT9083_CD": "str",
+    "PMT9083_QC": "str",
+    "PMT9083_QD": "str",
+    "PMT9083_QE": "str",
+    "PMT9084": "str",
+    "PMT9085": "str",
+    "PMT9086": "str",
+    "PMT9087": "str",
+    "PMT9087_QB": "str",
+    "PMT9087_QB_STAMPDUTY_WARNING1": "str",
+    "PMT9087_QB_STAMPDUTY_WARNING2": "str",
+    "PMT9087_QB_STAMPDUTY_WARNING3": "str"
+   },
+   "virtual-assistant": {}
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/fetchFormsRequestDetails",
+  "status": 200,
+  "seen_on": [
+   "Rectification of order passed by CPC"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "formData": {
+    "filingTypeCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/fetchMyRequestDetails",
+  "status": 200,
+  "seen_on": [
+   "Rectification of order passed by CPC"
+  ],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "formData": {
+    "mimeType": "str",
+    "entityType": "str",
+    "createdBy": "str",
+    "filingTypeCode": "str",
+    "userType": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": [
+   {
+    "header": {
+     "formName": "null"
+    },
+    "messages": [],
+    "errors": [],
+    "reqId": "null",
+    "loggedInUserId": "null",
+    "mimeType": "null",
+    "entityType": "null",
+    "panNumber": "str",
+    "assessmentYear": "str",
+    "createdBy": "null",
+    "filingTypeCd": "null",
+    "taxType": "str",
+    "itrNum": "str",
+    "itrNumDesc": "str",
+    "formCode": "null",
+    "formDesc": "null",
+    "financialYear": "str",
+    "eFilingAckNumber": "str",
+    "recAckNumber": "str",
+    "cpcRefNumber": "str",
+    "errorCode": "int",
+    "recType": "str",
+    "dateOfSubmission": "str",
+    "recRefNum": "str",
+    "activityDetails": [
+     {
+      "activityDate": "str",
+      "activityCode": "str",
+      "activityCodeDesc": "str"
+     }
+    ],
+    "dateOfCreation": "str",
+    "eFileStatus": "null",
+    "orderNum": "null",
+    "rectDesc": "str",
+    "efileStatusCode": "str",
+    "verMode": "null",
+    "filingTypeCode": "str",
+    "moreInfo": "null",
+    "userType": "null",
+    "fIIPanEnable": "bool",
+    "rightsTfAO": "bool",
+    "rectFiledBefore": "null"
+   }
+  ]
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/fetchRectAppealDetails",
+  "status": 200,
+  "seen_on": [
+   "Rectification of order passed by CIT (A)"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "formData": {
+    "filingTypeCode": "str",
+    "formCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/fetchRectAppealDraft",
+  "status": 200,
+  "seen_on": [
+   "Rectification of order passed by CIT (A)"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "formData": {
+    "formStatus": "str",
+    "filingTypeCode": "str",
+    "formCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/fetchSavedDraftDetails",
+  "status": 200,
+  "seen_on": [
+   "Rectification of order passed by CPC"
+  ],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "formData": {
+    "mimeType": "str",
+    "entityType": "str",
+    "createdBy": "str",
+    "efileStatusCode": "str",
+    "filingTypeCode": "str",
+    "userType": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/rectification/orderGivingEffect",
+  "status": 200,
+  "seen_on": [
+   "Request for Order Giving Effect"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "serviceName": "str",
+   "formData": {
+    "filingTypeCode": "str",
+    "formCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/rectificationAo/draft",
+  "status": 200,
+  "seen_on": [
+   "Request to AO seeking rectification"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "formData": {
+    "formStatus": "str",
+    "filingTypeCode": "str",
+    "formCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/rectificationAo/fetchRectAoDetails",
+  "status": 200,
+  "seen_on": [
+   "Request to AO seeking rectification"
+  ],
+  "request_shape": {
+   "header": {
+    "mimeType": "str",
+    "entityType": "str"
+   },
+   "formData": {
+    "filingTypeCode": "str",
+    "formCode": "str"
+   },
+   "loggedInUserId": "str"
+  },
+  "response_shape": []
+ },
+ {
+  "method": "POST",
+  "path": "/iec/itrweb/auth/v0.1/return/details",
+  "status": 200,
+  "seen_on": [
+   "Back",
+   "Dashboard"
+  ],
+  "request_shape": {
+   "pan": "str",
+   "assessmentyr": "int"
+  },
+  "response_shape": {
+   "isOnDemandLoading": "str",
+   "isDraftPresent": "str"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/loginapi/auth/saveEntity",
+  "status": 200,
+  "seen_on": [
+   "Back",
+   "Change Password",
+   "Dashboard",
+   "My Profile",
+   "View All"
+  ],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "serviceName": "str",
+   "userId": "str"
+  },
+  "response_shape": {
+   "USER_CATEGORY": {},
+   "ActivityLogDetlFlag": "str",
+   "LastLogout": "str",
+   "ModeOfLoginFlag": "str",
+   "LastLogin": "str"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/master/getDetails",
+  "status": 200,
+  "seen_on": [
+   "Know Your Refund Status",
+   "My Profile"
+  ],
+  "request_shape": {
+   "tokenName": "str",
+   "requiredColumns": [
+    "str"
+   ]
+  },
+  "response_shape": {
+   "data": [
+    {
+     "state_cd": "int",
+     "state_desc": "str"
+    }
+   ]
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/master/getDetails/",
+  "status": 200,
+  "seen_on": [
+   "Download Pre-Filled Data",
+   "File ITR-A",
+   "File Income Tax Return",
+   "For your Information (29)",
+   "My Chartered Accountant (CA)",
+   "My Profile"
+  ],
+  "request_shape": {
+   "tokenName": "str",
+   "requiredColumns": [
+    "str"
+   ]
+  },
+  "response_shape": {
+   "data": [
+    {
+     "country_cd": "int",
+     "country_name": "str"
+    }
+   ]
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/master/getDetails/join",
+  "status": 200,
+  "seen_on": [
+   "My Profile"
+  ],
+  "request_shape": {
+   "tokenName": "str",
+   "requiredColumns": [
+    "str"
+   ],
+   "distinctColumnName": "str",
+   "includeTokenName": "str",
+   "includeDependentField": {
+    "is_active": "str",
+    "role_cd": "str",
+    "prof_flag": "str"
+   },
+   "dependentField": {
+    "is_active": "str",
+    "pri_flag": "str"
+   }
+  },
+  "response_shape": {
+   "data": [
+    {
+     "relation_cd": "int",
+     "relation_desc": "str"
+    }
+   ]
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/masterservicesapi/auth/getServiceData",
+  "status": 200,
+  "seen_on": [
+   "My Profile"
+  ],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "serviceName": "str",
+   "panNumber": "str",
+   "loggedInUserId": "str"
+  },
+  "response_shape": {
+   "header": {
+    "formName": "null"
+   },
+   "messages": [
+    {
+     "code": "str",
+     "type": "str",
+     "desc": "str",
+     "fieldName": "null"
+    }
+   ],
+   "errors": [],
+   "reqId": "null",
+   "loggedInUserId": "null"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/returnservicesapi/auth/getEntity",
+  "status": 200,
+  "seen_on": [
+   "For your Information (29)",
+   "Refund Reissue",
+   "e-Proceedings"
+  ],
+  "request_shape": {
+   "serviceName": "str",
+   "userId": "str",
+   "categoryCd": "str",
+   "header": {
+    "formName": "str"
+   }
+  },
+  "response_shape": {
+   "header": {
+    "formName": "null"
+   },
+   "messages": [
+    {
+     "code": "str",
+     "type": "str",
+     "desc": "str",
+     "fieldName": "null"
+    }
+   ],
+   "errors": []
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/returnservicesapi/auth/proceeding/metadata",
+  "status": 200,
+  "seen_on": [
+   "For your Information (29)",
+   "e-Proceedings"
+  ],
+  "request_shape": {
+   "serviceName": "str",
+   "pan": "str",
+   "prcdngTypeFlag": "str",
+   "pageConfig": {
+    "pageSize": "int",
+    "pageNo": "int",
+    "searchTerm": "str",
+    "sortBy": "str",
+    "sortAsc": "bool",
+    "filters": {}
+   },
+   "header": {
+    "formName": "str"
+   }
+  },
+  "response_shape": {
+   "eProceedingsForActionCount": "int",
+   "eProceedingsInfoCount": "int",
+   "isAuthRep": "bool"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/servicesapi/auth/getEntity",
+  "status": 200,
+  "seen_on": [
+   "Legal Entity Identifier (LEI)",
+   "Manage ITD Reporting Entity Identification Number (ITDREIN)",
+   "My Chartered Accountant (CA)",
+   "My e-Return Intermediary (ERI)",
+   "Response to Outstanding Demand",
+   "View Filed Returns"
+  ],
+  "request_shape": {
+   "header": {
+    "formName": "str"
+   },
+   "serviceName": "str",
+   "entityNum": "str"
+  },
+  "response_shape": [
+   {
+    "header": {
+     "formName": "null"
+    },
+    "messages": [],
+    "errors": [],
+    "assmentYear": "str",
+    "formTypeCd": "str",
+    "filingTypeCd": "str",
+    "submitUserId": "str",
+    "ackNum": "str",
+    "ackDt": "int",
+    "incmTaxSecCd": "str",
+    "efileStatus": "str",
+    "verStatus": "str",
+    "verMode": "str",
+    "verDt": "int",
+    "demandAmt": "str",
+    "refundAmt": "str",
+    "transactionNo": "str",
+    "submitBy": "str",
+    "submitTmstmp": "int",
+    "itrPanDetlList": [
+     {
+      "header": {
+       "formName": "null"
+      },
+      "messages": [],
+      "errors": [],
+      "itrPanDetlId": "str",
+      "entityType": "str",
+      "ackNum": "str",
+      "itrActivityCd": "str",
+      "itrActivitySubCd": "str",
+      "activityDt": "int",
+      "activityTxt": "str",
+      "statusDesc": "str"
+     }
+    ],
+    "computedRefndAmt": "str",
+    "computedDemndAmt": "str",
+    "refndDmndComputeFlag": "str",
+    "commRefNum": "str"
+   }
+  ]
+ },
+ {
+  "method": "POST",
+  "path": "/iec/servicesapi/auth/saveEntity",
+  "status": 200,
+  "seen_on": [
+   "011-expand-more-e-file-income-tax-forms-file-income-tax-form",
+   "AIS",
+   "Back",
+   "Compliance Portal",
+   "Dashboard",
+   "For Your Information"
+  ],
+  "request_shape": {
+   "serviceName": "str",
+   "userId": "str"
+  },
+  "response_shape": {
+   "header": {
+    "formName": "null"
+   },
+   "messages": [],
+   "errors": [],
+   "userId": "str",
+   "residentialStatusCd": "str",
+   "priMobileNum": "str",
+   "priMobBelongsTo": "str",
+   "priEmailRelationId": "str",
+   "priEmailId": "str",
+   "secMobileNum": "str",
+   "secMobRelationId": "str",
+   "secEmailRelationId": "str",
+   "secEmailId": "str",
+   "addrLine1Txt": "str",
+   "addrLine3Txt": "str",
+   "addrLine4Txt": "str",
+   "addrLine5Txt": "str",
+   "pinCd": "int",
+   "stateCd": "str",
+   "countryCd": "int",
+   "createdTmstmp": "int",
+   "lastUpdatedTmstmp": "int",
+   "createdBy": "str",
+   "lastUpdatedBy": "str",
+   "roleCd": "str",
+   "status": "str",
+   "regStartDt": "int",
+   "activationDt": "int",
+   "lastLoginTmstmp": "int",
+   "activationCode": "str",
+   "dscFlag": "str",
+   "isMigrated": "str",
+   "oldTranId": "str",
+   "transactionNo": "str",
+   "securedLogin": "str",
+   "createdByUser": "str",
+   "updatedByUser": "str",
+   "panStatus": "str",
+   "commAddrFlag": "str",
+   "cinLlpin": "str",
+   "userType": "str",
+   "orgName": "str",
+   "incorpDt": "int",
+   "incorporateDate": "str",
+   "compType": "str",
+   "contactDesig": "str",
+   "contactFirstName": "str",
+   "contactLastName": "str",
+   "contactMiddleName": "str",
+   "contanctPanNo": "str",
+   "contactResStatusCd": "str",
+   "contactDin": "str",
+   "ancestralFlag": "str",
+   "roleDesc": "str",
+   "dscExpDt": "int",
+   "lastLogoutTmstmp": "int",
+   "pwdResetTmstmp": "int",
+   "isdCd": "str",
+   "secIsdCd": "str",
+   "logoutCapturedFlg": "str",
+   "isdCountryCd": "str",
+   "secIsdCountryCd": "str",
+   "contactPanNo": "str"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/iec/utilityservicesapi/auth/v0.1/redirectionView26AS",
+  "status": 200,
+  "seen_on": [
+   "View Form 168, Income Tax Act 2025",
+   "View Form 26AS, Income Tax Act 1961"
+  ],
+  "request_shape": {
+   "pan": "str",
+   "ay": "str",
+   "actType": "str"
+  },
+  "response_shape": {
+   "data": "str",
+   "signature": "str"
+  }
+ }
+]

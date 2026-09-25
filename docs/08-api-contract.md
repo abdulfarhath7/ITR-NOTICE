@@ -59,7 +59,29 @@ submit_login_challenge(run_id, kind, value)  // captcha text or OTP
 refresh_client(client_id) -> run_id          // single client, any device
 get_sync_line() -> { last_run_at, window_start, clients, failed }
 list_updates(since?) -> { since, entries: UpdateEntry[] }   // read-only diff of the ledger
+                                             // groups add history_fetched (docs/17)
 ```
+
+### Scrape scopes (Build 3, docs/17 §7)
+```
+request_deep_fetch(client_id, depth, depth_value?, modules, docs_policy, mode)
+    -> { request, status: started|queued, sweep_id? }  // replaces a queued one; `now` starts it
+cancel_deep_fetch(id)                        // queued only
+retry_deep_fetch(id)                         // failed only; back to tonight
+list_deep_fetch_requests() -> DeepFetchRequest[]
+fetch_item(module, id, queue_if_busy?) -> { status: started|queued|busy, sweep_id? }
+sweep_estimate(client_ids?) -> seconds       // none = every sweep-enabled client
+deep_estimate(client_id, depth, depth_value?) -> seconds
+get_sweep_settings() -> SweepSettings        // superset of get_sweep_schedule
+set_sweep_settings(settings)
+set_client_sync(client_id, enabled, reason?) // extends set_client_sync_enabled
+pin_client_cadence(client_id, pinned)
+get_sync_overview() -> { run?, last_summary?, window, next_run_at?, estimate_all_s, rows: SyncRow[] }
+get_last_sweep_summary() -> { sweep_id, started_at, finished_at, summary }?
+```
+Every `ingestion` event now carries `scope: sweep|deep|item`. The run ends
+with a `summary` event. `create_client` accepts `fetch_history_tonight`,
+which queues an `all / index / tonight` request.
 `submit_login_challenge` never logs `value`.
 
 ### Sync and devices

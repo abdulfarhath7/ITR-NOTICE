@@ -1,0 +1,8925 @@
+[
+ {
+  "screen": "045-ais",
+  "note": null,
+  "click_path": [
+   "AIS"
+  ],
+  "route": "/dashboard",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Update",
+    "tag": "a",
+    "selector": "a[aria-label=\"Update Contact Details\"]",
+    "classes": [
+     "hyperlink1"
+    ]
+   },
+   {
+    "text": "Secure Account",
+    "tag": "a",
+    "selector": "a[aria-label=\"secure account with e-vault\"]",
+    "classes": [
+     "hyperlink1"
+    ]
+   },
+   {
+    "text": "Tax Calendar",
+    "tag": "mat-expansion-panel-header",
+    "classes": [
+     "mat-expansion-panel-header",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "View All",
+    "tag": "a",
+    "selector": "a[aria-label=\"View All activity log\"]",
+    "classes": [
+     "hyperlink1"
+    ]
+   },
+   {
+    "text": "File Now",
+    "tag": "button",
+    "selector": "#fileNowRevisedBtn",
+    "classes": [
+     "text-capitalize",
+     "normal-button-primary"
+    ]
+   },
+   {
+    "text": "Resume Filing",
+    "tag": "button",
+    "selector": "#resumeFilingBtn",
+    "classes": [
+     "text-capitalize",
+     "ml-md-3",
+     "mt-3",
+     "mt-md-0"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Tax Deposit",
+    "tag": "mat-expansion-panel-header",
+    "classes": [
+     "mat-expansion-panel-header",
+     "mat-focus-indicator",
+     "mat-expansion-toggle-indicator-after"
+    ]
+   },
+   {
+    "text": "Recent Filed Returns",
+    "tag": "mat-expansion-panel-header",
+    "classes": [
+     "mat-expansion-panel-header",
+     "mat-focus-indicator",
+     "mat-expansion-toggle-indicator-after"
+    ]
+   },
+   {
+    "text": "Recent Forms Filed",
+    "tag": "mat-expansion-panel-header",
+    "classes": [
+     "mat-expansion-panel-header",
+     "mat-focus-indicator",
+     "mat-expansion-toggle-indicator-after"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "File Now",
+   "Resume Filing",
+   "Update"
+  ]
+ },
+ {
+  "screen": "002-home",
+  "note": null,
+  "click_path": [
+   "Home"
+  ],
+  "route": "/dashboard/activity-logs",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Activity Logs",
+   "Detailed logs of past 90days"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Activity Logs",
+    "tag": "div",
+    "selector": "div[aria-label=\"Activity Logs unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Download Activity Log",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "secondaryButton",
+     "float-right"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [
+   [
+    "Event",
+    "Details"
+   ],
+   [
+    "Event",
+    "Details"
+   ]
+  ],
+  "write_controls_present": [
+   "Download Activity Log"
+  ]
+ },
+ {
+  "screen": "003-my-profile",
+  "note": null,
+  "click_path": [
+   "My Profile"
+  ],
+  "route": "/dashboard/myProfile/profileDetail",
+  "title": "My Profile, Income Tax Portal, Government of India",
+  "headings": [
+   "Activity Log",
+   "Personal Details",
+   "Profile",
+   "Contact"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "My Profile",
+    "tag": "div",
+    "selector": "div[aria-label=\"My Profile unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Change Password",
+    "tag": "div",
+    "classes": [
+     "link-076bcf",
+     "maxContentWidth",
+     "marTop8"
+    ]
+   },
+   {
+    "text": "My Bank Account",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"My Bank Account  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "E-filing Vault-Higher Security",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"E-filing Vault-Higher Security  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Secure Access Message",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Secure Access Message  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Jurisdiction Details",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Jurisdiction Details  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Source of Income",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Source of Income  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Key Person Details",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Key Person Details  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Shareholder Information",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Shareholder Information  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Authorised Signatory for Income tax Returns/Forms",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Authorised Signatory for Income tax Returns/Forms  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Representative Assessee",
+    "tag": "mat-card",
+    "selector": "mat-card[aria-label=\"Representative Assessee  section\"]",
+    "classes": [
+     "cardBorder",
+     "menuPadding",
+     "bigScreenMenu"
+    ]
+   },
+   {
+    "text": "Compare With PAN",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "secondaryButton",
+     "ml-auto"
+    ]
+   },
+   {
+    "text": "Click here",
+    "tag": "span",
+    "selector": "span[aria-label=\"Click here to update your Aadhaar and PAN\"]",
+    "classes": [
+     "linkcolour"
+    ]
+   },
+   {
+    "text": "Edit",
+    "tag": "button",
+    "selector": "button[aria-label=\"Edit Profile Details\"]",
+    "classes": [
+     "editButton",
+     "respBtn",
+     "respUse1"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Change Password"
+  ]
+ },
+ {
+  "screen": "004-change-password",
+  "note": null,
+  "click_path": [
+   "Change Password"
+  ],
+  "route": "/dashboard/myProfile/changePassword",
+  "title": "Income Tax Portal, Government of India Change Password Page",
+  "headings": [
+   "Change Password"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "My Profile",
+    "tag": "div",
+    "classes": [
+     "focusBox",
+     "activeRoute"
+    ]
+   },
+   {
+    "text": "Change Password",
+    "tag": "div",
+    "selector": "div[aria-label=\"Change Password unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Current Password Info Icon Enter your existing e-filing password.",
+    "tag": "img",
+    "classes": [
+     "vertical-center",
+     "mat-radio-container",
+     "infoIconImg"
+    ]
+   },
+   {
+    "text": "Current Password",
+    "tag": "input",
+    "selector": "#oldPassword"
+   },
+   {
+    "text": "visibility_off",
+    "tag": "button",
+    "selector": "button[aria-label=\"Show Password\"]",
+    "classes": [
+     "mat-unthemed"
+    ]
+   },
+   {
+    "text": "New Password Info Icon Set new password as per the criteria mentioned below.",
+    "tag": "img",
+    "classes": [
+     "vertical-center",
+     "mat-radio-container",
+     "infoIconImg"
+    ]
+   },
+   {
+    "text": "Learn more",
+    "tag": "a",
+    "selector": "a[aria-label=\"New Password learn more\"]",
+    "classes": [
+     "hyperLink",
+     "marLeft16"
+    ]
+   },
+   {
+    "text": "new password",
+    "tag": "input",
+    "selector": "input[formcontrolname=\"newPassword\"]"
+   },
+   {
+    "text": "Confirm Password Info Icon Enter the same password entered in 'New Password'",
+    "tag": "img",
+    "classes": [
+     "vertical-center",
+     "mat-radio-container",
+     "infoIconImg"
+    ]
+   },
+   {
+    "text": "confirm password",
+    "tag": "input",
+    "selector": "#confirmPassword"
+   },
+   {
+    "text": "Submit",
+    "tag": "button",
+    "classes": [
+     "buttonWidth",
+     "large-button-primary"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Cancel",
+    "tag": "button",
+    "classes": [
+     "width",
+     "large-button-secondary"
+    ]
+   },
+   {
+    "text": "User Manual",
+    "tag": "a",
+    "classes": [
+     "hyperLink",
+     "subtitle-2-text",
+     "line-height-15"
+    ]
+   },
+   {
+    "text": "FAQs",
+    "tag": "a",
+    "classes": [
+     "hyperLink",
+     "subtitle-2-text",
+     "line-height-15"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Current Password",
+    "tag": "input",
+    "type": "password",
+    "selector": "#oldPassword"
+   },
+   {
+    "label": "new password",
+    "tag": "input",
+    "type": "password",
+    "selector": "input[formcontrolname=\"newPassword\"]"
+   },
+   {
+    "label": "confirm password",
+    "tag": "input",
+    "type": "password",
+    "selector": "#confirmPassword"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Change Password",
+   "Confirm Password Info Icon Enter the same password entered in 'New Password'",
+   "Submit",
+   "confirm password"
+  ]
+ },
+ {
+  "screen": "005-e-file-e-pay-tax",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "e-Pay Tax"
+  ],
+  "route": "/tin/e-pay-tax/e-pay-tax-dashboard",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-Pay Tax -1961",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-Pay Tax unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "false",
+    "tag": "input"
+   },
+   {
+    "text": "true",
+    "tag": "input"
+   },
+   {
+    "text": "User Manual/FAQs for e-Pay Tax",
+    "tag": "a"
+   },
+   {
+    "text": "User Manual/FAQs for Form 141",
+    "tag": "a"
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "selector": "button[routerlink=\"/dashboard\"]",
+    "classes": [
+     "largeButton",
+     "secondaryButton",
+     "mt-4"
+    ]
+   },
+   {
+    "text": "Continue",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "nextIcon"
+    ]
+   },
+   {
+    "text": "User Manual",
+    "tag": "a",
+    "classes": [
+     "hyperLink",
+     "subtitle-2-text",
+     "line-height-15"
+    ]
+   },
+   {
+    "text": "FAQs",
+    "tag": "a",
+    "classes": [
+     "hyperLink",
+     "subtitle-2-text",
+     "line-height-15"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Income-tax Act, 2025 For Tax Year 2026-27 and onwards (including Advance Tax for Tax Year ",
+    "tag": "input",
+    "type": "radio"
+   },
+   {
+    "label": "Income-tax Act, 1961 For Assessment Year 2026-27 or earlier AYs includes Self-Assessment T",
+    "tag": "input",
+    "type": "radio"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "User Manual/FAQs for e-Pay Tax",
+   "e-Pay Tax -1961"
+  ]
+ },
+ {
+  "screen": "006-e-file-income-tax-returns-file-income-tax-return",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Returns",
+   "File Income Tax Return"
+  ],
+  "route": "/dashboard/fileIncomeTaxReturn",
+  "title": "Income Tax Portal, Government of India File Income Tax Return",
+  "headings": [
+   "Income Tax Return (ITR)"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-file",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-file unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "File Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"File Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-select",
+    "selector": "#filterStyleForChip myPanelClassItr"
+   },
+   {
+    "text": "online",
+    "tag": "input",
+    "disabled": true
+   },
+   {
+    "text": "offline",
+    "tag": "input",
+    "disabled": true
+   },
+   {
+    "text": "Continue",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "floatRight",
+     "marginContinue",
+     "iconsAfter"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "marginCancel",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Select Assessment year",
+    "tag": "mat-select",
+    "selector": "#filterStyleForChip myPanelClassItr"
+   },
+   {
+    "label": "Online (Recommended)",
+    "tag": "input",
+    "type": "radio"
+   },
+   {
+    "label": "Offline",
+    "tag": "input",
+    "type": "radio"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": []
+ },
+ {
+  "screen": "007-e-file-income-tax-returns-file-itr-a",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Returns",
+   "File ITR-A"
+  ],
+  "route": "/dashboard/fileItrAOnline",
+  "title": "Income Tax Portal, Government of India - Form ITR A - Landing Page",
+  "headings": [
+   "For successor entities to furnish return of income under section 170A consequent to busine"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-file",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-file unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Form ITR-A",
+    "tag": "div",
+    "selector": "div[aria-label=\"Form ITR-A unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-select",
+    "selector": "#assmentYr",
+    "classes": [
+     "font-size"
+    ]
+   },
+   {
+    "text": "Continue",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "nextIcon",
+     "floatRight"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Select Assessment year",
+    "tag": "mat-select",
+    "selector": "#assmentYr"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": []
+ },
+ {
+  "screen": "009-e-file-income-tax-returns-view-filed-returns",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Returns",
+   "View Filed Returns"
+  ],
+  "route": "/dashboard/itrStatus",
+  "title": "Income Tax Portal, Government of India View Filed Returns",
+  "headings": [
+   "View Filed Returns",
+   "A.Y. 2025-26",
+   "A.Y. 2024-25",
+   "A.Y. 2023-24",
+   "A.Y. 2022-23"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "div",
+    "classes": [
+     "focusBox",
+     "activeRoute"
+    ]
+   },
+   {
+    "text": "e-file",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-file unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "View Filed Returns",
+    "tag": "div",
+    "selector": "div[aria-label=\"View Filed Returns unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Export To Excel",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "secondaryButton",
+     "downloadIcon"
+    ]
+   },
+   {
+    "text": "Filter",
+    "tag": "button",
+    "selector": "#filterbtn1",
+    "classes": [
+     "normal-button-tertiary",
+     "iconBefore",
+     "m-t-12",
+     "marf"
+    ]
+   },
+   {
+    "text": "View Less",
+    "tag": "button",
+    "selector": "button[aria-label=\"view more\"]",
+    "classes": [
+     "hyperLink",
+     "btnstyle"
+    ]
+   },
+   {
+    "text": "View Details",
+    "tag": "span",
+    "classes": [
+     "hyperLink"
+    ]
+   },
+   {
+    "text": "Download Form",
+    "tag": "button",
+    "classes": [
+     "downloadButton",
+     "wid100",
+     "dformback"
+    ]
+   },
+   {
+    "text": "Download Receipt",
+    "tag": "button",
+    "classes": [
+     "downloadButton",
+     "wid100",
+     "drecback"
+    ]
+   },
+   {
+    "text": "Download JSON",
+    "tag": "button",
+    "classes": [
+     "downloadButton",
+     "wid100",
+     "dxmlback"
+    ]
+   },
+   {
+    "text": "View More",
+    "tag": "button",
+    "classes": [
+     "hyperLink",
+     "btnstyle"
+    ]
+   },
+   {
+    "text": "06",
+    "tag": "mat-select",
+    "selector": "mat-select[aria-label=\"Items per page 6 is Selected from \"]"
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "iconBefore",
+     "previousIcon",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Items per page 6 is Selected from",
+    "tag": "mat-select",
+    "selector": "mat-select[aria-label=\"Items per page 6 is Selected from \"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download Form",
+   "Download JSON",
+   "Download Receipt"
+  ]
+ },
+ {
+  "screen": "010-e-file-income-tax-returns-download-pre-filled-data",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Returns",
+   "Download Pre-Filled Data"
+  ],
+  "route": "/dashboard/downloadPreFilledData",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Download Prefilled Data"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-file",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-file unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Download Prefilled Data",
+    "tag": "div",
+    "selector": "div[aria-label=\"Download Prefilled Data unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-select",
+    "selector": "#filterStyleForChip myPanelClassItr"
+   },
+   {
+    "text": "Download",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "floatRight",
+     "marginContinue",
+     "iconBefore"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "marginCancel",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "tag": "mat-select",
+    "selector": "#filterStyleForChip myPanelClassItr"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download",
+   "Download Prefilled Data"
+  ]
+ },
+ {
+  "screen": "014-e-file-income-tax-forms-file-income-tax-forms",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Forms",
+   "File Income Tax Forms"
+  ],
+  "route": "/dashboard/statForms/fileIncomeTaxForm",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "File Income Tax Forms"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Income-tax Forms",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income-tax Forms unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Navigator of Forms as per Income Tax Act 2025/1961",
+    "tag": "span",
+    "selector": "span[role=\"link\"]",
+    "classes": [
+     "cursor_pointer",
+     "mediumFont",
+     "anchor",
+     "profileLink2"
+    ]
+   },
+   {
+    "text": "list",
+    "tag": "button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "view_module",
+    "tag": "button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Forms as per Income Tax Act 2025",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Forms as per Income Tax Act 1961",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Forms as per other Acts",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Equalization Levy (Form 1) Statement of Specified Services or E-Commerce Supply or Service",
+    "tag": "mat-card",
+    "classes": [
+     "subCardList"
+    ]
+   },
+   {
+    "text": "FOREIGN ASSETS OF SMALL TAXPAYERS DISCLOSURE SCHEME 2026 (Form 1 of FADS 2026) New Declara",
+    "tag": "mat-card",
+    "classes": [
+     "subCardList"
+    ]
+   },
+   {
+    "text": "Equalization Levy (Form 3) Appeal to the Commissioner of Income-tax (Appeals) File Now",
+    "tag": "mat-card",
+    "classes": [
+     "subCardList"
+    ]
+   },
+   {
+    "text": "VI-The Black Money (Undisclosed Foreign Income and Assets) and Imposition of Tax Act, 2015",
+    "tag": "mat-card",
+    "classes": [
+     "subCardList"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Equalization Levy (Form 3) Appeal to the Commissioner of Income-tax (Appeals) File Now"
+  ]
+ },
+ {
+  "screen": "001-e-file-income-tax-forms-view-filed-forms-view-all",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Forms",
+   "View Filed Forms",
+   "View All"
+  ],
+  "route": "/dashboard/statForms/viewFiledForms",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Information to be furnished for payments to a non-resident not being a company, or to a fo"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Income-tax Forms",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income-tax Forms unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Export To Excel",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "normal-button-secondary",
+     "downloadIcon"
+    ]
+   },
+   {
+    "text": "Filter",
+    "tag": "button",
+    "classes": [
+     "normal-button-tertiary",
+     "iconBefore",
+     "filterIcon",
+     "filterWithSearch"
+    ]
+   },
+   {
+    "text": "Download Form",
+    "tag": "button",
+    "classes": [
+     "downloadButtons",
+     "normal-button-secondary",
+     "defaultButton",
+     "iconBefore"
+    ]
+   },
+   {
+    "text": "Download Receipt",
+    "tag": "button",
+    "classes": [
+     "downloadButtons",
+     "normal-button-secondary",
+     "defaultButton",
+     "iconBefore"
+    ]
+   },
+   {
+    "text": "5",
+    "tag": "mat-select"
+   },
+   {
+    "text": "First page",
+    "tag": "button",
+    "selector": "button[aria-label=\"First page\"]",
+    "classes": [
+     "mat-unthemed"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Previous page",
+    "tag": "button",
+    "selector": "button[aria-label=\"Previous page\"]",
+    "classes": [
+     "mat-unthemed"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Next page",
+    "tag": "button",
+    "selector": "button[aria-label=\"Next page\"]",
+    "classes": [
+     "mat-unthemed"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Last page",
+    "tag": "button",
+    "selector": "button[aria-label=\"Last page\"]",
+    "classes": [
+     "mat-unthemed"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download Form",
+   "Download Receipt"
+  ]
+ },
+ {
+  "screen": "019-e-file-income-tax-forms-view-bulk-filed-forms-status-15ca-14",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Forms",
+   "View Bulk Filed Forms Status (15CA/145)"
+  ],
+  "route": "/dashboard/statForms/viewBulkOffline15CA",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "View 15CA Bulk Filed Forms Status"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Income-tax Forms",
+    "tag": "div",
+    "classes": [
+     "focusBox",
+     "activeRoute"
+    ]
+   },
+   {
+    "text": "View Bulk Upload 15CA",
+    "tag": "div",
+    "selector": "div[aria-label=\"View Bulk Upload 15CA unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Open calendar",
+    "tag": "button",
+    "selector": "button[aria-label=\"Open calendar\"]",
+    "classes": [
+     "mat-unthemed"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-select"
+   },
+   {
+    "text": "Search",
+    "tag": "button",
+    "selector": "#btnExcel",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "noTransform"
+    ]
+   },
+   {
+    "text": "Export To Excel",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "normal-button-secondary",
+     "downloadIcon"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "iconBefore",
+     "previousIcon",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [
+   [
+    "Sl. No.",
+    "Token Number",
+    "Status",
+    "Created Date",
+    "Transaction Number",
+    "Form Name",
+    "Download"
+   ]
+  ],
+  "write_controls_present": [
+   "View Bulk Upload 15CA"
+  ]
+ },
+ {
+  "screen": "022-authorised-partners-my-e-return-intermediary-eri",
+  "note": null,
+  "click_path": [
+   "Authorised Partners",
+   "My e-Return Intermediary (ERI)"
+  ],
+  "route": "/dashboard/my-eri/my-eri-list",
+  "title": "Income Tax Portal, My e-Return Intermediary (ERI) Dashboard Page",
+  "headings": [
+   "My e-Return Intermediary (ERI)"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "My e-Return Intermediary",
+    "tag": "div",
+    "selector": "div[aria-label=\"My e-Return Intermediary unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Add ERI",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "addIconSecondary",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Active (0)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Inactive (0)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Add ERI"
+  ]
+ },
+ {
+  "screen": "025-authorised-partners-my-chartered-accountant-ca-tab-active-8",
+  "note": null,
+  "click_path": [
+   "Authorised Partners",
+   "My Chartered Accountant (CA)",
+   "[tab]Active(8)"
+  ],
+  "route": "/dashboard/my-ca/my-ca-list",
+  "title": "Income Tax Portal, Government of India My Chartered Accountant(s)",
+  "headings": [
+   "My Chartered Accountant(s)"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "div",
+    "classes": [
+     "focusBox",
+     "activeRoute"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "div",
+    "selector": "div[aria-label=\"Authorised Partners unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "My Chartered Accountant(s)",
+    "tag": "div",
+    "selector": "div[aria-label=\"My Chartered Accountant(s) unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Add CA",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "addIconSecondary",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Active(8)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Inactive(7)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Search by active CA",
+    "tag": "input",
+    "selector": "input[aria-label=\"Search by active CA\"]"
+   },
+   {
+    "text": "View Assigned Form(s)",
+    "tag": "div",
+    "classes": [
+     "body-2-text",
+     "line-height-15",
+     "martl",
+     "text-align-left"
+    ]
+   },
+   {
+    "text": "Assign Form(S)",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "smallButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Deactivate",
+    "tag": "button",
+    "classes": [
+     "deactivateButton"
+    ]
+   },
+   {
+    "text": "View Less",
+    "tag": "div",
+    "selector": "div[aria-label=\"view more\"]",
+    "classes": [
+     "martl",
+     "text-align-left",
+     "link-076bcf",
+     "marl48"
+    ]
+   },
+   {
+    "text": "05",
+    "tag": "mat-select",
+    "selector": "mat-select[aria-label=\"Items per page selected5\"]"
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Search by active CA",
+    "tag": "input",
+    "type": "text",
+    "selector": "input[aria-label=\"Search by active CA\"]"
+   },
+   {
+    "label": "Items per page selected5",
+    "tag": "mat-select",
+    "selector": "mat-select[aria-label=\"Items per page selected5\"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Add CA",
+   "Deactivate"
+  ]
+ },
+ {
+  "screen": "026-authorised-partners-register-as-representative-assessee",
+  "note": null,
+  "click_path": [
+   "Authorised Partners",
+   "Register as Representative Assessee"
+  ],
+  "route": "/dashboard/resgisterAsRepresentative/letsGetStarted",
+  "title": "Income Tax Portal, Government of India register as representative Lets Get Started page",
+  "headings": [
+   "Register as Representative Assessee"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Register as Representative Assessee",
+    "tag": "div",
+    "selector": "div[aria-label=\"Register as Representative Assessee unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Create New Request 1",
+    "tag": "a"
+   },
+   {
+    "text": "Verify Request 2",
+    "tag": "a"
+   },
+   {
+    "text": "Submit Request 3",
+    "tag": "a"
+   },
+   {
+    "text": "Lets Get Started",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "floatRight",
+     "nextIcon"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon",
+     "buttonMargin1"
+    ]
+   },
+   {
+    "text": "General Instructions",
+    "tag": "span",
+    "selector": "span[aria-label=\"General Instructions 1 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Things you should know before proceeding",
+    "tag": "span",
+    "selector": "span[aria-label=\"Things you should know before proceeding 2 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Create New Request 1",
+   "Register as Representative Assessee",
+   "Submit Request 3",
+   "Things you should know before proceeding",
+   "Verify Request 2"
+  ]
+ },
+ {
+  "screen": "027-authorised-partners-register-to-act-on-behalf-of-another-per",
+  "note": null,
+  "click_path": [
+   "Authorised Partners",
+   "Register to act on behalf of another person"
+  ],
+  "route": "/dashboard/resgisterToActOnBehalfOfAnotherPerson/letsGetStarted",
+  "title": "Income Tax Portal, Register to Act on Behalf of Another Person Lets Get Started Page",
+  "headings": [
+   "Register to Act on Behalf of Another Person"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Register to Act on Behalf of Another Person",
+    "tag": "div",
+    "selector": "div[aria-label=\"Register to Act on Behalf of Another Person  unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Create New Request 1",
+    "tag": "a"
+   },
+   {
+    "text": "Verify Request 2",
+    "tag": "a"
+   },
+   {
+    "text": "Submit Request 3",
+    "tag": "a"
+   },
+   {
+    "text": "Lets Get Started",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "floatRight",
+     "nextIcon"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon",
+     "buttonMargin1"
+    ]
+   },
+   {
+    "text": "General Instructions",
+    "tag": "span",
+    "selector": "span[aria-label=\"General Instructions 1 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Things you should know before proceeding",
+    "tag": "span",
+    "selector": "span[aria-label=\"Things you should know before proceeding 2 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Create New Request 1",
+   "Register to Act on Behalf of Another Person",
+   "Submit Request 3",
+   "Things you should know before proceeding",
+   "Verify Request 2"
+  ]
+ },
+ {
+  "screen": "028-authorised-partners-authorize-another-person-to-act-on-behal",
+  "note": null,
+  "click_path": [
+   "Authorised Partners",
+   "Authorize another person to act on behalf of self"
+  ],
+  "route": "/dashboard/authorizeAnotherPersonToActOnBehalfOfSelf/letsGetStarted",
+  "title": "Income Tax Portal, Authorise Another Person to Act on Behalf of Self Lets Get Started Page",
+  "headings": [
+   "Authorise Another Person to Act on Behalf of Self"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorise Another Person to Act on behalf of Self",
+    "tag": "div",
+    "selector": "div[role=\"link\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Add Authorised Signatory 1",
+    "tag": "a"
+   },
+   {
+    "text": "Verify Request 2",
+    "tag": "a"
+   },
+   {
+    "text": "Submit Request 3",
+    "tag": "a"
+   },
+   {
+    "text": "Lets Get Started",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "iconsAfter",
+     "floatRight",
+     "nextIcon"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "previousIcon",
+     "buttonMargin1"
+    ]
+   },
+   {
+    "text": "General Instructions",
+    "tag": "span",
+    "selector": "span[aria-label=\"General Instructions 1 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Things you should know before proceeding",
+    "tag": "span",
+    "selector": "span[aria-label=\"Things you should know before proceeding 2 out of 2\"]",
+    "classes": [
+     "linkcolour",
+     "subtitle-2-text",
+     "line-height-15",
+     "text-align-right"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Add Authorised Signatory 1",
+   "Submit Request 3",
+   "Things you should know before proceeding",
+   "Verify Request 2"
+  ]
+ },
+ {
+  "screen": "029-services-know-your-refund-status",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Know Your Refund Status"
+  ],
+  "route": "/tin/know-your-refund-status/user-information",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Know Refund Status",
+    "tag": "div",
+    "selector": "div[aria-label=\"Know Refund Status unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-select",
+    "selector": "mat-select[formcontrolname=\"assmentYear\"]"
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "selector": "button[routerlink=\"/dashboard\"]",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Submit",
+    "tag": "button",
+    "classes": [
+     "large-button-primary"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "pan number input",
+    "tag": "input",
+    "selector": "#panTan"
+   },
+   {
+    "tag": "mat-select",
+    "selector": "mat-select[formcontrolname=\"assmentYear\"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Submit"
+  ]
+ },
+ {
+  "screen": "030-services-tax-credit-mismatch",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Tax Credit Mismatch"
+  ],
+  "route": "/dashboard/taxCreditMismatch",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Tax Credit Mismatch"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Tax Credit Mismatch",
+    "tag": "div",
+    "selector": "div[aria-label=\"Tax Credit Mismatch unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Select assessment year",
+    "tag": "mat-select",
+    "selector": "#year"
+   },
+   {
+    "text": "Submit",
+    "tag": "button",
+    "classes": [
+     "float-right",
+     "large-button-primary"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Cancel",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "buttonMargin1"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Select assessment year",
+    "tag": "mat-select",
+    "selector": "#year"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Submit"
+  ]
+ },
+ {
+  "screen": "031-services-refund-reissue",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Refund Reissue"
+  ],
+  "route": "/dashboard/refund-reissue/view-request",
+  "title": "Income Tax Portal, Government of India Refund Reissue Request",
+  "headings": [
+   "Refund Reissue"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Refund Reissue",
+    "tag": "div",
+    "selector": "div[aria-label=\"Refund Reissue unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "addCreate Refund Reissue Request",
+    "tag": "button",
+    "classes": [
+     "normal-button-secondary",
+     "noRecBtn"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "addCreate Refund Reissue Request"
+  ]
+ },
+ {
+  "screen": "033-services-request-for-order-giving-effect",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Request for Order Giving Effect"
+  ],
+  "route": "/dashboard/requestOrderEffect",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Request for Order Giving Effect"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Request for Order Giving Effect",
+    "tag": "div",
+    "selector": "div[aria-label=\"Request for Order Giving Effect unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "New Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap"
+    ]
+   },
+   {
+    "text": "My Requests",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Saved Drafts",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Saved Drafts"
+  ]
+ },
+ {
+  "screen": "034-services-manage-itd-reporting-entity-identification-number-i",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Manage ITD Reporting Entity Identification Number (ITDREIN)"
+  ],
+  "route": "/dashboard/manage-itdrein/view-itdrein",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "My Request - Generate ITDREIN",
+    "tag": "div",
+    "selector": "div[aria-label=\"My Request - Generate ITDREIN unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Generate New ITDREIN",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "secondaryButton",
+     "iconBefore",
+     "generateIcon"
+    ]
+   },
+   {
+    "text": "Filter",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "defaultButton1",
+     "ml-3"
+    ]
+   },
+   {
+    "text": "View Authorised Person(S)",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "primaryButton",
+     "mt-1"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton",
+     "previousIcon",
+     "iconBefore"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Search ITDREIN",
+    "tag": "input",
+    "selector": "input[placeholder=\"Search ITDREIN\"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Generate New ITDREIN",
+   "My Request - Generate ITDREIN"
+  ]
+ },
+ {
+  "screen": "035-services-condonation-request",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Condonation Request"
+  ],
+  "route": "/dashboard/condonation-request/condonation-of-delay",
+  "title": "Income Tax Portal, Government of India Condonation request",
+  "headings": [
+   "Condonation Request"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Condonation Request",
+    "tag": "div",
+    "selector": "div[aria-label=\"Condonation Request unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Type of condonation request you want to proceed with*",
+    "tag": "p",
+    "classes": [
+     "fontNew",
+     "color-code-06"
+    ]
+   },
+   {
+    "text": "STAT",
+    "tag": "input"
+   },
+   {
+    "text": "ITRV",
+    "tag": "input"
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton",
+     "goToDash-btn"
+    ]
+   },
+   {
+    "text": "Continue",
+    "tag": "button",
+    "classes": [
+     "large-button-primary",
+     "continue-btn"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Application for Statutory Forms",
+    "tag": "input",
+    "type": "radio"
+   },
+   {
+    "label": "Delay in submission of ITR-V",
+    "tag": "input",
+    "type": "radio"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Type of condonation request you want to proceed with*"
+  ]
+ },
+ {
+  "screen": "036-services-legal-entity-identifier-lei",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Legal Entity Identifier (LEI)"
+  ],
+  "route": "/dashboard/legal-entity-identifier",
+  "title": "Income Tax Portal, Government of India - Legal Entity Identifier (LEI) Page",
+  "headings": [
+   "Legal Entity Identifier (LEI)"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Legal Entity Identifier (LEI)",
+    "tag": "div",
+    "selector": "div[aria-label=\"Legal Entity Identifier (LEI) unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Add LEI",
+    "tag": "button",
+    "selector": "#addLEIbtn",
+    "classes": [
+     "form-filed-action-button",
+     "button-icon-before",
+     "button-secondary",
+     "float-right"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "iconBefore",
+     "float-left-md",
+     "mr-md-4"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [
+   [
+    "Sl. No.",
+    "LEI Number",
+    "LEI Validity Start Date",
+    "LEI Validity End Date"
+   ]
+  ],
+  "write_controls_present": [
+   "Add LEI"
+  ]
+ },
+ {
+  "screen": "038-services-rectification-rectification-of-order-passed-by-cpc",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Rectification",
+   "Rectification of order passed by CPC"
+  ],
+  "route": "/dashboard/rectificationRequest",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Rectification"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Rectification",
+    "tag": "div",
+    "selector": "div[aria-label=\"Rectification unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Rectification of order passed by CPC",
+    "tag": "div",
+    "selector": "div[aria-label=\"Rectification of order passed by CPC unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "New Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap"
+    ]
+   },
+   {
+    "text": "My Requests",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Saved Drafts",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Equalisation Levy",
+    "tag": "button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Download ARN",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "primaryButton",
+     "btnreq"
+    ]
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download ARN",
+   "Saved Drafts"
+  ]
+ },
+ {
+  "screen": "040-services-rectification-rectification-of-order-passed-by-cit-",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Rectification",
+   "Rectification of order passed by CIT (A)"
+  ],
+  "route": "/dashboard/appealOrder",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Rectification of Order passed by CIT(A)"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Rectification",
+    "tag": "div",
+    "selector": "div[aria-label=\"Rectification unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Rectification of Order passed by CIT(A)",
+    "tag": "div",
+    "selector": "div[aria-label=\"Rectification of Order passed by CIT(A) unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "New Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap"
+    ]
+   },
+   {
+    "text": "My Requests",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Saved Drafts",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Saved Drafts"
+  ]
+ },
+ {
+  "screen": "042-services-rectification-request-to-ao-seeking-rectification",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Rectification",
+   "Request to AO seeking rectification"
+  ],
+  "route": "/dashboard/requestToAoSeekingRectification",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Request to AO seeking rectification"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Rectification",
+    "tag": "div",
+    "selector": "div[aria-label=\"Rectification unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Request To AO Seeking Rectification",
+    "tag": "div",
+    "selector": "div[aria-label=\"Request To AO Seeking Rectification unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "New Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap"
+    ]
+   },
+   {
+    "text": "My Requests",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Saved Drafts",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Saved Drafts"
+  ]
+ },
+ {
+  "screen": "043-services-challan-correction",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Challan Correction"
+  ],
+  "route": "/tin/challanCorrection/normalChallan",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Challan Correction"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Normal Challans",
+    "tag": "div",
+    "selector": "div[aria-label=\"Normal Challans unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Create Challan Correction Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap",
+     "width"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "selector": "button[routerlink=\"/dashboard\"]",
+    "classes": [
+     "iconBefore",
+     "large-button-secondary",
+     "backButton",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Create Challan Correction Request"
+  ]
+ },
+ {
+  "screen": "044-services-challan-correction",
+  "note": null,
+  "click_path": [
+   "Services",
+   "Challan Correction"
+  ],
+  "route": "/tin/challanCorrection/blockAssessmentChallan",
+  "title": "Dashboard, Income Tax Portal, Government of India",
+  "headings": [
+   "Block Assessment Challan correction"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Block Assessment Challans",
+    "tag": "div",
+    "selector": "div[aria-label=\"Block Assessment Challans unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Create Challan Correction Request",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "defualtButtonGap",
+     "width"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "selector": "button[routerlink=\"/dashboard\"]",
+    "classes": [
+     "iconBefore",
+     "large-button-secondary",
+     "backButton",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Create Challan Correction Request"
+  ]
+ },
+ {
+  "screen": "048-pending-actions-worklist",
+  "note": null,
+  "click_path": [
+   "Pending Actions",
+   "Worklist"
+  ],
+  "route": "/dashboard/foWorklist/worklist",
+  "title": "Income Tax Portal, Government of India , Worklist Page",
+  "headings": [
+   "Worklist"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Worklist",
+    "tag": "div",
+    "selector": "div[aria-label=\"Worklist unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Filter",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "defaultButton1",
+     "filterIcon"
+    ]
+   },
+   {
+    "text": "For Your Action",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "For Your Information",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "View All",
+    "tag": "span",
+    "selector": "span[aria-label=\"Uploaded Form Details View All\"]",
+    "classes": [
+     "float-right",
+     "subtitle-2-text",
+     "padding0",
+     "bold-text"
+    ]
+   },
+   {
+    "text": "View Form",
+    "tag": "button",
+    "classes": [
+     "normal-button-primary",
+     "butV",
+     "mobile-w100"
+    ]
+   },
+   {
+    "text": "Download Attachments",
+    "tag": "button",
+    "classes": [
+     "normal-button-primary",
+     "butV",
+     "mobile-w100",
+     "mat-unthemed"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download Attachments"
+  ]
+ },
+ {
+  "screen": "049-pending-actions-worklist-tab-for-your-information",
+  "note": null,
+  "click_path": [
+   "Pending Actions",
+   "Worklist",
+   "[tab]For Your Information"
+  ],
+  "route": "/dashboard/foWorklist/formRequest",
+  "title": "Income Tax Portal, Government of India , Worklist - Form Request List Page",
+  "headings": [
+   "Uploaded Form Details"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Worklist",
+    "tag": "div",
+    "classes": [
+     "focusBox",
+     "activeRoute"
+    ]
+   },
+   {
+    "text": "Form Request List",
+    "tag": "div",
+    "selector": "div[aria-label=\"Form Request List unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Export To Excel",
+    "tag": "button",
+    "selector": "#exportButton",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "normal-button-secondary",
+     "downloadIcon"
+    ]
+   },
+   {
+    "text": "Filter",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "iconBefore",
+     "defaultButton1",
+     "m-t-12"
+    ]
+   },
+   {
+    "text": "For Your Action",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "For Your Information",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Download Attachments",
+    "tag": "button",
+    "classes": [
+     "normal-button-primary",
+     "mobile-w100"
+    ]
+   },
+   {
+    "text": "View Form",
+    "tag": "button",
+    "classes": [
+     "normal-button-primary",
+     "mobile-w100"
+    ]
+   },
+   {
+    "text": "5",
+    "tag": "mat-select"
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "backButton",
+     "butWidth",
+     "mobile-w100",
+     "defaultButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download Attachments"
+  ]
+ },
+ {
+  "screen": "050-pending-actions-response-to-outstanding-demand",
+  "note": null,
+  "click_path": [
+   "Pending Actions",
+   "Response to Outstanding Demand"
+  ],
+  "route": "/dashboard/response-to-outstanding-demand/master",
+  "title": "Income tax portal, Government of India - Response to outstanding demand",
+  "headings": [
+   "Response to Outstanding Demand"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Response to Outstanding Demand",
+    "tag": "div",
+    "selector": "div[aria-label=\"Response to Outstanding Demand unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Demand Communication History",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "primaryButton",
+     "mt-3"
+    ]
+   },
+   {
+    "text": "Select",
+    "tag": "mat-form-field",
+    "selector": "#masterCompDD",
+    "classes": [
+     "bigFieldDD2",
+     "selectheight40",
+     "mat-form-field-appearance-outline",
+     "mat-primary"
+    ]
+   },
+   {
+    "text": "enter input",
+    "tag": "input",
+    "selector": "input[aria-label=\"enter input\"]"
+   },
+   {
+    "text": "Latest Notice",
+    "tag": "button",
+    "selector": "button[aria-label=\"download\"]",
+    "classes": [
+     "secondaryButton",
+     "defaultButton",
+     "iconBefore",
+     "downloadSecNote"
+    ]
+   },
+   {
+    "text": "Notices Issued Earlier",
+    "tag": "button",
+    "selector": "button[aria-label=\"download\"]",
+    "classes": [
+     "secondaryButton",
+     "defaultButton",
+     "marginAlignment",
+     "mt-3"
+    ]
+   },
+   {
+    "text": "Go To Dashboard",
+    "tag": "button",
+    "classes": [
+     "large-button-secondary",
+     "f-left",
+     "dashboardwidth"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "assessment year selected under by",
+    "tag": "mat-select",
+    "selector": "mat-select[aria-label=\"assessment year selected under search by\"]"
+   },
+   {
+    "label": "enter input",
+    "tag": "input",
+    "selector": "input[aria-label=\"enter input\"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": []
+ },
+ {
+  "screen": "053-pending-actions-e-proceedings",
+  "note": null,
+  "click_path": [
+   "Pending Actions",
+   "e-Proceedings"
+  ],
+  "route": "/dashboard/eProceedings",
+  "title": "Income Tax Portal, Government of India e-Proceedings Page",
+  "headings": [
+   "e-Proceeding"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-Proceedings",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-Proceedings unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Self",
+    "tag": "button",
+    "selector": "#Suo_Moto-button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Of Other PAN/TAN",
+    "tag": "button",
+    "classes": [
+     "mat-button-toggle-button",
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "Search E-Proceedings",
+    "tag": "input",
+    "selector": "input[aria-label=\"Search E-Proceedings\"]",
+    "classes": [
+     "pr-4"
+    ]
+   },
+   {
+    "text": "filter_list Filter",
+    "tag": "button",
+    "classes": [
+     "ml-3",
+     "defaultButton",
+     "filterButton",
+     "close-btn"
+    ]
+   },
+   {
+    "text": "Excel Download",
+    "tag": "button",
+    "classes": [
+     "secondaryButton",
+     "defaultButton",
+     "iconBefore",
+     "downloadSecNote"
+    ]
+   },
+   {
+    "text": "For your Action (27)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "For your Information (29)",
+    "tag": "div",
+    "classes": [
+     "mat-focus-indicator"
+    ]
+   },
+   {
+    "text": "File Appeal",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "secondaryButton",
+     "mb-2",
+     "viewNoticeBtn"
+    ],
+    "disabled": true
+   },
+   {
+    "text": "Download Closure Order",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "secondaryButton",
+     "iconBefore",
+     "mb-2"
+    ]
+   },
+   {
+    "text": "View Notices/Orders (1)",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "primaryButton",
+     "viewNoticeBtn"
+    ]
+   },
+   {
+    "text": "View Notices/Orders (8)",
+    "tag": "button",
+    "classes": [
+     "defaultButton",
+     "primaryButton",
+     "viewNoticeBtn"
+    ]
+   },
+   {
+    "text": "10",
+    "tag": "mat-select"
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "iconBefore",
+     "large-button-secondary",
+     "previousIcon"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "label": "Search E-Proceedings",
+    "tag": "input",
+    "selector": "input[aria-label=\"Search E-Proceedings\"]"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": [
+   "Download Closure Order",
+   "Excel Download",
+   "File Appeal",
+   "Search E-Proceedings",
+   "e-Proceedings"
+  ]
+ },
+ {
+  "screen": "002-e-file-income-tax-returns-view-filed-returns-view-details",
+  "note": null,
+  "click_path": [
+   "e-File",
+   "Income Tax Returns",
+   "View Filed Returns",
+   "View Details"
+  ],
+  "route": "/dashboard/itrStatus/itrStatusViewLifeCycle",
+  "title": "Income Tax Portal, Government of India View Filed Returns",
+  "headings": [
+   "A.Y. 2025-26"
+  ],
+  "controls": [
+   {
+    "text": "Skip to main content",
+    "tag": "a",
+    "selector": "#skipToMainContent",
+    "classes": [
+     "skip-to-content-link"
+    ]
+   },
+   {
+    "text": "Call Us",
+    "tag": "button",
+    "classes": [
+     "callUsBtn",
+     "marTop1",
+     "paddButCallUs"
+    ]
+   },
+   {
+    "text": "English",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   },
+   {
+    "text": "switch to dark theme",
+    "tag": "div",
+    "selector": "div[aria-label=\"switch to dark theme\"]",
+    "classes": [
+     "marTop2"
+    ]
+   },
+   {
+    "text": "Profile Image",
+    "tag": "section",
+    "selector": "#profileImageHeader",
+    "classes": [
+     "cursorFocus"
+    ]
+   },
+   {
+    "text": "Dashboard",
+    "tag": "a",
+    "selector": "#Dashboard",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-File",
+    "tag": "a",
+    "selector": "#e-File",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Authorised Partners",
+    "tag": "a",
+    "selector": "#Authorised Partners",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Services",
+    "tag": "a",
+    "selector": "#Services",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "AIS",
+    "tag": "a",
+    "selector": "#AIS",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Pending Actions",
+    "tag": "a",
+    "selector": "#Pending Actions",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Grievances",
+    "tag": "a",
+    "selector": "#Grievances",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "Help",
+    "tag": "a",
+    "selector": "#Help",
+    "classes": [
+     "dropdown-content",
+     "menuText",
+     "cursorLink",
+     "forMediumAndAboveDevices"
+    ]
+   },
+   {
+    "text": "e-file",
+    "tag": "div",
+    "selector": "div[aria-label=\"e-file unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Income Tax Return",
+    "tag": "div",
+    "selector": "div[aria-label=\"Income Tax Return unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "View Filed Returns",
+    "tag": "div",
+    "selector": "div[aria-label=\"View Filed Returns unavailable\"]",
+    "classes": [
+     "disabledRoute"
+    ]
+   },
+   {
+    "text": "Know Your Refund Status",
+    "tag": "span",
+    "classes": [
+     "hyperLink"
+    ]
+   },
+   {
+    "text": "Back",
+    "tag": "button",
+    "classes": [
+     "largeButton",
+     "iconBefore",
+     "previousIcon",
+     "secondaryButton"
+    ]
+   },
+   {
+    "text": "Feedback |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Website Policies |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Accessibility Statement |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Site Map |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "Browser Support |",
+    "tag": "div",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   },
+   {
+    "text": "CoBrowse Help",
+    "tag": "div",
+    "selector": "#btn-request-session",
+    "classes": [
+     "footerLink",
+     "focusBox"
+    ]
+   }
+  ],
+  "form_fields": [
+   {
+    "label": "English selected under language",
+    "tag": "mat-select",
+    "selector": "#langMatSelect"
+   }
+  ],
+  "tables": [],
+  "write_controls_present": []
+ }
+]

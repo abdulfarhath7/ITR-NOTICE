@@ -47,6 +47,13 @@ ingestion_runs  → audit of every sweep
 | tags | TEXT NULL | comma separated |
 | sync_enabled | INTEGER | 1 default; 0 skips the client in whole-book and scheduled sweeps (0019) |
 | note | TEXT NULL | firm-authored free text, synced (0020) |
+| history_depth | TEXT | `recent` (default) · `partial` · `full`, set when a deep fetch completes (0022) |
+| history_fetched_at | TEXT NULL | when the last deep fetch completed (0022) |
+| history_note | TEXT NULL | "Last 2 AYs, index only" (0022) |
+| cadence_tier | TEXT | `nightly` (default) · `weekly` for dormant clients (0022) |
+| cadence_pinned | INTEGER | 1 keeps the client nightly; never auto-cleared (0022) |
+| last_swept_at | TEXT NULL | end of the client's last sweep job (0022) |
+| sync_pause_reason | TEXT NULL | why sync was turned off; empty when on (0022) |
 | created_at, updated_at | TEXT | |
 
 No password column. Ever. See `07-security.md`.
@@ -156,6 +163,12 @@ always exactly two document nodes, never one and never three. If the receipt
 is awaited, the node exists with `storage_path = NULL` and a pending state, so
 a missing acknowledgement is visible rather than absent.
 
+**States (docs/17 §5).** `stored`: has `file_hash` and `storage_path`.
+`pending`: not fetched yet. An index-only sweep creates it with
+`source_url = 'portal:<parent_type>:<reference>'`, and an item fetch fills
+it. `failed`: the portal offered no file. A stored document is never demoted
+to pending.
+
 A processing intimation is not a third node. It belongs to the proceeding or
 demand it creates, cross-referenced back to the return.
 
@@ -173,10 +186,36 @@ wrong turn.
 
 ### ingestion_runs
 `id, run_at, device_id, client_id, module, panel_swept, records_found, gaps,
-operator, status, notes`
+operator, status, notes, scope`
+
+`scope` ∈ `sweep | deep | item` (0022) says which kind of run wrote it. A
+probe-skipped client writes one row with `panel_swept = NULL` and
+`notes = 'unchanged'`. `gaps` now also carries `indexed` and
+`older_than_window` counts per panel.
 
 A sweep that found nothing writes a row with `records_found = 0`. Zero counts
 are evidence; skipping is not.
+
+### ingestion_sweeps.scope and .sweep_summary  (0011, 0022)
+`scope` is JSON: `{"kind": "sweep"|"deep"|"item", "selector": {"kind": "all"|"module"|"client", ...},
+"scheduled": bool, "deep_request_id"?, "item"?: {"module", "id"}}`. Rows that
+predate 0022 were rewritten as sweeps. `sweep_summary` is
+`{swept, skipped_unchanged, failed, parked, deep_done, warm_cached,
+duration_s, window_closed}`, written when a sweep finishes or stops.
+
+`ingestion_jobs.cursor` gains `unchanged: true` when the probe skipped the job.
+
+### probe_state  (0022, local)
+`login_ref, panel, list_hash, rows, checked_at`, primary key
+`(login_ref, panel)`. It holds the list hash from the last completed walk and
+is never synced.
+
+### deep_fetch_requests  (0022, local)
+`id, client_id, depth (all|years|since), depth_value, modules (JSON),
+docs_policy (index|download), mode (tonight|now), status
+(queued|running|done|failed|cancelled), requested_by, requested_at,
+started_at, finished_at, progress (JSON), last_error`. Queuing a request for
+a client replaces that client's queued one.
 
 ### ledger
 See `03-sync-and-ledger.md`.
