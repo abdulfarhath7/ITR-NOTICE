@@ -1,42 +1,11 @@
-/** The Calendar screen's pure parts (docs/16 §5): a Monday-first month
- *  grid in IST calendar dates, and open items grouped by day. `today` is
- *  always a parameter. A NULL date never lands on a day. */
+/** The Notices layer's pure parts (docs/16 §5, docs/19 §4): open items
+ *  grouped by day, and the day tone. The month grid moved to
+ *  `calendar-grid.ts` in Build 5. `today` is always a parameter. A NULL
+ *  date never lands on a day. */
 import { dayNumber, parseDate, toIso, type Ymd } from "./dates";
 import { effectiveDue } from "./windows";
 import { isSettled, parseStatus } from "./status";
 import type { WorkItemRow } from "./types";
-
-export interface GridDay {
-  date: Ymd;
-  iso: string;
-  /** Leading or trailing day from the neighbouring month. */
-  outside: boolean;
-}
-
-export const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-export function addDays(d: Ymd, n: number): Ymd {
-  const t = new Date(Date.UTC(d.y, d.m - 1, d.d + n));
-  return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
-}
-
-/** Whole weeks covering the month, Monday first. */
-export function monthGrid(year: number, month: number): GridDay[][] {
-  const first: Ymd = { y: year, m: month, d: 1 };
-  const weekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;   // Monday = 0
-  let cur = addDays(first, -weekday);
-  const weeks: GridDay[][] = [];
-  do {
-    const week: GridDay[] = [];
-    for (let i = 0; i < 7; i++) {
-      week.push({ date: cur, iso: toIso(cur), outside: cur.m !== month });
-      cur = addDays(cur, 1);
-    }
-    weeks.push(week);
-  } while (cur.m === month);
-  return weeks;
-}
 
 export type DayField = "due" | "issued";
 

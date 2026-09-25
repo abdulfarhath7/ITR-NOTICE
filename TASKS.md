@@ -435,19 +435,19 @@ Same operating rules as Builds 1–4. Installed as Build 5 / Phase 31 because Bu
 
 ### 31.B Calendar card
 
-- [ ] **31.7** `lib/calendar-grid.ts`: port `buildStatutoryMonthGrid`, `calendarCellIndexAfterKey`, `nextInMonthCellIndex`, `statutoryDaysUntil`, `statutoryStatus`, `statutoryStatusLabel`, `statutoryHeatLevel`, `statutoryPillLabel` from vcfo's `statutory-calendar-utils.ts`, Monday-first, `today` passed in, pure. `lib/calendar-prefs.ts`: tolerant read/write of `lcc.calendar.prefs.v1`.
-- [ ] **31.8** `styles/calendar.css`: every `stat-cal-*` and `stat-max-*` rule from vcfo re-expressed with LCC tokens; fixed dot slots; reduced-motion guard on the flash.
-- [ ] **31.9** Rebuild `screens/calendar.tsx` as the minimized card (§4): header with FY badge, scope control, Full screen button; month line with clamped nav; six-row Monday-first grid with dots and Notices pills; `role="grid"` and the full keyboard set; legend with counts, mute, Shift-solo, Show all, Notices row with `Due`/`Issued` toggle; agenda with day groups, flash-scroll, status labels, extension rendering, "Open" navigation; the three empty/warning states.
+- [x] **31.7** `lib/calendar-grid.ts`: port `buildStatutoryMonthGrid`, `calendarCellIndexAfterKey`, `nextInMonthCellIndex`, `statutoryDaysUntil`, `statutoryStatus`, `statutoryStatusLabel`, `statutoryHeatLevel`, `statutoryPillLabel` from vcfo's `statutory-calendar-utils.ts`, Monday-first, `today` passed in, pure. `lib/calendar-prefs.ts`: tolerant read/write of `lcc.calendar.prefs.v1`.
+- [x] **31.8** `styles/calendar.css`: every `stat-cal-*` and `stat-max-*` rule from vcfo re-expressed with LCC tokens; fixed dot slots; reduced-motion guard on the flash.
+- [x] **31.9** Rebuild `screens/calendar.tsx` as the minimized card (§4): header with FY badge, scope control, Full screen button; month line with clamped nav; six-row Monday-first grid with dots and Notices pills; `role="grid"` and the full keyboard set; legend with counts, mute, Shift-solo, Show all, Notices row with `Due`/`Issued` toggle; agenda with day groups, flash-scroll, status labels, extension rendering, "Open" navigation; the three empty/warning states.
   - *Done when:* the Build 2 Calendar's behaviours (day counts, keyboard movement, Due/Issued, filters as chips) all still work inside the card.
-- [ ] **31.10** Updates screen groups "Deadline extended" and "Calendar changed" (§3.4). `NOTES.md` entry. Commit.
+- [x] **31.10** Updates screen groups "Deadline extended" and "Calendar changed" (§3.4). `NOTES.md` entry. Commit.
 
 ### 31.C Full screen, sidebar, tile
 
-- [ ] **31.11** `ui/calendar-overlay.tsx` (§5): fixed overlay over the content column, sidebar collapse/restore, body scroll lock, Escape and focus return, top bar with Month/Year/Agenda, scope, category chips, nav, `.ics`, exit button. Shared state with the card.
-- [ ] **31.12** Month view with trimmed weeks, three fixed pill slots, "+n more", Notices line, right agenda panel.
-- [ ] **31.13** Year view: 4×3 mini-months, heat squares, today outline, hover tooltip, click-to-month.
-- [ ] **31.14** Agenda view: FY list grouped by month and day, Today pinned, `j`/`k`.
-- [ ] **31.15** Sidebar mini "Next deadlines" and collapsed badge; Attention strip tile "Next statutory" (grid to five columns). `NOTES.md` entry. Commit.
+- [x] **31.11** `ui/calendar-overlay.tsx` (§5): fixed overlay over the content column, sidebar collapse/restore, body scroll lock, Escape and focus return, top bar with Month/Year/Agenda, scope, category chips, nav, `.ics`, exit button. Shared state with the card.
+- [x] **31.12** Month view with trimmed weeks, three fixed pill slots, "+n more", Notices line, right agenda panel.
+- [x] **31.13** Year view: 4×3 mini-months, heat squares, today outline, hover tooltip, click-to-month.
+- [x] **31.14** Agenda view: FY list grouped by month and day, Today pinned, `j`/`k`.
+- [x] **31.15** Sidebar mini "Next deadlines" and collapsed badge; Attention strip tile "Next statutory" (grid to five columns). `NOTES.md` entry. Commit.
 
 ### 31.D Settings, profile, export, docs
 

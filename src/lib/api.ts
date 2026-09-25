@@ -6,7 +6,8 @@ import type {
   RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
-  DeepDepth, DeepFetchRequest, DeepProbeInfo, DeletePreview, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
+  DeepDepth, DeepFetchRequest, DeepProbeInfo, DeletePreview,
+  CalendarSettings, FirmDate, StatutoryFetchOutcome, StatutoryItem, StatutoryScope, StatutoryStatus, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
 } from "./types";
 
 export const api = {
@@ -132,6 +133,19 @@ export const api = {
   clientsExportName: () => invoke<string>("clients_export_name"),
   exportSweepRun: (sweepId: string, path: string) => invoke<number>("export_sweep_run", { sweepId, path }),
   sweepRunExportName: (sweepId: string) => invoke<string>("sweep_run_export_name", { sweepId }),
+  // Statutory calendar (docs/19 §9)
+  listStatutory: (from: string, to: string, scope: StatutoryScope) => invoke<StatutoryItem[]>("list_statutory", { from, to, scope }),
+  refreshStatutory: () => invoke<StatutoryFetchOutcome[]>("refresh_statutory"),
+  statutoryStatus: () => invoke<StatutoryStatus>("statutory_status"),
+  calendarSettings: () => invoke<CalendarSettings>("get_calendar_settings"),
+  setCalendarSettings: (settings: CalendarSettings) => invoke<void>("set_calendar_settings", { settings }),
+  firmDates: () => invoke<FirmDate[]>("list_firm_dates"),
+  upsertFirmDate: (id: string | null, dueOn: string, title: string, note: string | null) =>
+    invoke<FirmDate>("upsert_firm_date", { id, dueOn, title, note }),
+  deleteFirmDate: (id: string) => invoke<void>("delete_firm_date", { id }),
+  exportStatutoryIcs: (fyStartYear: number, path: string) => invoke<string>("export_statutory_ics", { fyStartYear, path }),
+  setClientCalendarProfile: (clientId: string, entityKind: string | null, auditCase: boolean, tpCase: boolean, tdsDeductor: boolean) =>
+    invoke<void>("set_client_calendar_profile", { clientId, entityKind, auditCase, tpCase, tdsDeductor }),
   deepProbeInfo: (clientId: string, depth: DeepDepth, depthValue: string | null) =>
     invoke<DeepProbeInfo>("deep_probe_info", { clientId, depth, depthValue }),
 

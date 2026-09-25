@@ -84,6 +84,11 @@ export interface ClientDetail {
   cadence_pinned?: number | null;
   last_swept_at?: string | null;
   sync_pause_reason?: string | null;
+  /** docs/19 §2.4, migration 0024. */
+  entity_kind?: string | null;
+  audit_case?: number | null;
+  tp_case?: number | null;
+  tds_deductor?: number | null;
 }
 
 export interface ClientInput {
@@ -502,7 +507,9 @@ export interface IngestionJob {
 export type UpdateGroup = "new_notice" | "due_changed" | "response_filed" | "closed" | "demand_changed" | "sync_failed"
   | "history_fetched"
   /** docs/18 §3.4: ao_viewed (filed_on = viewed date, reason = first seen); limitation_changed (old/new, reason = source) */
-  | "ao_viewed" | "limitation_changed";
+  | "ao_viewed" | "limitation_changed"
+  /** docs/19 §3.4: deadline_extended (old_value → new_value, reference = circular); calendar_changed (status = kind) */
+  | "deadline_extended" | "calendar_changed";
 
 /** One change since the previous sync (docs/16 §4). */
 export interface UpdateEntry {
@@ -790,4 +797,42 @@ export interface DeletePreview {
   documents: number;
   /** Another client signs in with the same login; its password stays. */
   login_shared: boolean;
+}
+
+/* docs/19 — statutory calendar */
+export type StatutoryScope = "all" | "applies" | "overdue";
+export interface StatutoryItem {
+  id: string;
+  due_on: string;
+  original_on: string | null;
+  title: string;
+  category: string;
+  category_label: string;
+  note: string | null;
+  circular: string | null;
+  applies: string[];
+  /** Only with scope `applies`. */
+  applies_count: number | null;
+  layer: "statutory" | "firm";
+}
+export interface StatutoryStatus {
+  last_fetched_at: string | null;
+  last_status: "ok" | "unchanged" | "failed" | null;
+  last_error: string | null;
+  last_ok_at: string | null;
+  deadlines: number;
+  years: number[];
+  next_due: string;
+}
+export interface StatutoryFetchOutcome {
+  year: number; status: string; added: number; extended: number; removed: number; unparsed: number; rows: number; error: string | null;
+}
+export interface CalendarSettings {
+  refresh: "weekly" | "nightly";
+  first_day: "monday" | "sunday";
+  default_scope: StatutoryScope;
+  sidebar_mini: boolean;
+}
+export interface FirmDate {
+  id: string; due_on: string; title: string; category: string; note: string | null; created_by: string | null; created_at: string; updated_at: string;
 }

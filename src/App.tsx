@@ -23,6 +23,7 @@ import CommandPalette, { useCommandPalette } from "./ui/command-palette";
 import Icon, { type IconName } from "./ui/icons";
 import SyncButton, { RunIndicator } from "./ui/sync-button";
 import Toasts from "./ui/toasts";
+import { NavMini } from "./ui/nav-mini";
 
 const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "attention" }, label: "Attention", icon: "inbox" },
@@ -94,7 +95,7 @@ export default function App() {
     case "settings": screen = <SettingsScreen section={route.section} theme={theme} />; break;
     case "setup": screen = <SetupScreen />; break;
     case "updates": screen = <UpdatesScreen />; break;
-    case "calendar": screen = <CalendarScreen />; break;
+    case "calendar": screen = <CalendarScreen day={route.day} />; break;
   }
   const active = section(route);
 
@@ -116,6 +117,7 @@ export default function App() {
             </a>
           ))}
         </div>
+        <NavMini />
         <span className="spacer" />
         <div className="nav-foot">
           <RunIndicator />

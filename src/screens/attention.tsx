@@ -40,6 +40,7 @@ import Icon from "../ui/icons";
 import OwnerSelect, { Avatar } from "../ui/owner-select";
 import { Page, PageBody, PageHead } from "../ui/page";
 import PendingDocs, { pendingOf } from "../ui/pending-docs";
+import { NextStatutoryTile } from "../ui/nav-mini";
 import { StatusPill } from "../ui/pill";
 
 /** Rows rendered at a time; the rest arrive on request. */
@@ -78,13 +79,14 @@ function SyncLineView({ today }: { today: Ymd }) {
 
 function RiskStrip({ counts, active, onPick }: { counts: Record<RiskTile, number>; active: (t: RiskTile) => boolean; onPick: (t: RiskTile) => void }) {
   return (
-    <div className="att-strip" role="group" aria-label="Risk">
+    <div className="att-strip cols-5" role="group" aria-label="Risk">
       {RISK_TILES.map((t) => (
         <button key={t} type="button" className={`att-tile ${RISK_TONE[t]}`} aria-pressed={active(t)} onClick={() => onPick(t)}>
           <span className="label">{RISK_LABEL[t]}</span>
           <span className="value">{counts[t]}</span>
         </button>
       ))}
+      <NextStatutoryTile />
     </div>
   );
 }

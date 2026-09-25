@@ -24,6 +24,7 @@ import PendingDocs from "../ui/pending-docs";
 const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
   { key: "new_notice", label: "New notices", icon: "inbox" },
   { key: "due_changed", label: "Due date changed", icon: "clock" },
+  { key: "deadline_extended", label: "Deadline extended", icon: "calendar" },
   { key: "response_filed", label: "Response filed on portal", icon: "check" },
   { key: "closed", label: "Proceeding closed", icon: "shield" },
   { key: "demand_changed", label: "Demand changed", icon: "activity" },
@@ -31,12 +32,13 @@ const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
   { key: "limitation_changed", label: "Limitation", icon: "clock" },
   { key: "sync_failed", label: "Sync failed", icon: "alert" },
   { key: "history_fetched", label: "History fetched", icon: "cloud-down" },
+  { key: "calendar_changed", label: "Calendar changed", icon: "calendar" },
 ];
 
 /** Count-pill colours per the Build 4 mockup: purple "New" (accent here,
  *  docs/10 has one accent), green "AO viewed", amber "Limitation". */
 const GROUP_TONE: Partial<Record<UpdateGroup, string>> = {
-  new_notice: "accent", ao_viewed: "success", limitation_changed: "warning", sync_failed: "danger",
+  new_notice: "accent", ao_viewed: "success", limitation_changed: "warning", sync_failed: "danger", deadline_extended: "warning",
 };
 
 /** A finished sweep within this many hours reads "Last night"; anything
@@ -108,6 +110,12 @@ function Detail({ e }: { e: UpdateEntry }) {
       return <span className="num">Reply viewed by AO {d(e.filed_on) ?? ""}{e.reason ? <span className="muted"> · first seen {stamp(e.reason)}</span> : null}</span>;
     case "limitation_changed":
       return <span className="num"><s className="muted">{d(e.old_value) ?? "Not stated"}</s> → {d(e.new_value) ?? "Not stated"}{e.reason ? <span className="muted"> · {e.reason}</span> : null}</span>;
+    case "deadline_extended":
+      return <span className="num"><s className="muted">{d(e.old_value) ?? "?"}</s> → {d(e.new_value) ?? "?"}{e.reference ? ` · Circular ${e.reference}` : ""}</span>;
+    case "calendar_changed":
+      return <span>{e.status === "statutory_added" ? `New deadline${e.new_value ? ` · ${d(e.new_value)}` : ""}`
+        : e.status === "statutory_removed" ? "Removed from the portal calendar"
+        : "Extension note needs a look"}{e.reason ? <span className="muted"> · {e.reason}</span> : null}</span>;
   }
 }
 
@@ -130,6 +138,9 @@ function Actions({ e, onDraft, onDate }: { e: UpdateEntry; onDraft: () => void; 
       return view ? <a className="btn small" href={view}>Open</a> : null;
     case "history_fetched":
       return e.client_id ? <a className="btn small" href={href({ name: "client", id: e.client_id })}>View</a> : null;
+    case "deadline_extended":
+    case "calendar_changed":
+      return e.due_date ? <a className="btn small" href={href({ name: "calendar", day: e.due_date })}>Open</a> : null;
     case "sync_failed":
       return e.client_id ? (e.run_status === "credentials_parked"
         ? <button className="btn small" onClick={() => navigate({ name: "client", id: e.client_id!, tab: "credentials" })}>Fix</button>
@@ -163,7 +174,12 @@ function GroupCard({ group, entries, onDraft, onDate }: {
         <span className={`pill ${GROUP_TONE[group.key] ?? ""}`}>{entries.length}</span>
       </div>
       <div className="upd-rows">
-        {entries.map((e, i) => e.group === "history_fetched" ? (
+        {entries.map((e, i) => e.group === "deadline_extended" || e.group === "calendar_changed" ? (
+          <div key={`${e.group}:${e.item_id}:${e.at}:${i}`} className="upd-row">
+            <div className="upd-client upd-span"><span>{e.section ?? "Statutory deadline"}</span><span className="sub"><Detail e={e} /></span></div>
+            <div className="upd-actions"><Actions e={e} onDraft={() => onDraft(e)} onDate={() => onDate(e)} /></div>
+          </div>
+        ) : e.group === "history_fetched" ? (
           <div key={`${e.group}:${e.client_id}:${e.at}:${i}`} className="upd-row">
             <HistoryLine e={e} />
             <div className="upd-actions"><Actions e={e} onDraft={() => onDraft(e)} onDate={() => onDate(e)} /></div>

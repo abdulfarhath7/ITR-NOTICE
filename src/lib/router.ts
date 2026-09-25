@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 export type Route =
   | { name: "attention" }
   | { name: "updates" }
-  | { name: "calendar" }
+  | { name: "calendar"; day?: string }
   | { name: "clients"; filter?: "failures" }
   | { name: "client"; id: string; tab?: string }
   | { name: "item"; module: string; id: string }
@@ -18,7 +18,7 @@ export function href(route: Route): string {
   switch (route.name) {
     case "attention": return "#/attention";
     case "updates": return "#/updates";
-    case "calendar": return "#/calendar";
+    case "calendar": return route.day ? `#/calendar/${route.day}` : "#/calendar";
     case "clients": return route.filter ? `#/clients?${route.filter}` : "#/clients";
     case "client": return `#/clients/${encodeURIComponent(route.id)}${route.tab ? `/${route.tab}` : ""}`;
     case "item": return `#/items/${route.module}/${encodeURIComponent(route.id)}`;
@@ -39,7 +39,7 @@ export function parse(hash: string): Route {
       return parts[1] && parts[2] ? { name: "item", module: parts[1], id: parts[2] } : { name: "attention" };
     case "ingestion": return parts[1] === "failed" ? { name: "ingestion", filter: "failed" } : { name: "ingestion" };
     case "updates": return { name: "updates" };
-    case "calendar": return { name: "calendar" };
+    case "calendar": return parts[1] ? { name: "calendar", day: parts[1] } : { name: "calendar" };
     case "devices": return { name: "devices" };
     case "settings": return parts[1] ? { name: "settings", section: parts[1] } : { name: "settings" };
     case "setup": return { name: "setup" };

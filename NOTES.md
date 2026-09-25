@@ -890,3 +890,24 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
   §2.1 describes. Replace it with the real page when one can be fetched;
   the parser tests then pin the real markup (Q66).
 - `regex` crate added.
+
+### 31.B and 31.C
+- `lib/calendar-grid.ts` (Monday-first grid, keyboard moves, status, heat,
+  pill label, FY maths, the legend table), `lib/calendar-prefs.ts`,
+  `styles/calendar.css` (every vcfo `stat-cal-*` / `stat-max-*` rule in LCC
+  tokens, fixed dot and pill slots, reduced-motion flash, print sheet).
+- `screens/calendar.tsx` rebuilt as the card; it exports `useCalendarState`
+  and the agenda/legend pieces the overlay reuses, so month, scope, mutes
+  and the selected day are one state. Build 2's Notices behaviours (day
+  counts, Due/Issued, chips from the Attention filters, keyboard) live on
+  as the Notices layer; Build 4's limitation dates stay as Notices-layer
+  rows. `lib/calendar.ts` keeps only the Notices grouping; the Build 2 grid
+  builder and its CSS were removed as dead.
+- `ui/calendar-overlay.tsx`: Month (trimmed weeks, three pill slots, right
+  panel), Year (4×3 heat), Agenda (FY, today pinned, j/k); collapses the
+  sidebar via a `nav-collapsed` class on the shell and restores it; body
+  scroll lock; Escape returns focus; `.ics` and Print month.
+- `ui/nav-mini.tsx`: sidebar "Next deadlines" (icon + badge when
+  collapsed) and the Attention "Next statutory" tile (strip is five wide).
+- Updates: "Deadline extended" after "Due date changed"; "Calendar
+  changed" last. Route `#/calendar/<day>` opens the day.

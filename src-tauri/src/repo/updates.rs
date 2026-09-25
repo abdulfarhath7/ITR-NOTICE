@@ -263,6 +263,26 @@ fn classify(con: &Connection, entity_type: &str, at: &str, after: &Value, before
             }
             Ok(Some(e))
         }
+        // docs/19 §3.4: what the public calendar fetch changed. No client.
+        "statutory_events" if before.is_none() => {
+            let payload: Value = after.get("payload").and_then(Value::as_str).and_then(|p| serde_json::from_str(p).ok()).unwrap_or(Value::Null);
+            let kind = s(after, "kind").unwrap_or_default();
+            let group = match kind.as_str() {
+                "statutory_extended" => "deadline_extended",
+                "statutory_added" | "statutory_removed" | "statutory_unparsed" => "calendar_changed",
+                _ => return Ok(None),
+            };
+            let mut e = blank(group, at);
+            e.item_id = s(after, "deadline_id");
+            e.section = s(&payload, "title");
+            e.old_value = s(&payload, "from");
+            e.new_value = s(&payload, "to");
+            e.reference = s(&payload, "circular");
+            e.reason = s(&payload, "note");
+            e.status = Some(kind);
+            e.due_date = s(&payload, "to").or(s(&payload, "from"));
+            Ok(Some(e))
+        }
         // docs/17 §2.4: a deep fetch finished — the client's history
         // stamp moved. The count is what the client holds now.
         "clients" => {
@@ -293,7 +313,7 @@ pub fn list(con: &Connection, since: Option<String>) -> AppResult<UpdatesReport>
                     SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger_received)
          SELECT l.entity_type, l.entity_id, l.payload, l.created_at FROM e l
          WHERE l.op = 'upsert' AND l.created_at > ?1
-           AND l.entity_type IN ('communications','proceedings','responses','demands','clients','proceeding_events')
+           AND l.entity_type IN ('communications','proceedings','responses','demands','clients','proceeding_events','statutory_events')
            AND NOT EXISTS (SELECT 1 FROM e n WHERE n.entity_type = l.entity_type AND n.entity_id = l.entity_id
                            AND n.op = 'upsert' AND (n.created_at > l.created_at
                                 OR (n.created_at = l.created_at AND (n.device_id, n.seq) > (l.device_id, l.seq))))
