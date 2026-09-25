@@ -27,9 +27,17 @@ const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
   { key: "response_filed", label: "Response filed on portal", icon: "check" },
   { key: "closed", label: "Proceeding closed", icon: "shield" },
   { key: "demand_changed", label: "Demand changed", icon: "activity" },
+  { key: "ao_viewed", label: "AO viewed", icon: "check" },
+  { key: "limitation_changed", label: "Limitation", icon: "clock" },
   { key: "sync_failed", label: "Sync failed", icon: "alert" },
   { key: "history_fetched", label: "History fetched", icon: "cloud-down" },
 ];
+
+/** Count-pill colours per the Build 4 mockup: purple "New" (accent here,
+ *  docs/10 has one accent), green "AO viewed", amber "Limitation". */
+const GROUP_TONE: Partial<Record<UpdateGroup, string>> = {
+  new_notice: "accent", ao_viewed: "success", limitation_changed: "warning", sync_failed: "danger",
+};
 
 /** A finished sweep within this many hours reads "Last night"; anything
  *  older, or a daytime run, reads "Last run". */
@@ -96,6 +104,10 @@ function Detail({ e }: { e: UpdateEntry }) {
       return <span className="wrap">{e.reason ?? (e.run_status === "credentials_parked" ? "Credentials need attention" : "The run failed")}</span>;
     case "history_fetched":
       return null;
+    case "ao_viewed":
+      return <span className="num">Reply viewed by AO {d(e.filed_on) ?? ""}{e.reason ? <span className="muted"> · first seen {stamp(e.reason)}</span> : null}</span>;
+    case "limitation_changed":
+      return <span className="num"><s className="muted">{d(e.old_value) ?? "Not stated"}</s> → {d(e.new_value) ?? "Not stated"}{e.reason ? <span className="muted"> · {e.reason}</span> : null}</span>;
   }
 }
 
@@ -148,7 +160,7 @@ function GroupCard({ group, entries, onDraft, onDate }: {
       <div className="card-head">
         <Icon name={group.icon} />
         <h2>{group.label}</h2>
-        <span className={`pill ${group.key === "sync_failed" ? "danger" : ""}`}>{entries.length}</span>
+        <span className={`pill ${GROUP_TONE[group.key] ?? ""}`}>{entries.length}</span>
       </div>
       <div className="upd-rows">
         {entries.map((e, i) => e.group === "history_fetched" ? (

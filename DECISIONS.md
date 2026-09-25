@@ -608,3 +608,27 @@ Decision:
 - The keychain entry goes unless another client uses the same login.
 - Refused while a run is in flight. The dialog asks for the client's name.
 Reversible: no. The dialog says so and suggests exporting first.
+
+## D-061 — Viewed by AO and Limitation follow a registry flag, not section strings (Q50)
+Date: 2026-09-25
+Context: docs/18 §3.2 makes both fields assessment-only. The registry had no such flag.
+Decision: migration 0023 adds `type_registry.is_assessment` and seeds it for scrutiny, faceless, reassessment, best judgement and penalty. The read models expose `is_assessment`; every cell, chip, tile and export column reads the flag. Changing which rows count is the one UPDATE in the migration.
+Reversible: yes, by data.
+
+## D-062 — Event kinds are rows of `proceeding_events` (Q60)
+Date: 2026-09-25
+Context: docs/18 §3.4 wants `ao_viewed` and `limitation_changed` ledger entries. Ledger entries are table upserts and `apply` refuses unknown entity types.
+Decision: a synced, immutable `proceeding_events` table (kind, JSON payload, at). Intake writes `ao_viewed` on the null → date flip of an existing communication and stamps `ao_viewed_first_seen_at` once; `set_limitation_date` writes `limitation_changed` with its source. Updates classifies the first sighting of each row. Merge matches on (proceeding, kind, at).
+Reversible: yes.
+
+## D-063 — Notice-type colours map to the four semantic tones
+Date: 2026-09-25
+Context: docs/18 §3.5 names purple, red, amber and grey pills; docs/10 allows danger, warning, success and one accent.
+Decision: purple → accent, red → danger, amber → warning, grey → the default pill. The map in `src/lib/notice-type.ts` carries the tone per row.
+Reversible: easily.
+
+## D-064 — "No" for Viewed by AO only once a reply is on record
+Date: 2026-09-25
+Context: docs/18 §3.3 shows `Yes · date` or `No`. A notice with no reply cannot have been viewed by the AO yet; `No` there would read as a delay on the department's side.
+Decision: `—` until the latest notice has a reply, then `No` or `Yes · date`. The same rule feeds the export cell (blank / No / Yes).
+Reversible: easily; one branch in `ui/ao-cells.tsx` and the export cell.

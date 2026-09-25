@@ -17,6 +17,8 @@ import {
   windowDays, windowLabel, windowRange, windowSummary, type RiskTile, type WindowDays, type WindowKind, type WindowValue,
 } from "../lib/windows";
 import { migrateAttentionFilters } from "../lib/filters-migrate";
+import { noticeType, noticeTypesIn } from "../lib/notice-type";
+import { AoViewedPill, LimitationCell } from "../ui/ao-cells";
 import { todayIst, type Ymd } from "../lib/dates";
 import { describeDueShort, shortDateOf } from "../lib/due";
 import { MODULES, MODULE_LABEL, MODULE_NOUN, plural } from "../lib/labels";
@@ -160,6 +162,37 @@ function LimitationChip({ value, onPick }: { value: "" | "30" | "60" | "90"; onP
   );
 }
 
+/** `Type ▾`: a multi-select over the notice-type pills present (docs/18 §3.3). */
+function TypeChip({ options, value, onChange }: {
+  options: { key: string; label: string }[]; value: string[]; onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+  const toggle = (k: string) => onChange(value.includes(k) ? value.filter((x) => x !== k) : [...value, k]);
+  return (
+    <span className="att-lim" onClick={(e) => e.stopPropagation()}>
+      <button type="button" className={`chip${value.length ? " on" : ""}`} aria-haspopup="menu" aria-expanded={open}
+              disabled={!options.length} title={options.length ? undefined : "No section on any row"}
+              onClick={() => setOpen((o) => !o)}>Type{value.length ? ` · ${value.length}` : ""} <Icon name="chevron-down" /></button>
+      {open ? (
+        <span className="att-menu att-type-menu" role="menu">
+          {options.map((o) => (
+            <label key={o.key} className="check" role="menuitemcheckbox" aria-checked={value.includes(o.key)}>
+              <input type="checkbox" checked={value.includes(o.key)} onChange={() => toggle(o.key)} />{o.label}
+            </label>
+          ))}
+          {value.length ? <button type="button" role="menuitem" onClick={() => { onChange([]); setOpen(false); }}>Clear</button> : null}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 // ------------------------------------------------------------------ chips
 
 interface Chip { key: string; label: string; clear: () => void }
@@ -240,11 +273,12 @@ function NameDialog({ title, initial, onSave, onClose }: {
 
 // ------------------------------------------------------------------ list
 
-function Row({ item, nav, today, owning, onOwn, onDraft, onDate }: {
-  item: RankedItem; nav: RowNavProps; today: Ymd; owning: boolean;
+function Row({ item, nav, today, owning, showAo, onOwn, onDraft, onDate }: {
+  item: RankedItem; nav: RowNavProps; today: Ymd; owning: boolean; showAo: boolean;
   onOwn: (open: boolean) => void; onDraft: () => void; onDate: () => void;
 }) {
   const r = item.row;
+  const nt = noticeType(r);
   const open = () => navigate({ name: "item", module: r.module, id: r.id });
   const due = describeDueShort(item.effectiveDue, item.status, today);
   const issued = shortDateOf(r.issued_on, today);
@@ -264,7 +298,10 @@ function Row({ item, nav, today, owning, onOwn, onDraft, onDate }: {
         <div className="sub mono">{[r.client_code, r.pan_masked].filter(Boolean).join(" · ")}</div>
       </td>
       <td className="wrap">
-        <span className={`pill ${sectionTone(r)}`} title={r.title}>{sectionLabel(r)}</span><PendingDocs count={pendingOf(r)} />
+        {nt
+          ? <span className={`pill ${nt.tone === "muted" ? "" : nt.tone}`} title={`${sectionLabel(r)} · ${r.title}`}>{nt.label}</span>
+          : <span className={`pill ${sectionTone(r)}`} title={r.title}>{sectionLabel(r)}</span>}
+        <PendingDocs count={pendingOf(r)} />
         <div className="sub">{MODULE_NOUN[r.module]}{r.assessment_year ? ` · AY ${r.assessment_year}` : ""}</div>
       </td>
       <td>{issued ? <span className="num">{issued}</span> : <span className="muted" title="No issued date stated">—</span>}</td>
@@ -275,6 +312,12 @@ function Row({ item, nav, today, owning, onOwn, onDraft, onDate }: {
         {limitationSoon ? <div className="sub due warning">limitation {shortDateOf(r.limitation_date, today)}</div> : null}
         {!item.effectiveDue && r.suggested_due_date ? <div className="sub suggested">suggested {shortDateOf(r.suggested_due_date, today)}</div> : null}
       </td>
+      {showAo ? (
+        <>
+          <td><AoViewedPill isAssessment={r.is_assessment} aoViewedOn={r.ao_viewed_on} responseFiled={r.response_filed} today={today} /></td>
+          <td><LimitationCell isAssessment={r.is_assessment} date={r.limitation_date} today={today} /></td>
+        </>
+      ) : null}
       <td className="att-owner">
         {owning
           ? <OwnerSelect module={r.module} id={r.id} current={r.assignee} onDone={() => onOwn(false)} />
@@ -353,10 +396,16 @@ export default function AttentionScreen() {
     && (!issuedDays || inWindow(row, "issued", issuedDays, today))
     && (!dueDays || inWindow(row, "due", dueDays, today))
     && (!f.notViewedByAo || row.not_viewed_by_ao)
-    && (limitationDays === null || inLimitation(row, limitationDays, today))),
-  [afterBar, f.tile, issuedDays, dueDays, f.notViewedByAo, limitationDays, today]);
+    && (limitationDays === null || inLimitation(row, limitationDays, today))
+    && (!f.types.length || f.types.includes(noticeType(row)?.key ?? ""))),
+  [afterBar, f.tile, issuedDays, dueDays, f.notViewedByAo, limitationDays, f.types, today]);
+  // docs/18 §3.2: the two columns hide when no row in the result set is an
+  // assessment proceeding.
+  const showAo = useMemo(() => matching.some((i) => i.row.is_assessment), [matching]);
+  const typesPresent = useMemo(() => noticeTypesIn(afterBar.map((i) => i.row)), [afterBar]);
+  const typesKey = f.types.join(",");
   const visible = useMemo(() => matching.slice(0, limit), [matching, limit]);
-  useEffect(() => { setLimit(PAGE); }, [f.clientId, f.ay, f.module, f.status, f.owner, f.tile, f.issued, f.due, f.notViewedByAo, f.limitation, search]);
+  useEffect(() => { setLimit(PAGE); }, [f.clientId, f.ay, f.module, f.status, f.owner, f.tile, f.issued, f.due, f.notViewedByAo, f.limitation, typesKey, search]);
 
   const years = useMemo(
     () => [...new Set((q.data ?? []).map((r) => r.assessment_year).filter((y): y is string => !!y))].sort().reverse(),
@@ -373,7 +422,7 @@ export default function AttentionScreen() {
     return { ...cur, tile: cur.tile === t ? "" : t };
   });
   const clearAll = () => { setF(DEFAULT_FILTERS); setSearchText(""); setSearch(""); };
-  const clearWindow = () => setF({ tile: "", issued: "", due: "", notViewedByAo: false, limitation: "" });
+  const clearWindow = () => setF({ tile: "", issued: "", due: "", notViewedByAo: false, limitation: "", types: [] });
 
   const chips: Chip[] = [];
   if (f.clientId) chips.push({ key: "client", label: clientName(f.clientId), clear: () => setF({ clientId: "" }) });
@@ -387,6 +436,7 @@ export default function AttentionScreen() {
   if (dueDays) chips.push({ key: "due", label: windowSummary("due", dueDays), clear: () => setF({ due: "" }) });
   if (f.notViewedByAo) chips.push({ key: "ao", label: "Not viewed by AO", clear: () => setF({ notViewedByAo: false }) });
   if (f.limitation) chips.push({ key: "limitation", label: `Limitation ≤ ${f.limitation}d`, clear: () => setF({ limitation: "" }) });
+  if (f.types.length) chips.push({ key: "types", label: `Type: ${f.types.join(", ")}`, clear: () => setF({ types: [] }) });
 
   const noun = f.module === "proceedings" ? "notice" : "item";
   const summary = [
@@ -435,8 +485,8 @@ export default function AttentionScreen() {
   };
 
   const noneAtAll = !ranked.length && !chips.length;
-  const windowActive = !!(f.tile || f.issued || f.due || f.notViewedByAo || f.limitation);
-  const windowText = chips.filter((c) => ["tile", "issued", "due", "ao", "limitation"].includes(c.key)).map((c) => c.label).join(" and ");
+  const windowActive = !!(f.tile || f.issued || f.due || f.notViewedByAo || f.limitation || f.types.length);
+  const windowText = chips.filter((c) => ["tile", "issued", "due", "ao", "limitation", "types"].includes(c.key)).map((c) => c.label).join(" and ");
 
   return (
     <Page>
@@ -484,6 +534,7 @@ export default function AttentionScreen() {
           <button type="button" className={`chip${f.notViewedByAo ? " on" : ""}`} aria-pressed={f.notViewedByAo}
                   onClick={() => setF({ notViewedByAo: !f.notViewedByAo })}>Not viewed by AO<span className="att-window-count">{counts.tiles.ao}</span></button>
           <LimitationChip value={f.limitation} onPick={(v) => setF({ limitation: v })} />
+          <TypeChip options={typesPresent} value={f.types} onChange={(types) => setF({ types })} />
         </div>
         <Chips chips={chips} onClearAll={clearAll} />
         <HintLine issued={f.issued} due={f.due} today={today} />
@@ -520,23 +571,33 @@ export default function AttentionScreen() {
           ) : (
             <>
               <table className="table att-table" onKeyDown={nav.onKeyDown} aria-label="Items needing attention">
-                <colgroup>
-                  <col style={{ width: "27.8%" }} /><col style={{ width: "13%" }} /><col style={{ width: "13%" }} />
-                  <col style={{ width: "16.7%" }} /><col style={{ width: "11.1%" }} /><col style={{ width: "18.4%" }} />
-                </colgroup>
+                {showAo ? (
+                  <colgroup>
+                    <col style={{ width: "22%" }} /><col style={{ width: "12%" }} /><col style={{ width: "9%" }} />
+                    <col style={{ width: "13%" }} /><col style={{ width: "10%" }} /><col style={{ width: "12%" }} />
+                    <col style={{ width: "8%" }} /><col style={{ width: "14%" }} />
+                  </colgroup>
+                ) : (
+                  <colgroup>
+                    <col style={{ width: "27.8%" }} /><col style={{ width: "13%" }} /><col style={{ width: "13%" }} />
+                    <col style={{ width: "16.7%" }} /><col style={{ width: "11.1%" }} /><col style={{ width: "18.4%" }} />
+                  </colgroup>
+                )}
                 <thead><tr>
-                  <th>Client · PAN</th><th>Section</th><th>Issued</th><th>Due</th><th>Owner</th><th>Stage</th>
+                  <th>Client · PAN</th><th>Type</th><th>Issued</th><th>Due</th>
+                  {showAo ? <><th>Viewed by AO</th><th>Limitation</th></> : null}
+                  <th>Owner</th><th>Stage</th>
                 </tr></thead>
                 {groups.map((g, gi) => (
                   <tbody key={`${g.rank ?? "all"}-${gi}`}>
                     {g.rank ? (
-                      <tr className="group"><th colSpan={6} scope="rowgroup">
+                      <tr className="group"><th colSpan={showAo ? 8 : 6} scope="rowgroup">
                         <span className={`dot ${RANK_TONE[g.rank]}`} />{RANK_LABEL[g.rank]}<span className="count">{g.items.length}</span>
                       </th></tr>
                     ) : null}
                     {g.items.map(({ item, index }) => {
                       const k = `${item.row.module}:${item.row.id}`;
-                      return <Row key={k} item={item} nav={nav.rowProps(index)} today={today} owning={owning === k}
+                      return <Row key={k} item={item} nav={nav.rowProps(index)} today={today} owning={owning === k} showAo={showAo}
                                   onOwn={(o) => setOwning(o ? k : null)}
                                   onDraft={() => { void startDraft(item.row); }} onDate={() => { void askDate(item.row); }} />;
                     })}

@@ -358,17 +358,17 @@ Read `docs/18-build-4.md` §2 in full first. UI reference: `docs/mockups/build-4
 
 Read `docs/18-build-4.md` §3. UI reference: `attention.png`, `work-item.png`.
 
-- [ ] **26.1** Migration: `communications.ao_viewed_first_seen_at`. Intake sets it on the first null → non-null transition of `ao_viewed_on` and never again.
-- [ ] **26.2** Migration: `type_registry.is_assessment` with the seed UPDATE (Q50). Expose on the proceeding read model as `is_assessment`.
-- [ ] **26.3** Ledger kinds `ao_viewed` and `limitation_changed` with the payloads in §3.4. Intake writes `ao_viewed` alongside 26.1; the proceeding update path writes `limitation_changed` on any change, with `source`.
-- [ ] **26.4** Attention table: columns Viewed by AO and Limitation after Due, rendered per §3.3; `—` on non-assessment rows; both columns hidden when no assessment row is in the result set.
-- [ ] **26.5** Chips: `Not viewed by AO`, `Limitation ≤ 30/60/90d` (menu, default 90), `Type ▾` multi-select. Saved views persist them.
-- [ ] **26.6** Notice-type pill from the map in `src/lib/notice-type.ts` (§3.5), shown in the Type column.
-- [ ] **26.7** Work item header: Reply viewed by AO pill and Limitation date with days left; thread event "Reply viewed by AO" with the first-seen subline; trailing grey event carries the limitation date. Layout per `work-item.png`.
-- [ ] **26.8** Client 360 proceedings tab gains both columns.
-- [ ] **26.9** Calendar shows limitation dates as items with their own pill.
-- [ ] **26.10** Updates screen renders `ao_viewed` (green "AO viewed") and `limitation_changed` (amber "Limitation") entries per the right panel of `work-item.png`.
-- [ ] **26.11** `./scripts/check.sh` green. Commit.
+- [x] **26.1** Migration: `communications.ao_viewed_first_seen_at`. Intake sets it on the first null → non-null transition of `ao_viewed_on` and never again.
+- [x] **26.2** Migration: `type_registry.is_assessment` with the seed UPDATE (Q50). Expose on the proceeding read model as `is_assessment`.
+- [x] **26.3** Ledger kinds `ao_viewed` and `limitation_changed` with the payloads in §3.4. Intake writes `ao_viewed` alongside 26.1; the proceeding update path writes `limitation_changed` on any change, with `source`.
+- [x] **26.4** Attention table: columns Viewed by AO and Limitation after Due, rendered per §3.3; `—` on non-assessment rows; both columns hidden when no assessment row is in the result set.
+- [x] **26.5** Chips: `Not viewed by AO`, `Limitation ≤ 30/60/90d` (menu, default 90), `Type ▾` multi-select. Saved views persist them.
+- [x] **26.6** Notice-type pill from the map in `src/lib/notice-type.ts` (§3.5), shown in the Type column.
+- [x] **26.7** Work item header: Reply viewed by AO pill and Limitation date with days left; thread event "Reply viewed by AO" with the first-seen subline; trailing grey event carries the limitation date. Layout per `work-item.png`.
+- [x] **26.8** Client 360 proceedings tab gains both columns.
+- [x] **26.9** Calendar shows limitation dates as items with their own pill.
+- [x] **26.10** Updates screen renders `ao_viewed` (green "AO viewed") and `limitation_changed` (amber "Limitation") entries per the right panel of `work-item.png`.
+- [x] **26.11** `./scripts/check.sh` green. Commit.
 
 ## Phase 27 — Attention export with the filter written into the sheet
 

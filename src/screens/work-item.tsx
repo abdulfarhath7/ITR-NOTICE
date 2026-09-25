@@ -21,6 +21,7 @@ import Gap from "../ui/gap";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { NotesCard, OwnerRow } from "../ui/item-meta";
 import { PendingBanner } from "../ui/pending-docs";
+import { AoViewedPill, LimitationCell, limitationDays } from "../ui/ao-cells";
 import { StatusPill } from "../ui/pill";
 import ThreadFlow from "../ui/thread-flow";
 import { DemandScreen, FiledFormScreen, ReturnScreen } from "./module-items";
@@ -44,6 +45,29 @@ function ManualDueDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => voi
   );
 }
 
+/** docs/18 §3 (Q52): the statutory clock, entered by a person until the
+ *  portal parser confirms a label. Every change is a `limitation_changed`
+ *  event with `source = manual`. */
+function LimitationDate({ p, onSaved }: { p: ProceedingDetail; onSaved: () => void }) {
+  const [value, setValue] = useState(p.limitation_date ?? "");
+  const can = actionsFor(p.status).editManualDueDate;
+  const save = async () => {
+    try {
+      await api.setLimitationDate(p.id, value || null);
+      toast(value ? "Limitation date saved." : "Limitation date cleared.");
+      onSaved();
+    } catch (e) { toastError(describeError(e)); }
+  };
+  if (!can) return <LimitationCell isAssessment={p.is_assessment} date={p.limitation_date} unverified={p.gaps.includes("limitation_date")} />;
+  return (
+    <div className="row">
+      <LimitationCell isAssessment={p.is_assessment} date={p.limitation_date} unverified={p.gaps.includes("limitation_date")} />
+      <input className="input mono" type="date" value={value} onChange={(e) => setValue(e.target.value)} aria-label="Limitation date" />
+      {value !== (p.limitation_date ?? "") ? <button className="btn small" onClick={() => { void save(); }}>Save</button> : null}
+    </div>
+  );
+}
+
 function ProceedingScreen({ id }: { id: string }) {
   const q = useProceeding(id);
   const docs = useDocuments();
@@ -59,8 +83,11 @@ function ProceedingScreen({ id }: { id: string }) {
   // beside it, labelled (Q14).
   const due = describeDue(p.manual_due_date ?? p.due_date, status);
   const portalDue = describeDue(p.due_date, status);
-  const limitation = describeDue(p.limitation_date, status);
-  const refresh = () => invalidate(`proceedings:${id}`);
+  const refresh = () => { invalidate(`proceedings:${id}`); invalidate("work_items"); };
+  // The latest inbound notice carries the AO-viewed state for the header.
+  const latest = [...p.communications].sort((a, b) => (b.issued_on ?? "").localeCompare(a.issued_on ?? ""))[0] ?? null;
+  const latestReplied = !!latest && p.responses.some((r) => r.in_reply_to === latest.id);
+  const limDays = limitationDays(p.limitation_date);
   const promote = async () => {
     try { await api.promoteSuggestedDueDate(p.id); toast("Suggested date promoted to the manual due date."); refresh(); invalidate("work_items"); }
     catch (e) { toastError(describeError(e)); }
@@ -77,7 +104,16 @@ function ProceedingScreen({ id }: { id: string }) {
     <Page>
       <PageHead title={p.display_name ?? p.type_label} back={{ route: { name: "client", id: p.client_id }, label: p.client_name }}
                 meta={<span className="row"><StatusPill status={p.status} />
-                  {p.verified_flag ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}</span>}>
+                  {p.verified_flag ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}
+                  {p.is_assessment ? (
+                    <>
+                      <span className="meta">Reply viewed by AO</span>
+                      <AoViewedPill isAssessment aoViewedOn={latest?.ao_viewed_on ?? null} responseFiled={latestReplied} />
+                      <span className="meta">Limitation</span>
+                      <LimitationCell isAssessment date={p.limitation_date} />
+                      {limDays !== null && limDays >= 0 ? <span className="meta">{limDays} days left</span> : null}
+                    </>
+                  ) : null}</span>}>
         <OwnerRow module="proceedings" id={p.id} />
       </PageHead>
       <PageBody>
@@ -105,7 +141,7 @@ function ProceedingScreen({ id }: { id: string }) {
                         ? <button className="btn small" onClick={() => { void promote(); }}>Promote to manual due date</button> : null}
                     </span>
                   : <span className="muted">none</span>}</dd>
-                <dt>Limitation date</dt><dd><DueText due={limitation} unverified={p.gaps.includes("limitation_date")} /></dd>
+                <dt>Limitation date</dt><dd><LimitationDate p={p} onSaved={refresh} /></dd>
                 <dt>Portal status</dt><dd>{p.portal_status ?? <span className="muted">Not stated</span>}</dd>
                 <dt>Closure</dt><dd><DateCell iso={p.closure_date} />{p.closure_order ? <span className="muted"> · {p.closure_order}</span> : null}</dd>
                 <dt>Panel</dt><dd>{panelLabel(p.source_panel)}</dd>

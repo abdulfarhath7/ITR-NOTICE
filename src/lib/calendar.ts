@@ -40,6 +40,21 @@ export function monthGrid(year: number, month: number): GridDay[][] {
 
 export type DayField = "due" | "issued";
 
+/** docs/18 §3.3 (Q56): open assessment proceedings on their limitation
+ *  date. One item source; drop the call to drop the items. */
+export function limitationByDay(rows: WorkItemRow[]): Map<string, WorkItemRow[]> {
+  const out = new Map<string, WorkItemRow[]>();
+  for (const r of rows) {
+    if (!r.is_assessment || isSettled(parseStatus(r.status))) continue;
+    const d = parseDate(r.limitation_date);
+    if (!d) continue;
+    const k = toIso(d);
+    const list = out.get(k);
+    if (list) list.push(r); else out.set(k, [r]);
+  }
+  return out;
+}
+
 /** Open items by the ISO day of the chosen field. */
 export function groupByDay(rows: WorkItemRow[], field: DayField): Map<string, WorkItemRow[]> {
   const out = new Map<string, WorkItemRow[]>();

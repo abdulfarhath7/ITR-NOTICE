@@ -23,11 +23,14 @@ import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { Avatar } from "../ui/owner-select";
 import { StatusPill } from "../ui/pill";
 import PendingDocs from "../ui/pending-docs";
+import { AoViewedPill, LimitationCell } from "../ui/ao-cells";
 import ClientForm from "./client-form";
 import ClientMenu, { PauseDialog } from "./client-menu";
 
 function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
   const open = rows.filter((r) => !isSettled(parseStatus(r.status))).length;
+  // docs/18 §3.2: the two columns appear only when an assessment row is present.
+  const showAo = module === "proceedings" && rows.some((r) => r.is_assessment);
   return (
     <div className="card">
       <div className="card-head">
@@ -36,6 +39,7 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
       </div>
       {rows.length ? (
         <table className="table">
+          {showAo ? <thead><tr><th>Item</th><th className="right">Due</th><th>Viewed by AO</th><th>Limitation</th><th>Stage</th></tr></thead> : null}
           <tbody>
             {rows.map((r) => {
               const due = describeDue(r.manual_due_date ?? r.due_date, r.status);
@@ -45,6 +49,12 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
                     onKeyDown={(e) => { if (e.key === "Enter") navigate({ name: "item", module: r.module, id: r.id }); }}>
                   <td className="wrap">{r.title}<div className="sub">{r.type_label}{r.section ? ` · ${r.section}` : ""}{r.assessment_year ? ` · AY ${r.assessment_year}` : ""}</div></td>
                   <td className="right"><DueText due={due} /></td>
+                  {showAo ? (
+                    <>
+                      <td><AoViewedPill isAssessment={r.is_assessment} aoViewedOn={r.ao_viewed_on} responseFiled={r.response_filed} /></td>
+                      <td><LimitationCell isAssessment={r.is_assessment} date={r.limitation_date} /></td>
+                    </>
+                  ) : null}
                   <td><StatusPill status={r.status} /> <PendingDocs count={r.pending_documents} /></td>
                 </tr>
               );

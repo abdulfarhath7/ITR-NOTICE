@@ -495,7 +495,9 @@ export interface IngestionJob {
 }
 
 export type UpdateGroup = "new_notice" | "due_changed" | "response_filed" | "closed" | "demand_changed" | "sync_failed"
-  | "history_fetched";
+  | "history_fetched"
+  /** docs/18 §3.4: ao_viewed (filed_on = viewed date, reason = first seen); limitation_changed (old/new, reason = source) */
+  | "ao_viewed" | "limitation_changed";
 
 /** One change since the previous sync (docs/16 §4). */
 export interface UpdateEntry {

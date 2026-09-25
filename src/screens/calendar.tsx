@@ -7,7 +7,8 @@ import { useClients } from "../hooks/use-clients";
 import { useWorkItems } from "../hooks/use-work-items";
 import { ATTENTION_SCREEN, DEFAULT_FILTERS, type AttentionFilters } from "../lib/attention-filters";
 import { effectiveDue, inWindow, windowLabel, WINDOW_DAYS } from "../lib/windows";
-import { MONTH_NAMES, WEEKDAYS, addDays, dayTone, groupByDay, monthGrid, type DayField } from "../lib/calendar";
+import { MONTH_NAMES, WEEKDAYS, addDays, dayTone, groupByDay, limitationByDay, monthGrid, type DayField } from "../lib/calendar";
+import { LimitationCell } from "../ui/ao-cells";
 import { dayNumber, parseDate, toIso, todayIst, type Ymd } from "../lib/dates";
 import { describeDueShort } from "../lib/due";
 import { MODULE_LABEL, plural } from "../lib/labels";
@@ -24,14 +25,29 @@ import { Page, PageBody, PageHead } from "../ui/page";
 import PendingDocs, { pendingOf } from "../ui/pending-docs";
 import { StatusPill } from "../ui/pill";
 
-function DayList({ rows, field, today, listRef }: {
-  rows: WorkItemRow[]; field: DayField; today: Ymd; listRef: React.RefObject<HTMLDivElement>;
+function DayList({ rows, limits, field, today, listRef }: {
+  rows: WorkItemRow[]; limits: WorkItemRow[]; field: DayField; today: Ymd; listRef: React.RefObject<HTMLDivElement>;
 }) {
-  if (!rows.length) {
+  if (!rows.length && !limits.length) {
     return <div className="cal-list" ref={listRef} tabIndex={-1}><p className="muted cal-list-empty">Nothing open on this day.</p></div>;
   }
   return (
     <div className="cal-list" ref={listRef} tabIndex={-1} role="list">
+      {limits.map((r) => (
+        <div key={`lim:${r.id}`} className="cal-item" role="listitem">
+          <div className="cal-item-client">
+            <span>{r.client_name}</span>
+            <span className="sub mono">{[r.client_code, r.pan_masked].filter(Boolean).join(" · ")}</span>
+          </div>
+          <span className="pill-with-mark"><span className="pill accent">Limitation</span><span className="sub"> {sectionLabel(r)}</span></span>
+          <span className="cal-item-when"><LimitationCell isAssessment date={r.limitation_date} today={today} /></span>
+          <Avatar name={r.assignee} />
+          <span className="cal-item-stage">
+            <span className="cal-item-pill"><StatusPill status={r.status} /></span>
+            <a className="btn small cal-item-view" href={href({ name: "item", module: r.module, id: r.id })}>View</a>
+          </span>
+        </div>
+      ))}
       {rows.map((r) => {
         const due = describeDueShort(effectiveDue(r), r.status, today);
         return (
@@ -66,6 +82,7 @@ export default function CalendarScreen() {
   const q = useWorkItems({ client_ids: filters.clientId ? [filters.clientId] : null, module: filters.module || null });
 
   const byDay = useMemo(() => groupByDay(q.data ?? [], field), [q.data, field]);
+  const limByDay = useMemo(() => (field === "due" ? limitationByDay(q.data ?? []) : new Map<string, WorkItemRow[]>()), [q.data, field]);
   // docs/18 §2: the same cumulative windows as Attention, from one helper.
   const nextCounts = useMemo(() => WINDOW_DAYS.map((n) => [n, (q.data ?? []).filter((r) => inWindow(r, "due", n, today)).length] as const), [q.data, today]);
   const openWindow = (n: number) => {
@@ -76,6 +93,7 @@ export default function CalendarScreen() {
   const weeks = useMemo(() => monthGrid(month.y, month.m), [month]);
   const selectedIso = toIso(selected);
   const dayRows = byDay.get(selectedIso) ?? [];
+  const dayLimits = limByDay.get(selectedIso) ?? [];
 
   const select = useCallback((d: Ymd) => {
     setSelected(d);
@@ -152,13 +170,15 @@ export default function CalendarScreen() {
               <div key={week[0].iso} className="cal-row" role="row">
                 {week.map((day) => {
                   const n = byDay.get(day.iso)?.length ?? 0;
+                  const l = limByDay.get(day.iso)?.length ?? 0;
                   const tone = field === "due" ? dayTone(day.date, today) : "normal";
                   return (
                     <button key={day.iso} type="button" role="gridcell" aria-selected={day.iso === selectedIso}
                             className={`cal-day${day.outside ? " outside" : ""}${isToday(day.date) ? " today" : ""}`}
-                            onClick={() => select(day.date)} aria-label={`${day.iso}${n ? `, ${n} open` : ""}`}>
+                            onClick={() => select(day.date)} aria-label={`${day.iso}${n ? `, ${n} open` : ""}${l ? `, ${l} limitation` : ""}`}>
                       <span className="cal-date">{day.date.d}</span>
                       {n ? <span className={`pill ${tone} cal-count`}>{n}</span> : null}
+                      {l ? <span className="pill accent cal-count cal-lim" title="Limitation dates">{l}</span> : null}
                     </button>
                   );
                 })}
@@ -168,10 +188,10 @@ export default function CalendarScreen() {
         )}
 
         <div className="card">
-          <div className="card-head"><h2>{isToday(selected) ? "Today" : `${selected.d} ${MONTH_NAMES[selected.m - 1]}`}</h2><span className="meta">{plural(dayRows.length, "open item")}</span></div>
+          <div className="card-head"><h2>{isToday(selected) ? "Today" : `${selected.d} ${MONTH_NAMES[selected.m - 1]}`}</h2><span className="meta">{plural(dayRows.length, "open item")}{dayLimits.length ? ` · ${plural(dayLimits.length, "limitation date")}` : ""}</span></div>
           {q.loading && !q.data ? <div className="loading">Loading</div>
             : !q.data?.length ? <EmptyState title="Nothing to show yet." body="Open items appear on their due dates once a sweep has run." />
-            : <DayList rows={dayRows} field={field} today={today} listRef={listRef} />}
+            : <DayList rows={dayRows} limits={dayLimits} field={field} today={today} listRef={listRef} />}
         </div>
       </PageBody>
       {exporting ? (

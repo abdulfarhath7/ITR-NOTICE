@@ -19,6 +19,7 @@ import EmptyState from "./empty-state";
 import Gap from "./gap";
 import Icon from "./icons";
 import { StatusPill } from "./pill";
+import { LimitationCell } from "./ao-cells";
 
 type Docs = ReturnType<typeof useDocuments>;
 
@@ -157,7 +158,7 @@ function CommCard({ c, effective, due, h }: { c: CommunicationView; effective: s
   );
 }
 
-function ResponseCard({ r, seen }: { r: ResponseRow; seen: boolean }) {
+function ResponseCard({ r, seen, comm }: { r: ResponseRow; seen: boolean; comm?: CommunicationView }) {
   const [open, setOpen] = useState(false);
   return (
     <article className="tf-card">
@@ -166,6 +167,15 @@ function ResponseCard({ r, seen }: { r: ResponseRow; seen: boolean }) {
         <span className="meta num"><DateCell iso={r.filed_on} /></span>
         <Ticks seen={seen} />
       </CardHead>
+      {seen && comm ? (
+        // docs/18 §3.3: the AO-viewed event, dated by the portal, with the
+        // sweep that first noticed it.
+        <div className="tf-event">
+          <span className="pill success">Reply viewed by AO</span>
+          <span className="meta num"><DateCell iso={comm.ao_viewed_on} /></span>
+          {comm.ao_viewed_first_seen_at ? <span className="tf-event-sub">detected by sweep, first seen {comm.ao_viewed_first_seen_at.slice(0, 10)}</span> : null}
+        </div>
+      ) : null}
       {open ? (
         <div className="tf-body">
           <dl className="kv">
@@ -230,7 +240,7 @@ function BranchPassing({ row }: { row: FlowRow }) {
 function RightHalf({ row, h }: { row: PairRow; h: Handlers }) {
   if (row.responses.length) {
     const seen = !!row.comm.ao_viewed_on;
-    return <>{row.responses.map((r) => <ResponseCard key={r.id} r={r} seen={seen} />)}</>;
+    return <>{row.responses.map((r) => <ResponseCard key={r.id} r={r} seen={seen} comm={row.comm} />)}</>;
   }
   return row.slot ? <EmptySlot row={row} h={h} /> : null;
 }
@@ -411,8 +421,15 @@ export default function ThreadFlow(props: Handlers) {
       <div className="tf-lane-heads" aria-hidden="true"><span>Department</span><span /><span>Firm</span></div>
       <div className="tf-lanes">
         {rows.map((r) => <ThreadRow key={r.key} row={r} h={props} fold={folds.get(r.key)} onToggleRepeat={toggle} />)}
-        <div className="tf-end" aria-hidden="true">
+        <div className="tf-end" aria-hidden={p.status === "closed" || !p.is_assessment}>
           <span className="tf-spine"><SpineNode shape={p.status === "closed" ? "square" : "cap"} y={8} tone="idle" /></span>
+          {p.status !== "closed" && p.is_assessment ? (
+            // docs/18 §3.3: the trailing grey event carries the limitation date.
+            <span className="tf-right tf-trail">
+              <span className="pill">Awaiting order or next notice</span>
+              <span className="meta">Limitation </span><LimitationCell isAssessment date={p.limitation_date} />
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

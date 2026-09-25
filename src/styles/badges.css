@@ -30,3 +30,15 @@
 .settings-inline { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .settings-readonly { color: var(--text); }
 .upd-row .upd-span { grid-column: 1 / 4; }
+
+/* Viewed by AO and Limitation cells (docs/18 §3.3) */
+.ao-dash { display: inline-block; min-width: 1rem; text-align: center; }
+.ao-pill { white-space: nowrap; }
+.lim-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tf-event { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.375rem 0.75rem 0.5rem; border-top: 1px dashed var(--border); }
+.tf-event-sub { width: 100%; font-size: 0.6875rem; line-height: 1rem; color: var(--text-muted); }
+.tf-end .tf-trail { grid-column: 3; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding-left: 0.5rem; font-size: 0.75rem; }
+.tf-end:has(.tf-trail) { height: auto; min-height: 16px; padding-bottom: 0.25rem; }
+.att-type-menu { min-width: 12rem; padding: 0.25rem; }
+.att-type-menu label.check { display: flex; align-items: center; gap: 0.5rem; height: 1.75rem; padding: 0 0.5rem; font-size: 0.75rem; cursor: pointer; }
+.cal-lim { margin-left: 0.125rem; }
