@@ -29,6 +29,21 @@ pub struct Client {
     pub sync_enabled: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// Migration 0022 (docs/17 §2.4, §2.5, §6.2); same skip-when-unset rule.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_depth: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_fetched_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cadence_tier: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cadence_pinned: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_swept_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_pause_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,7 +216,12 @@ pub struct IngestionRun {
     pub status: String,
     pub notes: Option<String>,
     pub created_at: String,
+    /// `sweep` | `deep` | `item` (migration 0022, docs/17 §1).
+    #[serde(default = "default_run_scope")]
+    pub scope: String,
 }
+
+fn default_run_scope() -> String { "sweep".into() }
 
 /// The status state machine (docs/02-data-model.md). Stored as text; this
 /// enum is the one place the allowed set is spelled out in Rust.

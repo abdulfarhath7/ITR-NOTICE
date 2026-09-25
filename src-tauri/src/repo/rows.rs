@@ -17,7 +17,7 @@ pub const SYNCED_TABLES: &[&str] = &[
 /// Local tables written through the same function for uniformity, never
 /// ledgered.
 pub const LOCAL_TABLES: &[&str] = &["ingestion_runs", "document_blobs", "local_kv", "ingestion_sweeps", "ingestion_jobs",
-                                      "session_locks", "ledger", "ledger_received", "sync_cursors", "entity_versions"];
+                                      "session_locks", "ledger", "ledger_received", "probe_state", "deep_fetch_requests", "sync_cursors", "entity_versions"];
 
 /// How a write arrived. A local write appends to this device's ledger
 /// stream; a replay of another device's entry does not (it already is one).

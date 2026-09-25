@@ -8,7 +8,7 @@ use crate::ingest::runner::{RunHandle, Runner};
 use crate::ingest::state::{self, IngestionState, Shared};
 use crate::repo::model::IngestionRun;
 use crate::repo::cadence::{self, Cadences};
-use crate::repo::queue::{self, Job, Scope, Sweep};
+use crate::repo::queue::{self, Job, Scope, Sweep, SweepScope};
 use crate::repo::{local, runs};
 use crate::AppState;
 use serde::Serialize;
@@ -36,7 +36,7 @@ pub struct StateView {
     pub last_run_at: Option<String>,
 }
 
-fn launch(app: AppHandle, state: &AppState, sweep: Sweep, whole_book: bool) -> AppResult<String> {
+pub(crate) fn launch(app: AppHandle, state: &AppState, sweep: Sweep) -> AppResult<String> {
     let svc = &state.ingestion;
     {
         let cur = svc.current.lock().map_err(|e| AppError::state(e.to_string()))?;
@@ -47,18 +47,23 @@ fn launch(app: AppHandle, state: &AppState, sweep: Sweep, whole_book: bool) -> A
     let device_id = { let con = lock_db(state)?; queue::requeue_interrupted(&con, &sweep.id)?; local::device_id(&con)? };
     let controls = Controls::default();
     let sidecar: Arc<Mutex<Option<SidecarHandle>>> = Arc::new(Mutex::new(None));
+    let runner = Runner::for_sweep(app, state.db.clone(), svc.shared.clone(), controls.clone(), sidecar.clone(),
+                                   sweep.id.clone(), device_id);
+    let kind = runner.scope.kind.as_str().to_string();
     state::update(&svc.shared, |st| {
-        *st = IngestionState { running: true, sweep_id: Some(sweep.id.clone()), phase: Some("queued".into()), ..Default::default() };
+        *st = IngestionState { running: true, sweep_id: Some(sweep.id.clone()), scope: Some(kind),
+                               phase: Some("queued".into()), ..Default::default() };
     });
     if let Ok(mut cur) = svc.current.lock() {
-        *cur = Some(RunHandle { sweep_id: sweep.id.clone(), controls: controls.clone(), sidecar: sidecar.clone() });
+        *cur = Some(RunHandle { sweep_id: sweep.id.clone(), controls, sidecar });
     }
-    let runner = Runner {
-        app, db: state.db.clone(), shared: svc.shared.clone(), controls, sidecar,
-        sweep_id: sweep.id.clone(), device_id, whole_book,
-    };
     tauri::async_runtime::spawn(runner.run());
     Ok(sweep.id)
+}
+
+/// Is a run in flight on this device?
+pub fn busy(state: &AppState) -> bool {
+    state::snapshot(&state.ingestion.shared).running
 }
 
 /// OS notification for the moments a run needs a person or has finished;
@@ -84,6 +89,13 @@ pub fn start_ingestion_run(app: AppHandle, state: State<AppState>, scope: Scope,
 /// The same entry point the scheduler uses.
 pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: bool,
                     only: Option<Vec<String>>) -> AppResult<String> {
+    launch_sweep(app, state, scope, all_now, only, false)
+}
+
+/// `scheduled` runs keep to the run window and carry the overnight
+/// pipeline (docs/17 §2).
+pub fn launch_sweep(app: AppHandle, state: &AppState, scope: Scope, all_now: bool,
+                    only: Option<Vec<String>>, scheduled: bool) -> AppResult<String> {
     let sweep = {
         let con = lock_db(state)?;
         let device_id = local::device_id(&con)?;
@@ -111,10 +123,11 @@ pub fn launch_scope(app: AppHandle, state: &AppState, scope: Scope, all_now: boo
             return Err(AppError::state("no module selected, or none of the selected modules is due yet"));
         }
         let refs: Vec<&str> = modules.iter().map(String::as_str).collect();
-        queue::create_sweep(&con, &device_id, &scope, &refs)?
+        let mut sc = SweepScope::sweep(scope);
+        sc.scheduled = scheduled;
+        queue::create_sweep_scoped(&con, &device_id, &sc, &refs)?
     };
-    let whole_book = !matches!(scope, Scope::Client { .. });
-    launch(app, state, sweep, whole_book)
+    launch(app, state, sweep)
 }
 
 #[tauri::command]
@@ -156,8 +169,7 @@ pub fn resume_ingestion_sweep(app: AppHandle, state: State<AppState>, sweep_id: 
         queue::set_sweep_status(&con, &sweep_id, "running")?;
         s
     };
-    let whole_book = !sweep.scope.contains("\"client\"");
-    launch(app, &state, sweep, whole_book)
+    launch(app, &state, sweep)
 }
 
 /// A portal client refreshes locally on any device. An ERI client's signing

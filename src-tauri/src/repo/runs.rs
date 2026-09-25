@@ -12,6 +12,7 @@ pub fn from_row(r: &Row) -> rusqlite::Result<IngestionRun> {
         client_id: r.get("client_id")?, module: r.get("module")?, panel_swept: r.get("panel_swept")?,
         records_found: r.get("records_found")?, gaps: r.get("gaps")?, operator: r.get("operator")?,
         status: r.get("status")?, notes: r.get("notes")?, created_at: r.get("created_at")?,
+        scope: r.get::<_, Option<String>>("scope").unwrap_or(None).unwrap_or_else(|| "sweep".into()),
     })
 }
 

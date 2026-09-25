@@ -382,3 +382,19 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** one settings default.
 - **Answer:**
 - **Resolved:** no
+
+### Q47 — Probe: skip clients with open items, or only clients without
+- **Context:** docs/17 §2.2 assumes listing rows carry a notice's DIN, due date and reply state. On the portal those sit on the notice cards one level down. Hashing only the listing would miss a moved due date.
+- **Options:** A probe and skip only logins with no open items; always walk logins with open items / B also drill into each open proceeding's notices during the probe (slower probe, more skips)
+- **Default used:** A. It can never hide a change on an open item, and open items are re-read nightly anyway (§2.3).
+- **Blast radius:** one condition in `Runner::probe`; B also adds a notice-level pass to `sidecar/ingest/probe.py`.
+- **Answer:**
+- **Resolved:** no
+
+### Q48 — "Last N assessment years" counting
+- **Context:** docs/17 §2.4 and §6.3. "Latest N AYs" needs a starting AY.
+- **Options:** A count back from the AY filed this financial year (Sept 2026: AY 2026-27, 2025-26 for N = 2) / B count back from the newest AY the client already has stored
+- **Default used:** A. It is stable and does not depend on what an earlier sweep happened to store.
+- **Blast radius:** `decide::latest_ay_start`.
+- **Answer:**
+- **Resolved:** no

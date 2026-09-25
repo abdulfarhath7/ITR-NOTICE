@@ -113,6 +113,11 @@ pub fn run() {
             commands::ingestion::get_ingestion_state, commands::ingestion::submit_login_challenge,
             commands::ingestion::set_ingestion_pace, commands::ingestion::list_ingestion_jobs,
             commands::ingestion::list_ingestion_runs, commands::ingestion::get_sync_line, commands::ingestion::list_updates,
+            commands::scopes::request_deep_fetch, commands::scopes::cancel_deep_fetch, commands::scopes::retry_deep_fetch,
+            commands::scopes::list_deep_fetch_requests, commands::scopes::fetch_item, commands::scopes::sweep_estimate,
+            commands::scopes::deep_estimate, commands::scopes::get_sweep_settings, commands::scopes::set_sweep_settings,
+            commands::scopes::set_client_sync, commands::scopes::pin_client_cadence, commands::scopes::get_sync_overview,
+            commands::scopes::get_last_sweep_summary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the desktop app");

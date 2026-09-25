@@ -65,6 +65,9 @@ pub struct PortalSource {
     events: mpsc::UnboundedReceiver<Value>,
     logged_in: bool,
     controls: Controls,
+    /// The sidecar's `ready.protocol`: 2 knows nothing of probe or index.
+    protocol: i64,
+    target: Option<ProceedingTarget>,
 }
 
 fn exe_name() -> &'static str {
@@ -99,7 +102,7 @@ fn locate<R: tauri::Runtime>(app: &AppHandle<R>) -> Result<PathBuf, SourceError>
 }
 
 impl PortalSource {
-    pub async fn spawn<R: tauri::Runtime>(app: AppHandle<R>, controls: Controls) -> Result<Self, SourceError> {
+    pub async fn spawn<R: tauri::Runtime>(app: AppHandle<R>, controls: Controls, scope: &'static str) -> Result<Self, SourceError> {
         let exe = locate(&app)?;
         let data_dir = app.path().app_data_dir().map_err(|e| SourceError::Other(e.to_string()))?;
         std::fs::create_dir_all(&data_dir).map_err(|e| SourceError::Other(e.to_string()))?;
@@ -131,9 +134,9 @@ impl PortalSource {
                     Err(_) => json!({"ev": "log", "level": "warn", "msg": line}),
                 };
                 match ev.get("ev").and_then(Value::as_str) {
-                    Some("viewport") => { let _ = app2.emit("ingestion", json!({"ev": "viewport", "img": ev["img"]})); }
-                    Some("log") => { let _ = app2.emit("ingestion", json!({"ev": "log", "level": ev["level"], "msg": ev["msg"]})); }
-                    Some("progress") => { let _ = app2.emit("ingestion", json!({"ev": "progress", "data": ev})); }
+                    Some("viewport") => { let _ = app2.emit("ingestion", json!({"ev": "viewport", "img": ev["img"], "scope": scope})); }
+                    Some("log") => { let _ = app2.emit("ingestion", json!({"ev": "log", "level": ev["level"], "msg": ev["msg"], "scope": scope})); }
+                    Some("progress") => { let _ = app2.emit("ingestion", json!({"ev": "progress", "data": ev, "scope": scope})); }
                     _ => {}
                 }
                 if tx.send(ev).is_err() { break; }
@@ -145,16 +148,21 @@ impl PortalSource {
         tauri::async_runtime::spawn(async move {
             let mut lines = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let _ = app3.emit("ingestion", json!({"ev": "log", "level": "error", "msg": format!("! {line}")}));
+                let _ = app3.emit("ingestion", json!({"ev": "log", "level": "error", "msg": format!("! {line}"), "scope": scope}));
             }
         });
 
         let handle = SidecarHandle { stdin: Arc::new(Mutex::new(stdin)) };
-        let mut source = PortalSource { child, handle, events: rx, logged_in: false, controls };
-        // wait for ready
+        let mut source = PortalSource { child, handle, events: rx, logged_in: false, controls, protocol: 2, target: None };
+        // wait for ready; v2 and v3 are both spoken, and the log says which
         loop {
             match source.events.recv().await {
-                Some(ev) if ev["ev"] == "ready" => break,
+                Some(ev) if ev["ev"] == "ready" => {
+                    source.protocol = ev["protocol"].as_i64().unwrap_or(2);
+                    let _ = app.emit("ingestion", json!({"ev": "log", "level": "info",
+                        "msg": format!("sidecar protocol v{}", source.protocol), "scope": scope}));
+                    break;
+                }
                 Some(ev) if ev["ev"] == "exited" => return Err(SourceError::Other("sidecar exited before it was ready".into())),
                 Some(_) => continue,
                 None => return Err(SourceError::Other("sidecar closed its output".into())),
@@ -212,7 +220,8 @@ impl NoticeSource for PortalSource {
             if !self.logged_in {
                 return Err(SourceError::SessionLost("not logged in".into()));
             }
-            self.handle.send(json!({"cmd": "list", "panel": panel, "module": _module.as_str()})).await?;
+            let target = if self.protocol >= 3 { self.target.as_ref().map(|t| json!(t)) } else { None };
+            self.handle.send(json!({"cmd": "list", "panel": panel, "module": _module.as_str(), "target": target})).await?;
             let mut missing = false;
             let mut missing_note: Option<String> = None;
             loop {
@@ -224,7 +233,13 @@ impl NoticeSource for PortalSource {
                         let mut verdict = sink.on_header(&header);
                         self.controls.wait_while_paused().await;
                         if self.controls.stopping() { verdict = Verdict::Stop; }
-                        let action = match verdict { Verdict::Skip => "skip", Verdict::Fetch => "fetch", Verdict::Stop => "stop" };
+                        let action = match verdict {
+                            Verdict::Skip => "skip",
+                            // A v2 sidecar has no index; skip is the same on the
+                            // portal, and the runner has already recorded the row.
+                            Verdict::Index => if self.protocol >= 3 { "index" } else { "skip" },
+                            Verdict::Fetch => "fetch", Verdict::Stop => "stop",
+                        };
                         self.handle.send(json!({"cmd": "next", "action": action})).await?;
                     }
                     Some("item") => {
@@ -300,5 +315,35 @@ impl NoticeSource for PortalSource {
 
     fn health(&self) -> SourceHealth {
         if self.logged_in { SourceHealth::Ok } else { SourceHealth::Degraded }
+    }
+
+    fn probe<'a>(&'a mut self, _module: Module, panel: &'a str, pages: u32)
+        -> BoxFuture<'a, Result<ProbeResult, SourceError>> {
+        Box::pin(async move {
+            if self.protocol < 3 { return Err(SourceError::Other("the sidecar speaks v2 and cannot probe".into())); }
+            if !self.logged_in { return Err(SourceError::SessionLost("not logged in".into())); }
+            self.handle.send(json!({"cmd": "probe", "panel": panel, "pages": pages})).await?;
+            loop {
+                let ev = self.next_event().await?;
+                match ev["ev"].as_str() {
+                    Some("probe_done") => return Ok(ProbeResult {
+                        panel: s(&ev["panel"]), list_hash: ev["list_hash"].as_str().map(str::to_string),
+                        rows: ev["rows"].as_i64().unwrap_or(0),
+                    }),
+                    Some("error") => {
+                        let msg = s(&ev["msg"]);
+                        return match ev["kind"].as_str() {
+                            Some("not_logged_in") => { self.logged_in = false; Err(SourceError::SessionLost(msg)) }
+                            _ => Err(SourceError::Other(msg)),
+                        };
+                    }
+                    _ => {}
+                }
+            }
+        })
+    }
+
+    fn set_target(&mut self, target: Option<ProceedingTarget>) {
+        self.target = target;
     }
 }

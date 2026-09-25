@@ -98,9 +98,28 @@ pub struct PanelResult {
     pub missing: bool,
 }
 
-/// The runner's answer to each header.
+/// The runner's answer to each header. `Index` records the header and
+/// leaves the document on the portal (docs/17 §2.3); the engine answers it
+/// with an item whose bytes are empty.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Verdict { Skip, Fetch, Stop }
+pub enum Verdict { Skip, Index, Fetch, Stop }
+
+/// One panel's probe answer (docs/17 §2.2). `list_hash` is `None` when the
+/// probe failed, which the runner treats as "changed".
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProbeResult {
+    pub panel: String,
+    pub list_hash: Option<String>,
+    pub rows: i64,
+}
+
+/// The one proceeding an item fetch walks to (docs/17 §3): the engine
+/// opens only the card whose name and AY match.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProceedingTarget {
+    pub proceeding_name: Option<String>,
+    pub assessment_year: Option<String>,
+}
 
 /// Part of the docs/06 contract (task 4.1); nothing displays it until the
 /// ERI engine lands, so the lint is silenced here rather than the trait
@@ -121,6 +140,13 @@ pub enum SourceError {
     SessionLost(String),
     #[error("source not configured: {0}")]
     NotConfigured(String),
+    /// The run window closed between panels (docs/17 §2.7): the cursor is
+    /// saved and the job resumes next night. Never a failure.
+    #[error("window closed")]
+    WindowClosed,
+    /// The per-client timeout (docs/17 §2.7): incomplete, cursor saved.
+    #[error("timed out after {0} min")]
+    TimedOut(u32),
     #[error("{0}")]
     Other(String),
 }
@@ -148,4 +174,14 @@ pub trait NoticeSource: Send {
         -> BoxFuture<'a, Result<Option<WorkItemDetail>, SourceError>>;
     fn logout<'a>(&'a mut self) -> BoxFuture<'a, ()>;
     fn health(&self) -> SourceHealth;
+
+    /// Hash a panel's first `pages` pages of listing. An engine that cannot
+    /// probe answers an error, which the runner reads as "changed".
+    fn probe<'a>(&'a mut self, _module: Module, panel: &'a str, _pages: u32)
+        -> BoxFuture<'a, Result<ProbeResult, SourceError>> {
+        Box::pin(async move { Err(SourceError::Other(format!("this engine cannot probe {panel}"))) })
+    }
+
+    /// Narrow the next listings to one proceeding (item fetch), or clear it.
+    fn set_target(&mut self, _target: Option<ProceedingTarget>) {}
 }

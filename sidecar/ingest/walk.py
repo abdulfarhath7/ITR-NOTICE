@@ -64,55 +64,71 @@ async def _raw(locator: Any) -> dict[str, Any]:
     return data
 
 
-async def list_panel(session: IngestSession, relay: Relay, panel: str) -> None:
-    """Walk one panel. Emits headers, honours verdicts, ends with panel_done."""
-    page = session.page
-    if page is None:
-        raise RuntimeError("browser not started")
-    tab_key, sub_key = split_panel(panel)
-    stats = PanelStats(panel)
+def _matches(proceeding: dict[str, Any], target: dict[str, Any] | None) -> bool:
+    """An item fetch walks one proceeding: name and AY must both agree."""
+    if not target:
+        return True
+    def norm(v: Any) -> str:
+        return re.sub(r"\s+", " ", str(v or "")).strip().lower()
+    return (norm(proceeding.get("proceeding_name")) == norm(target.get("proceeding_name"))
+            and norm(proceeding.get("assessment_year")) == norm(target.get("assessment_year")))
 
+
+async def open_panel(session: IngestSession, relay: Relay, panel: str, stats: "PanelStats") -> int | None:
+    """Reach the panel's list. Returns its item count, or None when the
+    panel is absent (already reported through `stats`)."""
+    page = session.page
+    assert page is not None
+    tab_key, sub_key = split_panel(panel)
     await session.ensure_alive()
     if not await _goto_list(page, relay):
         stats.note = "the e-Proceedings list never rendered"
         emit("panel_missing", panel=panel, msg=stats.note)
         log(f"{stats.note}; visible controls: {await _visible_button_names(page)}", "warn")
-        stats.done()
-        return
-
+        return None
     tab = await _find_tab(page, TABS[tab_key])
     if not tab:
         # Zero is a finding: the panel is recorded as absent, never skipped.
         stats.note = f"tab '{TABS[tab_key]}' is not on this account"
         emit("panel_missing", panel=panel, msg=stats.note)
-        stats.done()
-        return
+        return None
     await _safe_click(page, tab, TABS[tab_key], relay)
     await page.wait_for_timeout(1500)
     await _wait_for_list(page)
-
     sub = page.get_by_role("tab", name=SUB_TABS[sub_key], exact=False).first
     if not await sub.count():
         stats.note = f"sub-tab '{SUB_TABS[sub_key]}' is not shown"
         emit("panel_missing", panel=panel, msg=stats.note)
-        stats.done()
-        return
+        return None
     count = _count_from_label(await sub.inner_text())
     await _safe_click(page, sub, SUB_TABS[sub_key], relay)
     await page.wait_for_timeout(1500)
     log(f"{TABS[tab_key]} / {SUB_TABS[sub_key]}: {count} item(s)")
-    if count == 0:
+    return count
+
+
+async def list_panel(session: IngestSession, relay: Relay, panel: str,
+                     target: dict[str, Any] | None = None) -> None:
+    """Walk one panel. Emits headers, honours verdicts, ends with panel_done.
+    With a `target`, only that proceeding is opened (item fetch)."""
+    page = session.page
+    if page is None:
+        raise RuntimeError("browser not started")
+    tab_key, sub_key = split_panel(panel)
+    stats = PanelStats(panel)
+    count = await open_panel(session, relay, panel, stats)
+    if not count:
         stats.done()
         return
 
     await _set_page_size_max(page, relay)
-    stop = await _walk_pages(session, relay, tab_key, sub_key, stats)
+    stop = await _walk_pages(session, relay, tab_key, sub_key, stats, target)
     stats.stopped_early = stop
     stats.done()
 
 
 async def _walk_pages(session: IngestSession, relay: Relay, tab_key: str, sub_key: str,
-                      stats: PanelStats) -> bool:
+                      stats: PanelStats, target: dict[str, Any] | None = None) -> bool:
     page = session.page
     assert page is not None
     seen_pages = 0
@@ -127,6 +143,8 @@ async def _walk_pages(session: IngestSession, relay: Relay, tab_key: str, sub_ke
                 break
             await session.pace()
             proceeding, conf = parse_proceeding(await _raw(card), tab_key, sub_key)
+            if not _matches(proceeding, target):
+                continue
             stats.cards += 1
             emit("progress", kind="walk", panel=stats.panel, card=i + 1, of=total,
                  name=proceeding.get("proceeding_name") or "")
@@ -140,6 +158,9 @@ async def _walk_pages(session: IngestSession, relay: Relay, tab_key: str, sub_ke
                 continue
             if await _collect_notices(session, relay, i, proceeding, conf, stats):
                 return True
+            if target:
+                # The one proceeding an item fetch came for is done.
+                return False
         if not await _next_page(page):
             return False
         seen_pages += 1
@@ -183,6 +204,13 @@ async def _collect_notices(session: IngestSession, relay: Relay, card_index: int
         if action == "stop":
             stop = True
             break
+        if action == "index":
+            # Record only (docs/17 §2.3): the document stays on the portal
+            # until someone opens the item.
+            stats.skipped += 1
+            emit("item", reference_id=notice["reference_id"], pdf_b64=None,
+                 filename=f"{notice['reference_id']}.pdf", note=None, indexed=True)
+            continue
         if action != "fetch":
             stats.skipped += 1
             continue

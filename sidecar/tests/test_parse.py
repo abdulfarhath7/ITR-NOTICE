@@ -60,3 +60,15 @@ def test_notice_card_anchors_reference_din_and_dates() -> None:
     assert n["has_pdf_button"] is True
     assert conf["reference_id"] == "high" and conf["din"] == "high" and conf["issued_on"] == "high"
     assert conf["response_due_date"] == "missing"
+
+
+def test_probe_hash_is_stable_and_moves_with_a_status() -> None:
+    """Task 23.3: the probe's list hash is a function of portal row content."""
+    from ingest.probe import list_hash, row_hash
+    raws = asyncio.run(_cards("proceeding-cards.html", "div.card-container.matCardRow"))
+    rows = [parse_proceeding(r, "self", "action")[0] for r in raws]
+    first = list_hash([row_hash(r) for r in rows])
+    again = list_hash([row_hash(parse_proceeding(r, "self", "action")[0]) for r in raws])
+    assert first == again
+    changed = [dict(rows[0], status="Closed"), rows[1]]
+    assert list_hash([row_hash(r) for r in changed]) != first

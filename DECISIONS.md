@@ -537,3 +537,51 @@ applied foreign entry in the apply transaction. A non-sweeping device
 infers sweeps from received sweep-source entries separated by more than
 30 minutes. Failed runs are still local to the collector.
 Reversible: yes; the table can be dropped with no effect on sync.
+
+## D-050 — The probe skips only logins with no open items (Q47)
+Date: 2026-09-25
+Context: docs/17 §2.2 hashes each listed row's `din + status + due_date + gap_flags`. An e-Proceedings listing card shows no DIN, due date or reply state. Those live one level down, on the notice cards. A hash built from listing cards alone would miss a changed due date on an open notice.
+Decision: the sidecar hashes the listing cards' parsed fields. It hashes only portal content, never anything the tool computes. The runner probes a login, and may skip it, only when that login has no open proceedings. A login with open items is always walked in full. The early-stop streak keeps that walk short.
+Reversible: yes. One condition in `Runner::probe`.
+
+## D-051 — Out-of-window rows do not feed the streak on "For your action" panels
+Date: 2026-09-25
+Context: §2.3 skips new rows older than `lookback_days` and keeps the ten-row early stop. Newest-first listings would stop quickly on old rows. That could cut off a stored open item listed after them.
+Decision: on `:information` panels and module lists, an out-of-window row counts toward the streak. On `:action` panels it does not, so every open item there is re-read each night.
+Reversible: easily.
+
+## D-052 — The run window binds scheduled runs only
+Date: 2026-09-25
+Context: §2.7 sets a 01:00–06:00 window. A person pressing `Sweep all now` at 11:00 is outside it.
+Decision: `SweepScope.scheduled` marks scheduler-started sweeps. Only those stop at `run_window_end`, drain `tonight` deep requests and warm the cache. Manual runs have no window. The per-client timeout applies to every sweep-kind run.
+Reversible: easily.
+
+## D-053 — A changed row never demotes a stored document
+Date: 2026-09-25
+Context: §2.3 says a changed row marks its documents `pending`. A due date moved by an adjournment does not change the notice PDF already stored.
+Decision: `Index` records the header. It creates a `pending` document only where none is `stored`.
+Reversible: yes.
+
+## D-054 — "History fetched" is the client's own ledger entry
+Date: 2026-09-25
+Context: §2.4 asks for a `history_fetched` ledger entry. Ledger entries are table upserts, and another device rejects an unknown entity type on apply.
+Decision: finishing a deep fetch writes `history_depth`, `history_fetched_at` and `history_note` to the client, so the client row carries it. Updates classifies a clients entry whose `history_fetched_at` moved as `history_fetched`. The item count is read at display time.
+Reversible: yes.
+
+## D-055 — "Last N assessment years" counts back from the current filing year
+Date: 2026-09-25
+Context: §2.4 depth `years` means "the latest N AYs". The portal lists AYs only as rows appear.
+Decision: the latest AY is the one filed in the current financial year (FY 2026-27 files AY 2026-27). A row is inside when its AY start year is at least latest − N + 1. A blank AY is inside (blank beats guessed).
+Reversible: easily. `decide::latest_ay_start`.
+
+## D-056 — `Run now` while a run holds the session queues right after it
+Date: 2026-09-25
+Context: §2.4 says the UI reports "a sweep is running, queued for after it".
+Decision: the request keeps `mode = 'now'` and stays `queued`. Every run drains queued `now` requests when its own jobs end, whether scheduled or manual. Item fetches asked for while busy are queued the same way (`item_fetch_queue` in local_kv).
+Reversible: yes.
+
+## D-057 — Carried-over jobs move into the next scheduled sweep
+Date: 2026-09-25
+Context: §2.7: a run that stopped on the window boundary resumes next night at the same position, then re-orders.
+Decision: the next scheduled sweep puts the previous window-closed sweep's unfinished jobs first, with their cursors. The rest follows in the fresh §2.1 order. The old jobs are marked `cancelled` with the note "carried to the next run", so no job is carried twice.
+Reversible: yes.

@@ -12,6 +12,8 @@ pub struct Counts {
     pub fetched: i64,
     pub skipped: i64,
     pub changed: i64,
+    /// Headers recorded with their documents left pending (docs/17 §2.3).
+    pub indexed: i64,
     pub panels_done: i64,
 }
 
@@ -20,6 +22,8 @@ pub struct IngestionState {
     pub running: bool,
     pub paused: bool,
     pub sweep_id: Option<String>,
+    /// `sweep` | `deep` | `item` of the job in flight (docs/17 §7).
+    pub scope: Option<String>,
     pub job_id: Option<String>,
     pub current_login_ref_masked: Option<String>,
     pub current_client_id: Option<String>,

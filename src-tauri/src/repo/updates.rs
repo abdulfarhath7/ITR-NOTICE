@@ -236,6 +236,20 @@ fn classify(con: &Connection, entity_type: &str, at: &str, after: &Value, before
             e.status = new_st;
             Ok(Some(e))
         }
+        // docs/17 §2.4: a deep fetch finished — the client's history
+        // stamp moved. The count is what the client holds now.
+        "clients" => {
+            let stamp = s(after, "history_fetched_at");
+            if stamp.is_none() || stamp == before.and_then(|b| s(b, "history_fetched_at")) { return Ok(None); }
+            let Some(id) = s(after, "id") else { return Ok(None) };
+            let mut e = blank("history_fetched", at);
+            e.client_name = s(after, "name");
+            e.pan_masked = s(after, "pan").map(|p| mask::pan(&p));
+            e.new_value = Some(crate::repo::scopes::client_item_count(con, &id)?.to_string());
+            e.reason = s(after, "history_note");
+            e.client_id = Some(id);
+            Ok(Some(e))
+        }
         _ => Ok(None),
     }
 }
@@ -252,7 +266,7 @@ pub fn list(con: &Connection, since: Option<String>) -> AppResult<UpdatesReport>
                     SELECT device_id, seq, op, entity_type, entity_id, payload, created_at FROM ledger_received)
          SELECT l.entity_type, l.entity_id, l.payload, l.created_at FROM e l
          WHERE l.op = 'upsert' AND l.created_at > ?1
-           AND l.entity_type IN ('communications','proceedings','responses','demands')
+           AND l.entity_type IN ('communications','proceedings','responses','demands','clients')
            AND NOT EXISTS (SELECT 1 FROM e n WHERE n.entity_type = l.entity_type AND n.entity_id = l.entity_id
                            AND n.op = 'upsert' AND (n.created_at > l.created_at
                                 OR (n.created_at = l.created_at AND (n.device_id, n.seq) > (l.device_id, l.seq))))

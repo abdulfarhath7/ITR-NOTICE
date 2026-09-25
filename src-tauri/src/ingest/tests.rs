@@ -3,6 +3,8 @@
 //! whichever engine fetched it. A mock `NoticeSource` feeds fixed headers.
 
 use crate::ingest::portal_source::Controls;
+use crate::ingest::scheduler;
+use std::sync::atomic::{AtomicBool, Ordering};
 use crate::ingest::runner::{Runner, EARLY_STOP_STREAK};
 use crate::ingest::source::*;
 use crate::ingest::state::IngestionState;
@@ -16,7 +18,20 @@ use std::sync::{Arc, Mutex};
 
 const PAN: &str = "ABCDE1234F";
 
+/// The Build 1 tests predate scopes: they sweep with documents downloaded
+/// and a lookback wide enough for their fixed 2026 dates.
 fn db() -> Arc<Mutex<Connection>> {
+    let db = db_with_defaults();
+    {
+        let con = db.lock().unwrap();
+        let s = scheduler::Schedule { docs_policy: "download".into(), lookback_days: 3650, ..Default::default() };
+        scheduler::set(&con, &s).unwrap();
+    }
+    db
+}
+
+/// docs/17 defaults: index only, 30-day lookback.
+fn db_with_defaults() -> Arc<Mutex<Connection>> {
     let mut con = Connection::open_in_memory().unwrap();
     crate::migrate::run(&mut con).unwrap();
     clients::create_minimal(&con, PAN, Some("Example Assessee")).unwrap();
@@ -47,6 +62,8 @@ struct MockSource {
     listed: Arc<Mutex<Vec<String>>>,
     /// Raise an OTP challenge at login (task 12.4: pauses, never fails).
     challenge: bool,
+    /// Close the run window once this panel has been listed (task 23.10).
+    close_window_after: Option<(String, Arc<AtomicBool>)>,
 }
 
 impl NoticeSource for MockSource {
@@ -74,9 +91,18 @@ impl NoticeSource for MockSource {
                         sink.on_item(WorkItemDetail { reference_id: ref_id.clone(), filename: Some(format!("{ref_id}.pdf")),
                                                       pdf: Some(format!("%PDF-{ref_id}").into_bytes()), receipt: None, note: None });
                     }
+                    Verdict::Index => {
+                        // v3: the bodiless answer to `index`.
+                        let ref_id = h.notice.as_ref().unwrap()["reference_id"].as_str().unwrap().to_string();
+                        sink.on_item(WorkItemDetail { reference_id: ref_id, filename: None, pdf: None, receipt: None, note: None });
+                        skipped += 1;
+                    }
                     Verdict::Skip => skipped += 1,
                     Verdict::Stop => { stopped = true; break; }
                 }
+            }
+            if let Some((p, flag)) = &self.close_window_after {
+                if p == panel { flag.store(true, Ordering::Relaxed); }
             }
             Ok(PanelResult { panel: panel.into(), cards: headers.len() as i64, notices: headers.len() as i64,
                              fetched, skipped, stopped_early: stopped, note: None, missing: headers.is_empty() })
@@ -91,11 +117,8 @@ impl NoticeSource for MockSource {
 
 fn runner(db: &Arc<Mutex<Connection>>, sweep_id: &str) -> Runner<tauri::test::MockRuntime> {
     let app = tauri::test::mock_app();
-    Runner {
-        app: app.handle().clone(), db: db.clone(), shared: Arc::new(Mutex::new(IngestionState::default())),
-        controls: Controls::default(), sidecar: Arc::new(Mutex::new(None)), sweep_id: sweep_id.into(),
-        device_id: "dev_test".into(), whole_book: true,
-    }
+    Runner::for_sweep(app.handle().clone(), db.clone(), Arc::new(Mutex::new(IngestionState::default())),
+                      Controls::default(), Arc::new(Mutex::new(None)), sweep_id.into(), "dev_test".into())
 }
 
 fn sweep(db: &Arc<Mutex<Connection>>) -> String {
@@ -117,7 +140,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     let mut headers = HashMap::new();
     headers.insert("self:action".to_string(), twelve.clone());
     let listed = Arc::new(Mutex::new(Vec::new()));
-    let mut src = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false };
+    let mut src = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false, close_window_after: None };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await.unwrap();
     assert_eq!(count(&db, "SELECT count(*) FROM communications"), 12);
@@ -126,7 +149,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     // Second pass, nothing changed: ten known rows in a row stop the panel.
     let sweep2 = sweep(&db);
     let job2 = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep2).unwrap().unwrap() };
-    let mut src2 = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false };
+    let mut src2 = MockSource { headers: headers.clone(), fail_on: None, listed: listed.clone(), challenge: false, close_window_after: None };
     runner(&db, &sweep2).drive_for_test(&mut src2, &job2, "pw").await.unwrap();
     let run_gaps: String = db.lock().unwrap().query_row(
         "SELECT gaps FROM ingestion_runs WHERE panel_swept='self:action' ORDER BY run_at DESC LIMIT 1", [], |r| r.get(0)).unwrap();
@@ -143,7 +166,7 @@ async fn early_stop_after_ten_known_rows_and_reset_on_change() {
     headers3.insert("self:action".to_string(), changed);
     let sweep3 = sweep(&db);
     let job3 = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep3).unwrap().unwrap() };
-    let mut src3 = MockSource { headers: headers3, fail_on: None, listed: listed.clone(), challenge: false };
+    let mut src3 = MockSource { headers: headers3, fail_on: None, listed: listed.clone(), challenge: false, close_window_after: None };
     runner(&db, &sweep3).drive_for_test(&mut src3, &job3, "pw").await.unwrap();
     let run_gaps: String = db.lock().unwrap().query_row(
         "SELECT gaps FROM ingestion_runs WHERE panel_swept='self:action' ORDER BY run_at DESC LIMIT 1", [], |r| r.get(0)).unwrap();
@@ -158,7 +181,7 @@ async fn zero_result_panels_write_rows_and_gaps_stay_null() {
     let sweep_id = sweep(&db);
     let mut headers = HashMap::new();
     headers.insert("self:action".to_string(), vec![header("self:action", "Issue Letter", "100000000001", None, 0)]);
-    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: false };
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: false, close_window_after: None };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await.unwrap();
     // Six panels, six rows; five of them found nothing and say so.
@@ -181,7 +204,7 @@ async fn killed_mid_run_resumes_at_the_next_panel_without_duplicates() {
     headers.insert("other_pan:action".to_string(), vec![header("other_pan:action", "Recovery Process", "100000000002", None, 0)]);
     let listed = Arc::new(Mutex::new(Vec::new()));
     // Dies on the third panel.
-    let mut src = MockSource { headers: headers.clone(), fail_on: Some("other_pan:action".into()), listed: listed.clone(), challenge: false };
+    let mut src = MockSource { headers: headers.clone(), fail_on: Some("other_pan:action".into()), listed: listed.clone(), challenge: false, close_window_after: None };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     let err = runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await;
     assert!(err.is_err());
@@ -191,7 +214,7 @@ async fn killed_mid_run_resumes_at_the_next_panel_without_duplicates() {
 
     // Restart: continues at the third panel, lists only the remaining four.
     listed.lock().unwrap().clear();
-    let mut src2 = MockSource { headers, fail_on: None, listed: listed.clone(), challenge: false };
+    let mut src2 = MockSource { headers, fail_on: None, listed: listed.clone(), challenge: false, close_window_after: None };
     runner(&db, &sweep_id).drive_for_test(&mut src2, &job_after, "pw").await.unwrap();
     assert_eq!(*listed.lock().unwrap(), vec!["other_pan:action", "other_pan:information", "auth_rep:action", "auth_rep:information"]);
     assert_eq!(count(&db, "SELECT count(*) FROM communications"), 2);
@@ -253,7 +276,7 @@ async fn a_challenge_pauses_rather_than_fails() {
     let sweep_id = sweep(&db);
     let mut headers = HashMap::new();
     headers.insert("self:action".to_string(), vec![header("self:action", "Penalty Proceeding", "100000000001", None, 0)]);
-    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: true };
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: true, close_window_after: None };
     let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
     let r = runner(&db, &sweep_id);
     { let con = db.lock().unwrap(); queue::set_job_status(&con, &job.id, "running", None).unwrap(); }
@@ -262,4 +285,87 @@ async fn a_challenge_pauses_rather_than_fails() {
     let status: String = db.lock().unwrap().query_row("SELECT status FROM ingestion_jobs WHERE id = ?1", [&job.id], |x| x.get(0)).unwrap();
     assert_eq!(status, "awaiting_operator", "paused for a person, not failed");
     assert_eq!(count(&db, "SELECT count(*) FROM communications"), 1, "and the sweep went on after the answer");
+}
+
+fn days_ago(n: i64) -> String {
+    (scheduler::ist_now().date() - chrono::Duration::days(n)).format("%d-%b-%Y").to_string()
+}
+
+/// Task 23.7 against a fixture listing, docs/17 defaults (index only,
+/// 30-day lookback): a new row issued 45 days ago is skipped; a stored open
+/// row whose hash changed is re-indexed; a stored settled row is skipped.
+#[tokio::test]
+async fn sweep_decisions_follow_the_header_table() {
+    let db = db_with_defaults();
+    let mut old_new = header("self:action", "Penalty Proceeding", "100000000045", Some(&days_ago(-5)), 0);
+    old_new.notice.as_mut().unwrap().insert("issued_on".into(), json!(days_ago(45)));
+    let mut open = header("self:action", "Scrutiny Proceeding", "100000000002", Some(&days_ago(-3)), 0);
+    open.notice.as_mut().unwrap().insert("issued_on".into(), json!(days_ago(100)));
+    let mut settled = header("self:action", "Rectification Proceeding", "100000000003", None, 1);
+    settled.proceeding.insert("status".into(), json!("Closed"));
+    settled.notice.as_mut().unwrap().insert("issued_on".into(), json!(days_ago(200)));
+    settled.notice.as_mut().unwrap().insert("last_response_on".into(), json!(days_ago(150)));
+    {
+        // The open and the settled row were stored by an earlier sweep.
+        let con = db.lock().unwrap();
+        for h in [&open, &settled] {
+            let card = ProceedingCard {
+                tab: "self".into(), sub_tab: "action".into(), proceeding_name: h.proceeding["proceeding_name"].as_str().map(str::to_string),
+                pan: Some(PAN.into()), assessee_name: None, assessment_year: Some("2024-25".into()), financial_year: None,
+                status: h.proceeding["status"].as_str().map(str::to_string), initiated_on: Some("18-Aug-2026".into()),
+                closure_date: None, closure_order: None,
+            };
+            let n = h.notice.as_ref().unwrap();
+            let notice = NoticeCard {
+                ref_id: n["reference_id"].as_str().unwrap().into(), description: n["description"].as_str().map(str::to_string),
+                issued_on: n["issued_on"].as_str().map(str::to_string), due_date: n["response_due_date"].as_str().map(str::to_string),
+                last_response_on: n.get("last_response_on").and_then(|v| v.as_str()).map(str::to_string),
+                responded: n["responded"].as_i64(), ..Default::default()
+            };
+            intake::absorb(&con, Some(PAN), &card, Some(&notice)).unwrap();
+        }
+    }
+    // Tonight the open row's due date moved.
+    let mut open_changed = open.clone();
+    open_changed.notice.as_mut().unwrap().insert("response_due_date".into(), json!(days_ago(-20)));
+    let mut headers = HashMap::new();
+    headers.insert("self:action".to_string(), vec![old_new, open_changed, settled]);
+    let sweep_id = sweep(&db);
+    let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: false, close_window_after: None };
+    runner(&db, &sweep_id).drive_for_test(&mut src, &job, "pw").await.unwrap();
+
+    assert_eq!(count(&db, "SELECT count(*) FROM communications WHERE reference_id = '100000000045'"), 0, "45 days old: skipped");
+    let want = (scheduler::ist_now().date() + chrono::Duration::days(20)).format("%Y-%m-%d").to_string();
+    let due: String = db.lock().unwrap().query_row(
+        "SELECT response_due_date FROM communications WHERE reference_id = '100000000002'", [], |r| r.get(0)).unwrap();
+    assert_eq!(due, want, "the changed open row is re-indexed");
+    assert_eq!(count(&db, "SELECT count(*) FROM documents WHERE state = 'pending' AND source_url LIKE 'portal:%'"), 1,
+               "its document waits as pending, with a portal reference");
+    assert_eq!(count(&db, "SELECT count(*) FROM documents WHERE state = 'stored'"), 0, "index only: nothing downloaded");
+    let gaps: String = db.lock().unwrap().query_row(
+        "SELECT gaps FROM ingestion_runs WHERE panel_swept = 'self:action'", [], |r| r.get(0)).unwrap();
+    assert!(gaps.contains("\"older_than_window\":1"), "{gaps}");
+    assert!(gaps.contains("\"indexed\":1"), "only the changed row is indexed; the settled one is skipped: {gaps}");
+}
+
+/// Task 23.10: a run started ten minutes before `run_window_end` that
+/// reaches it stops between panels with the cursor saved; nothing fails.
+#[tokio::test]
+async fn window_end_stops_between_panels_with_the_cursor_saved() {
+    let db = db();
+    let sweep_id = sweep(&db);
+    let mut headers = HashMap::new();
+    headers.insert("self:action".to_string(), vec![header("self:action", "Penalty Proceeding", "100000000001", Some("09-Sep-2026"), 0)]);
+    let mut r = runner(&db, &sweep_id);
+    r.deadline = Some(scheduler::ist_now() + chrono::Duration::minutes(10));
+    let flag = r.window_closed.clone();
+    let mut src = MockSource { headers, fail_on: None, listed: Arc::new(Mutex::new(Vec::new())), challenge: false,
+                               close_window_after: Some(("self:action".into(), flag)) };
+    let job = { let con = db.lock().unwrap(); queue::next_job(&con, &sweep_id).unwrap().unwrap() };
+    let err = r.drive_for_test(&mut src, &job, "pw").await.unwrap_err();
+    assert!(matches!(err, SourceError::WindowClosed), "{err}");
+    let after = { let con = db.lock().unwrap(); queue::jobs(&con, &sweep_id).unwrap().remove(0) };
+    assert_eq!(after.cursor().panels_done, vec!["self:action"]);
+    assert_eq!(count(&db, "SELECT count(*) FROM ingestion_runs WHERE status = 'failed'"), 0);
 }

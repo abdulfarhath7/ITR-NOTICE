@@ -57,6 +57,7 @@ pub const MIGRATIONS: &[Migration] = &[
     sql!(19, "clients_sync_enabled", "0019_clients_sync_enabled.sql"),
     sql!(20, "clients_note", "0020_clients_note.sql"),
     sql!(21, "ledger_received", "0021_ledger_received.sql"),
+    sql!(22, "scrape_scopes", "0022_scrape_scopes.sql"),
 ];
 
 #[derive(Debug, Error)]

@@ -5,6 +5,7 @@
 
 pub mod eri_source;
 pub mod portal_source;
+pub mod decide;
 pub mod runner;
 pub mod scheduler;
 pub mod source;

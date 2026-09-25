@@ -15,6 +15,7 @@ from collections.abc import Coroutine
 from typing import Any
 
 from ingest.modules import list_module
+from ingest.probe import DEFAULT_PAGES, probe
 from ingest.protocol import PROTOCOL_VERSION, emit, log
 from ingest.session import IngestSession, Relay, WrongPasswordError
 from ingest.walk import list_panel
@@ -75,7 +76,7 @@ class Runner:
             emit("login_failed", reason="error", msg=repr(e))
             await self._drop_session()
 
-    async def list(self, panel: str) -> None:
+    async def list(self, panel: str, target: dict[str, Any] | None = None) -> None:
         if not self.session:
             emit("error", kind="not_logged_in", msg="log in first")
             return
@@ -83,13 +84,19 @@ class Runner:
             if panel in ("demands", "returns", "forms"):
                 await list_module(self.session, self.relay, panel)
             else:
-                await list_panel(self.session, self.relay, panel)
+                await list_panel(self.session, self.relay, panel, target)
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)
             await self.session.save_debug_screenshot("panel")
             emit("error", kind="panel", panel=panel, msg=repr(e))
+
+    async def probe(self, panel: str, pages: int) -> None:
+        if not self.session:
+            emit("error", kind="not_logged_in", msg="log in first")
+            return
+        await probe(self.session, self.relay, panel, pages)
 
     async def logout(self) -> None:
         await self._drop_session()
@@ -134,7 +141,10 @@ async def main() -> None:
         elif kind == "challenge":
             runner.relay.supply_challenge(str(cmd.get("value", "")).strip())
         elif kind == "list":
-            runner.spawn(runner.list(str(cmd["panel"])))
+            target = cmd.get("target")
+            runner.spawn(runner.list(str(cmd["panel"]), target if isinstance(target, dict) else None))
+        elif kind == "probe":
+            runner.spawn(runner.probe(str(cmd["panel"]), int(cmd.get("pages") or DEFAULT_PAGES)))
         elif kind == "next":
             runner.relay.supply_verdict(str(cmd.get("action", "skip")))
         elif kind == "pace":

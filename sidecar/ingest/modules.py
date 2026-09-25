@@ -187,6 +187,8 @@ async def _open_module(session: IngestSession, relay: Relay, module: str) -> boo
                 await page.wait_for_timeout(1200)
             await page.wait_for_timeout(2000)
             if await page.locator(CARD_SELECTORS).count() or await first_visible(page.get_by_text(re.compile(r"no records|no data", re.I))):
+                # One line, so a wrong landing page is obvious in the run log.
+                log(f"  {module}: landed on {page.url.split('?')[0]}")
                 return True
         except Exception as e:  # noqa: BLE001 - logged, then retried
             log(f"  menu attempt {attempt} failed ({e!r})", "warn")
@@ -227,6 +229,9 @@ class _Walk:
         self.fetched = 0
         self.skipped = 0
         self.stopped = False
+        # Cards rendered but carrying no identifier: a reader that does not
+        # match the page, which must never read as "nothing there".
+        self.unidentified = 0
 
 
 async def _walk_cards(session: IngestSession, relay: Relay, module: str, selector: str,
@@ -260,6 +265,7 @@ async def _walk_cards(session: IngestSession, relay: Relay, module: str, selecto
             if not key:
                 # A card without its identifier is not a record we can keep.
                 log(f"  {module}: card {i + 1} has no identifier; labels seen: {sorted(raw.get('fields', {}))}", "warn")
+                walk.unidentified += 1
                 continue
             walk.cards += 1
             emit("progress", kind="walk", panel=module, card=i + 1, of=total, name=str(key))
@@ -269,6 +275,11 @@ async def _walk_cards(session: IngestSession, relay: Relay, module: str, selecto
             if action == "stop":
                 walk.stopped = True
                 break
+            if action == "index":
+                walk.skipped += 1
+                emit("item", reference_id=str(key), pdf_b64=None, receipt_b64=None,
+                     filename=f"{key}.pdf", note=None, indexed=True)
+                continue
             if action != "fetch":
                 walk.skipped += 1
                 continue
@@ -355,5 +366,9 @@ async def list_module(session: IngestSession, relay: Relay, module: str) -> None
     else:
         await _walk_cards(session, relay, module, CARD_SELECTORS, walk)
 
+    if walk.cards == 0 and walk.unidentified > 0:
+        note = (f"{walk.unidentified} card(s) rendered but none carried an identifier; "
+                f"the {module} reader does not match this page")
+        log(f"  {note}", "warn")
     emit("panel_done", panel=module, cards=walk.cards, notices=0, fetched=walk.fetched,
-         skipped=walk.skipped, stopped_early=walk.stopped, note=note)
+         skipped=walk.skipped, stopped_early=walk.stopped, note=note, unidentified=walk.unidentified)

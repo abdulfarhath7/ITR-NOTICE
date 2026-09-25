@@ -17,6 +17,13 @@ pub fn from_row(r: &Row) -> rusqlite::Result<Client> {
         // Tolerant: read before 0019/0020 exist (the legacy backfill).
         sync_enabled: r.get("sync_enabled").unwrap_or(None),
         note: r.get("note").unwrap_or(None),
+        history_depth: r.get("history_depth").unwrap_or(None),
+        history_fetched_at: r.get("history_fetched_at").unwrap_or(None),
+        history_note: r.get("history_note").unwrap_or(None),
+        cadence_tier: r.get("cadence_tier").unwrap_or(None),
+        cadence_pinned: r.get("cadence_pinned").unwrap_or(None),
+        last_swept_at: r.get("last_swept_at").unwrap_or(None),
+        sync_pause_reason: r.get("sync_pause_reason").unwrap_or(None),
     })
 }
 
@@ -54,7 +61,8 @@ pub fn create_minimal(con: &Connection, pan: &str, name: Option<&str>) -> AppRes
     let pan = pan.trim().to_ascii_uppercase();
     let ts = now();
     let c = Client {
-        sync_enabled: None, note: None,
+        sync_enabled: None, note: None, history_depth: None, history_fetched_at: None, history_note: None,
+        cadence_tier: None, cadence_pinned: None, last_swept_at: None, sync_pause_reason: None,
         id: new_id(),
         client_code: None,
         name: name.map(str::trim).filter(|n| !n.is_empty()).unwrap_or(&pan).to_string(),

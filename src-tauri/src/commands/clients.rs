@@ -42,6 +42,10 @@ pub struct ClientInput {
     pub source: Option<String>,
     pub client_file_no: Option<String>,
     pub tags: Option<String>,
+    /// Add-client only (docs/17 §4): also queue the full history, index
+    /// only, for tonight.
+    #[serde(default)]
+    pub fetch_history_tonight: Option<bool>,
 }
 
 fn clean(s: Option<String>) -> Option<String> {
@@ -91,7 +95,8 @@ pub fn create_client(state: State<AppState>, input: ClientInput) -> AppResult<Cl
     }
     let ts = now();
     let c = Client {
-        sync_enabled: None, note: None,
+        sync_enabled: None, note: None, history_depth: None, history_fetched_at: None, history_note: None,
+        cadence_tier: None, cadence_pinned: None, last_swept_at: None, sync_pause_reason: None,
         id: crate::ids::new_id(),
         client_code: clean(input.client_code),
         name,
@@ -110,6 +115,13 @@ pub fn create_client(state: State<AppState>, input: ClientInput) -> AppResult<Cl
     };
     rows::upsert(&con, "clients", &c)?;
     let id = c.id.clone();
+    if input.fetch_history_tonight.unwrap_or(false) {
+        let modules: Vec<String> = crate::repo::queue::MODULES.iter().map(|m| m.to_string()).collect();
+        crate::repo::scopes::request_deep(&con, &crate::repo::scopes::DeepInput {
+            client_id: &id, depth: "all", depth_value: None, modules: &modules, docs_policy: "index",
+            mode: "tonight", requested_by: None,
+        })?;
+    }
     drop(con);
     get_client(state, id)
 }

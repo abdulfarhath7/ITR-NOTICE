@@ -29,6 +29,34 @@ Two implementations:
 Nothing above this interface knows which implementation ran. The UI, the
 ledger, sync and exports must not branch on source.
 
+### Build 3 additions (docs/17, protocol v3)
+
+The trait as built also carries the scope hooks. Both have defaults, so an
+engine that lacks them still works; it just never gets skipped by the probe.
+
+```
+fn probe(&mut self, module: Module, panel: &str, pages: u32) -> Result<ProbeResult>;
+fn set_target(&mut self, target: Option<ProceedingTarget>);   // item fetch
+```
+
+The runner answers each header with one of four verdicts: `Skip`, `Index`,
+`Fetch` or `Stop`. `Index` records the row and leaves its document `pending`.
+The engine replies with an item whose bytes are empty.
+
+The portal sidecar speaks line protocol **v3** (`sidecar/ingest/protocol.py`):
+
+| | v2 | v3 |
+|---|---|---|
+| `probe` command → `probe_done` event | — | SHA-256 over portal row content, first `pages` pages; `list_hash: null` on failure |
+| `next` action `index` | — | record the header, no download, answer `item` with `pdf_b64: null, indexed: true` |
+| `list.target` | — | walk only the proceeding with this name and AY |
+| `panel_done.unidentified` | — | cards rendered without an identifier |
+
+The Rust side reads `ready.protocol`, logs which version it got, and still
+drives a v2 sidecar. Against v2 it sends `skip` in place of `index`, since
+the runner has already recorded the row, and it treats `probe` as
+unavailable, which means "changed".
+
 ## Per-client source
 
 `clients.source` ∈ `portal | eri`. **Not a global setting.** A client must
