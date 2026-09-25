@@ -433,7 +433,9 @@ export default function AttentionScreen() {
   if (f.module) chips.push({ key: "module", label: MODULE_LABEL[f.module], clear: () => setF({ module: "" }) });
   if (f.status) chips.push({ key: "status", label: STATUS_LABEL[f.status as keyof typeof STATUS_LABEL] ?? f.status, clear: () => setF({ status: "" }) });
   if (f.owner) chips.push({ key: "owner", label: f.owner === MINE ? "Mine" : `Owner: ${f.owner}`, clear: () => setF({ owner: "" }) });
-  const tileLabel = f.tile === "nodate" ? "No due date" : f.tile ? RISK_LABEL[f.tile] : "";
+  const tileLabel = f.tile === "nodate" ? "No due date" : f.tile === "drafts" ? "Drafts to review" : f.tile ? RISK_LABEL[f.tile] : "";
+  // Q59 C: the drafts count stays visible without a fifth tile.
+  const draftsToReview = afterBar.reduce((n, i) => n + i.row.drafts_to_review, 0);
   if (f.tile) chips.push({ key: "tile", label: tileLabel, clear: () => setF({ tile: "" }) });
   if (issuedDays) chips.push({ key: "issued", label: windowSummary("issued", issuedDays), clear: () => setF({ issued: "" }) });
   if (dueDays) chips.push({ key: "due", label: windowSummary("due", dueDays), clear: () => setF({ due: "" }) });
@@ -511,6 +513,12 @@ export default function AttentionScreen() {
       <PageBody>
         <SyncLineView today={today} />
         <RiskStrip counts={counts.tiles} active={tileActive} onPick={pickTile} />
+        {draftsToReview ? (
+          <p className="att-drafts-line">
+            <button type="button" className="link-btn" aria-pressed={f.tile === "drafts"}
+                    onClick={() => setF((cur) => ({ ...cur, tile: cur.tile === "drafts" ? "" : "drafts" }))}>{plural(draftsToReview, "draft")} to review</button>
+          </p>
+        ) : null}
 
         <div className="toolbar">
           <select className="select" value={f.clientId} aria-label="Client" onChange={(e) => setF({ clientId: e.target.value })}>

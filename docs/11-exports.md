@@ -30,10 +30,11 @@ Build 4 (docs/18 §4.4) adds after the 16:
 
 | # | Column | Source |
 |---|---|---|
-| 17 | Viewed by AO | latest inbound `communications.ao_viewed_on` on the proceeding: `Yes (dd-mm-yyyy)`; `No` when the latest notice has a filed reply and no date; blank when the proceeding is not an assessment proceeding (`type_registry.is_assessment`, Q50) or no reply is filed (D-064). One text column (Q51) |
-| 18 | Limitation Date | `proceedings.limitation_date` as a real Excel date, blank when null or not an assessment proceeding |
+| 17 | Viewed by AO | `Yes` when the latest inbound notice carries `ao_viewed_on`; `No` when that notice has a filed reply and no date; blank when the proceeding is not an assessment proceeding (`type_registry.is_assessment`, Q50) or no reply is filed (D-064) |
+| 18 | Viewed On | the `ao_viewed_on` date as a real Excel date, blank otherwise (Q51 B) |
+| 19 | Limitation Date | `proceedings.limitation_date` as a real Excel date, blank when null or not an assessment proceeding |
 
-Build 2's **19 Owner** (`work_item_meta.assignee`) and **20 Note**
+Build 2's **20 Owner** (`work_item_meta.assignee`) and **21 Note**
 (`work_item_meta.note`) come last. The 16 keep their positions.
 
 The columns are one declarative table in `src-tauri/src/export.rs`

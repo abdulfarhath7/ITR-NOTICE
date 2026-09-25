@@ -147,8 +147,8 @@ classify.
 | `tds_deposit` | TDS/TCS deposit | "deposit of tax deducted", "deposit of tds", "tax collected", "challan", "form 24g" |
 | `tds_returns` | Returns & certificates | "tds certificate", "tcs certificate", "form 16", "form 27", "statement of deduction", "quarterly statement", "form 26q", "form 24q", "form 27q" |
 | `advance_tax` | Advance tax | "advance tax", "instalment" |
+| `audit` | Audit & reports | "audit report", "form 3ca", "form 3cb", "form 3cd", "form 3ceb", "form 10b", "transfer pricing" (before ITR, Q67: an audit-report row names the return it precedes) |
 | `itr` | ITR filing | "return of income", "belated", "revised return", "itr" |
-| `audit` | Audit & reports | "audit report", "form 3ca", "form 3cb", "form 3cd", "form 3ceb", "form 10b", "transfer pricing" |
 | `forms` | Statements & forms | "form 15g", "form 15h", "form 27c", "form 61", "form 49", "form 3bb", "form 10", "declaration", "statement in form" |
 | `other` | Other | everything else |
 | `firm` | Firm dates | `firm_dates` rows only |

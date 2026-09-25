@@ -36,7 +36,22 @@ These changed. Everything else was confirmed as built.
 | Q22 | Stop parsing the stepper date. `Issued On` comes from the communication. |
 | Q24 | Ship unsigned. Revisit at self-serve distribution. |
 
-Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests).
+Q08 and Q11 now carry decisions (sequential stays; per-client credentials stay); the portal tests behind them are Farhath's, with the five real test accounts.
+
+## Apply these — Build 3 / 4 / 5 answers that differ from the default
+
+Everything from Q41 to Q67 not listed here was confirmed as built.
+
+| Q | Change |
+|---|---|
+| Q47 | Record the probe outcome reason (`unchanged` / `open items`) on the run row for the Sync screen. |
+| Q50 | Seed `is_assessment = 1` for 154, 263 and 264 as well. |
+| Q51 | Split column 17 into `Viewed by AO` and `Viewed On`; docs/11 to 19 columns. |
+| Q56 | Limitation items get a distinct 'Limitation' pill on the Notices layer. |
+| Q58 | Refit Build 4 and Build 5 screens once the exported mockups land in `docs/mockups/`. |
+| Q59 | Add the 'n drafts to review' line under the risk strip. |
+| Q66 | Fetcher sends browser headers and records the HTTP status on failure; swap in the real fixture when supplied. |
+| Q67 | Update docs/19 §2.3 to the audit-before-ITR order. |
 
 ---
 
@@ -98,8 +113,8 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Context:** Claimed by the SBC document. Drives the entire ingestion design.
 - **Default used:** Assumed true. Ingestion is strictly sequential with a per-client lock.
 - **Blast radius:** Very large. If false, parallel ingestion becomes possible and throughput rises several-fold.
-- **Answer:** UNTESTED - still an assumption. Keep sequential ingestion, but move concurrency to a single config constant defaulted to 1 so it can be raised without a rewrite. Two tests settle this: (1) same client in two browsers, does the first session die? (2) two DIFFERENT clients in two browsers, do both survive? The SBC document's heading claims one session per taxpayer; its body then claims sequence across all clients. Test 2 is the one that matters for throughput.
-- **Resolved:** no
+- **Answer:** Decision: keep ingestion sequential (`INGESTION_WORKERS = 1`) and do not build around parallelism yet. The two-browser test is now possible with the five real test accounts and is Farhath's task, not Claude Code's: (1) log one PAN into two browsers — does the first die? (2) log two different PANs into two browsers — do both survive? If test 2 passes, raise the constant to 2 and watch one night's run before going higher. Until then, sequential.
+- **Resolved:** yes
 
 ### Q09 — Is OTP required on every portal login, or only on a new device?
 - **Default used:** Assumed every login. The queue pauses and waits for a human, indefinitely, without failing.
@@ -118,8 +133,8 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Context:** Determines whether per-client passwords are needed at all.
 - **Default used:** Assumed most. Per-client credentials supported but optional; `clients.portal_login_ref` points at the login used.
 - **Blast radius:** The whole credential handling story, and the security posture.
-- **Answer:** STILL OPEN. Count how many clients appear in the 'As Authorised Representative' panel of the firm's own portal account, against a book of ~200. If most of the book is there, per-client passwords are largely unnecessary and the credential vault shrinks dramatically.
-- **Resolved:** no
+- **Answer:** Decision: per-client credentials remain the model. The firm's own portal login is not in the tool yet, so the AR count cannot be taken; when it is added, count the 'As Authorised Representative' panel against the book and file the number here. AR-first ingestion is an optimisation for later, not a change to Build 3.
+- **Resolved:** yes
 
 ### Q12 — Sweep cadence per module?
 - **Default used:** Proceedings daily, demands daily, returns weekly, forms weekly. Configurable per module in settings.
@@ -340,213 +355,213 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Options:** A keep them / B delete every test docs/12 does not name, and drop the relay step from `check.sh` if its tests go
 - **Default used:** A. Deleting them removes accepted work the earlier answers asked for; one instruction away if wanted.
 - **Blast radius:** B deletes about 20 Rust tests, 10 vitest cases and 9 relay tests.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — keep them. They are accepted work required by earlier tasks and `check.sh` runs them; the no-testing rule is about not stopping the build to test, not about deleting tests. Remove only Build 2's unnamed ones, which is already done.
+- **Resolved:** yes
 
 ### Q42 — Probe depth: two pages or the whole listing
 - **Context:** docs/17 §2.2 hashes the first two pages of each panel. (Seeded as "Q41" in the Build 3 install notes; renumbered because Q41 was already taken.)
 - **Options:** A two pages / B whole listing
 - **Default used:** A — new and changed rows appear at the top; two pages cover a month of activity for any client and keep the probe near 5 s.
 - **Blast radius:** one constant in the probe command.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — two pages. Confirmed.
+- **Resolved:** yes
 
 ### Q43 — Lookback window default
 - **Context:** docs/17 §2.3, `lookback_days`. The dashboard's widest Issued bucket is 30 days.
 - **Options:** A 30 / B 90 as a safety margin
 - **Default used:** A — matches the lanes; open items are re-checked regardless, so nothing actionable is missed.
 - **Blast radius:** one default in settings.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — 30 days. Matches the lanes; open items are re-read regardless.
+- **Resolved:** yes
 
 ### Q44 — New client: sweep only or deep fetch by default
 - **Context:** docs/17 §4.
 - **Options:** A sweep only, checkbox for full / B deep fetch always
 - **Default used:** A — fast first picture; history on request.
 - **Blast radius:** the add-client form default.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — sweep only, with the 'Also fetch full history tonight' checkbox off by default.
+- **Resolved:** yes
 
 ### Q45 — Deep fetch document policy default
 - **Context:** docs/17 §6.3.
 - **Options:** A index only, download on click / B download every PDF
 - **Default used:** A — 200 clients × full history is gigabytes on the collector; item fetch and warm cache cover the ones that matter.
 - **Blast radius:** the dialog default.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — index only, download on click. Warm cache and item fetch cover the urgent ones.
+- **Resolved:** yes
 
 ### Q46 — Warm cache on by default
 - **Context:** docs/17 §2.6.
 - **Options:** A on, due ≤ 7 days / B off
 - **Default used:** A — morning previews of urgent notices are instant; runs only with spare budget.
 - **Blast radius:** one settings default.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — on, due ≤ 7 days, only with spare budget.
+- **Resolved:** yes
 
 ### Q47 — Probe: skip clients with open items, or only clients without
 - **Context:** docs/17 §2.2 assumes listing rows carry a notice's DIN, due date and reply state. On the portal those sit on the notice cards one level down. Hashing only the listing would miss a moved due date.
 - **Options:** A probe and skip only logins with no open items; always walk logins with open items / B also drill into each open proceeding's notices during the probe (slower probe, more skips)
 - **Default used:** A. It can never hide a change on an open item, and open items are re-read nightly anyway (§2.3).
 - **Blast radius:** one condition in `Runner::probe`; B also adds a notice-level pass to `sidecar/ingest/probe.py`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — probe-skip only logins with no open items; always walk logins with open items. This is the safe reading of §2.2: the probe may only ever skip what cannot have changed in a way that matters. Record the reason as `notes = 'unchanged'` for skipped logins and `notes = 'open items'` for walked ones so the Sync screen can show why.
+- **Resolved:** yes
 
 ### Q48 — "Last N assessment years" counting
 - **Context:** docs/17 §2.4 and §6.3. "Latest N AYs" needs a starting AY.
 - **Options:** A count back from the AY filed this financial year (Sept 2026: AY 2026-27, 2025-26 for N = 2) / B count back from the newest AY the client already has stored
 - **Default used:** A. It is stable and does not depend on what an earlier sweep happened to store.
 - **Blast radius:** `decide::latest_ay_start`.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — count back from the AY filed this financial year. Stable and independent of what a sweep happened to store.
+- **Resolved:** yes
 
 ### Q49 — Saved views that stored a lane bucket
 - **Context:** Build 2 saved views persist `bucket=8-15` style filters. Build 4 removes lanes.
 - **Options:** A: migrate each bucket to the cumulative window of its upper bound (8–15 → Last 15) / B: drop the bucket from the saved view and leave the rest / C: delete affected saved views
 - **Default used:** A — the user who saved "8–15" most likely wanted "this fortnight", and nothing is lost.
 - **Blast radius:** one SQL data migration; B or C is a smaller change.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — migrate each stored bucket to the cumulative window of its upper bound (8–15 → Last 15, 16–30 → Last 30, last-7 → Last 7). Log the migration once in NOTES.md with the count of views touched.
+- **Resolved:** yes
 
 ### Q50 — Which type_registry rows count as assessment proceedings
 - **Context:** Viewed by AO and Limitation are assessment-only. The registry has no flag for it.
 - **Options:** A: seed `is_assessment=1` for scrutiny (143(2)/142(1)), reassessment (148/147), penalty (270A/271*), best-judgement (144) / B: A plus rectification (154) and revision (263/264) / C: only rows whose portal panel is "Assessment Proceedings"
 - **Default used:** A — matches what the portal shows "Response viewed by AO on" for, as far as the existing parser has seen it.
 - **Blast radius:** an UPDATE statement; the flag is data, so any answer is a one-line change.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** B — A plus rectification (154) and revision (263/264). The flag is data; limitation and AO-viewing apply to those too. If a 154 or 263 proceeding never shows 'Response viewed by AO' on the portal, the chip simply stays hidden for it.
+- **Resolved:** yes
 
 ### Q51 — Viewed by AO as one export column or two
 - **Context:** Column 17 is `Yes (dd-mm-yyyy)` / `No` / blank in one text cell.
 - **Options:** A: one text column as specified / B: two columns, `Viewed by AO` (Yes/No/blank) and `Viewed On` (real date)
 - **Default used:** A — keeps the sheet at 18 columns and matches the dialog preview in the mockup.
 - **Blast radius:** export column list and `docs/11-exports.md`; B is a better sort/filter experience for a CA.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** B — two columns: `Viewed by AO` (Yes / No / blank) and `Viewed On` (a real date cell). A CA will sort and filter on this; one text cell defeats that. Update docs/11-exports.md to 19 columns and keep the dialog preview in sync.
+- **Resolved:** yes
 
 ### Q52 — Where the limitation date comes from
 - **Context:** `proceedings.limitation_date` exists but nothing in the sidecar parses it; Farhath believes the portal shows a "limitation date or something" on assessment proceedings.
 - **Options:** A: manual only, entered on the work item, until a HAR capture confirms the portal label / B: derive from statute (e.g. AY end + N months by section) / C: parse a guessed label from the card
 - **Default used:** A — B invents a statutory date (forbidden, D-007 spirit) and C repeats the screenshot-parser mistake from `docs/15-known-bugs.md`.
 - **Blast radius:** none in code; when the label is confirmed, one parser field and one intake mapping.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — manual only, entered on the work item, until a HAR capture of an assessment proceeding shows the portal's label. Never derive it from statute and never parse a guessed label. When the label is confirmed, add the parser field then.
+- **Resolved:** yes
 
 ### Q53 — Not-viewed-by-AO chip: which response counts
 - **Context:** "Reply not yet viewed by AO" needs a filed response to be meaningful.
 - **Options:** A: latest response on the proceeding filed and `ao_viewed_on` null / B: any response filed / C: ignore responses; null `ao_viewed_on` on any assessment proceeding
 - **Default used:** A — a proceeding with no reply yet is "needs action", not "awaiting AO".
 - **Blast radius:** one SQL predicate shared by the chip and the risk-strip tile.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — the latest response on the proceeding is filed and `ao_viewed_on` is null. A proceeding without a reply is 'needs action', not 'awaiting AO'.
+- **Resolved:** yes
 
 ### Q54 — Export column picker persistence
 - **Context:** The dialog lets the user untick columns.
 - **Options:** A: remember per device in settings / B: remember per saved view / C: never remember, always all columns
 - **Default used:** A — cheapest; the mockup shows no per-view control.
 - **Blast radius:** one settings key.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — remember per device in settings. One key.
+- **Resolved:** yes
 
 ### Q55 — Clients export: include the sync-health columns
 - **Context:** Columns 15–17 (Last Sync, Last Result, Open Items) are not registration fields; the request was "all the fields filled when the client was added".
 - **Options:** A: include them at the end / B: registration fields only (14 columns)
 - **Default used:** A — the ideation table listed them and they cost nothing to drop later.
 - **Blast radius:** three columns.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — include Last Sync, Last Result and Open Items at the end. The registration fields stay in their positions.
+- **Resolved:** yes
 
 ### Q56 — Limitation date on the Calendar
 - **Context:** §3.3 puts limitation dates on the Calendar as items.
 - **Options:** A: show as items with their own pill / B: show only as a count in the risk strip, not on the Calendar
 - **Default used:** A.
 - **Blast radius:** one Calendar item source.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — show limitation dates on the Calendar as their own items with a distinct pill (muted tint, label 'Limitation'), on the Notices layer so the legend can hide them with one click.
+- **Resolved:** yes
 
 ### Q57 — "Everything" deep fetch and the time budget
 - **Context:** docs/17 gives the nightly sweep a run window and time budget. A user-requested full-history fetch of one client can be long.
 - **Options:** A: no budget, runs to completion with a cancel button / B: same budget as nightly, resumes next night / C: budget prompt before starting
 - **Default used:** A — the user asked for it explicitly and is watching.
 - **Blast radius:** one branch in the fetch runner.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — no budget for a user-requested 'Run now' deep fetch; runs to completion with a cancel button and a progress line. A 'Queue for tonight' deep fetch still obeys the run window per docs/17 §2.4 and resumes the next night.
+- **Resolved:** yes
 
 ### Q58 — Build 4 mockups are not in the tree
 - **Context:** docs/18 says the UI must match `docs/mockups/build-4/*.png` exactly. The zip carried only the three markdown files; no PNG arrived.
 - **Options:** A build from the spec's prose (§2–§7 name every element, the copy and the pill colours) and refit once the PNGs land / B stop Build 4 until they arrive
 - **Default used:** A — the text is specific enough for layout, copy and colours; spacing follows the design system.
 - **Blast radius:** layout polish only, per screen, once the PNGs are added; no data or command changes.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — build from the prose, then refit. The mockups exist as the chat widgets named in docs/18 §11 / docs/19 §11; Farhath will export them from the chat (each widget downloads under its title, e.g. `lcc_statutory_calendar_minimized_card`) into `docs/mockups/build-4/` and `docs/mockups/build-5/`. Refit is a polish pass, no data or command changes.
+- **Resolved:** yes
 
 ### Q59 — Risk strip replaces the "No due date" and "Drafts to review" tiles
 - **Context:** docs/18 §2 makes the strip the four risk tiles. Build 2's strip had Overdue · Due in 48h · No due date · Drafts to review (Q33 kept the drafts tile).
 - **Options:** A the four risk tiles only; "No due date" stays reachable as rank 4 in the table and through the Calendar link; drafts to review stays in the draft drawer / B six tiles / C four tiles plus a small "n drafts to review" line under the strip
 - **Default used:** A — docs/18 wins where it disagrees with docs/16, and the strip is one row.
 - **Blast radius:** `RISK_TILES` in `src/lib/windows.ts` (a list); the old tile predicates are two lines away.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** C — the four risk tiles, plus one small muted line under the strip: 'n drafts to review' linking to the drafts filter. 'No due date' stays reachable as rank 4 and via the Calendar link. Q33 kept the drafts count visible; this keeps that without a fifth tile.
+- **Resolved:** yes
 
 ### Q60 — Ledger event kinds are rows of a synced table
 - **Context:** docs/18 §3.4 asks for ledger entry kinds `ao_viewed` and `limitation_changed`. A ledger entry here is a table upsert (docs/03), and `apply` rejects an unknown entity type, so a bare "kind" would break sync on every other device.
 - **Options:** A a synced `proceeding_events` table (one immutable row per change; entity type `proceeding_events`) / B widen the ledger with a free-text `kind` and teach `apply` to store non-table entries
 - **Default used:** A — nothing in sync, snapshots or bundles changes; Updates reads the rows like any other table.
 - **Blast radius:** `repo/events.rs` (writers), migration 0023 (the table); B would touch `ledger.rs`, `merge.rs`, `snapshot.rs`, the relay.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — a synced `proceeding_events` table, one immutable row per change, entity type `proceeding_events`. Nothing in sync, snapshots or bundles changes.
+- **Resolved:** yes
 
 ### Q61 — Other acts (GST, MCA, Labour) as an optional import
 - **Context:** docs/19 §2.5. vcfo's FY 2026-27 dataset is typed from an SBC PDF; it would go stale silently.
 - **Options:** A income tax only from the portal, firm dates by hand / B offer a one-click import of the vcfo dataset, labelled "typed from PDF, not live", as extra legend acts
 - **Default used:** A.
 - **Blast radius:** a seed file, two legend acts, an import button in Settings → Calendar.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — income tax only from the portal; firm dates by hand. Revisit the vcfo import only if a firm asks for GST/MCA on this calendar, and then label it 'typed from PDF, not live'.
+- **Resolved:** yes
 
 ### Q62 — Applies-to-us profile fields now
 - **Context:** docs/19 §2.4 adds entity type, audit, TP and TDS-deductor fields to the client profile.
 - **Options:** A build now (fields blank until set; scope falls back to `everyone`) / B defer; scope shows only All and Overdue
 - **Default used:** A — the scope is the main reason a CA opens the calendar.
 - **Blast radius:** four columns, four form fields, one scope option.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — build the four profile fields now. Blank until set; scope falls back to `everyone`.
+- **Resolved:** yes
 
 ### Q63 — First day of week
 - **Context:** docs/19 §4. vcfo is Sunday-first; Build 2's calendar and the mockups are Monday-first.
 - **Options:** A Monday, with a setting / B Sunday to match vcfo exactly
 - **Default used:** A.
 - **Blast radius:** one constant in `lib/calendar-grid.ts` and the setting.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — Monday first, with the setting. Build 2's calendar and every mockup are Monday-first.
+- **Resolved:** yes
 
 ### Q64 — Where the Notices "Open" action lands
 - **Context:** docs/19 §4 agenda. Clicking "Open" on a day's notices goes to Attention with the matching Due bucket, or to the Build 2 day list beyond 30 days.
 - **Options:** A as specified / B always the day list, inside the calendar
 - **Default used:** A.
 - **Blast radius:** one navigate() call.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — as specified: Attention with the matching Due bucket when the day is within 30 days, otherwise the day list inside the calendar.
+- **Resolved:** yes
 
 ### Q65 — Portal fetch cadence
 - **Context:** docs/19 §3.1. Weekly, nightly around the FY boundary.
 - **Options:** A as specified / B nightly always (one cheap GET)
 - **Default used:** A.
 - **Blast radius:** the cadence rule in the `public` step.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — weekly, nightly in the seven days either side of the FY boundary. It is one GET; if the fetch ever proves flaky, switch to nightly by changing the cadence rule only.
+- **Resolved:** yes
 
 ### Q66 — The portal calendar cannot be fetched from the build machine
 - **Context:** docs/19 §2.1 and task 31.2 ask for the real `yearly-deadlines.aspx` page as the fixture. incometaxindia.gov.in answered HTTP 403 "Access Denied" (Akamai edge) to curl with browser headers and to headless Chromium alike, for every URL tried.
 - **Options:** A a synthetic fixture in the described structure, clearly labelled, and the parser and fetcher built against it; swap in the real page when a machine can reach the portal / B wait for the real page before any of Build 5
 - **Default used:** A. The parser walks headings and paragraphs in order and never drops a dated row, so a wording difference on the real page degrades to `other`, not to a miss. The fetcher's failure path (a `failed` fetch row, rows untouched, a warning line on the screen) is what the app will show until the portal answers.
 - **Blast radius:** `sidecar/tests/fixtures/statutory/yearly-deadlines-2026.html` (replace the file; the three parser tests then pin the real structure) and, if the real markup differs, the heading/paragraph walk in `statutory/parse.rs`. TODO(blocked) on 31.2.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — synthetic fixture now, clearly labelled, parser and fetcher built against it. Two additions: (1) the fetcher must send a normal browser User-Agent and Accept headers, follow redirects, and treat a 403 as `failed` with the status code in `error` — Akamai blocks datacenter IPs, not home ones, so the collector PC on an office connection is expected to succeed; (2) Farhath will open `https://incometaxindia.gov.in/Pages/yearly-deadlines.aspx?yfmv=2026` in Chrome on the office machine, save it as 'Webpage, HTML only', and drop it in as `sidecar/tests/fixtures/statutory/yearly-deadlines-2026.html`; the parser tests then pin the real structure and TODO(blocked) on 31.2 closes.
+- **Resolved:** yes
 
 ### Q67 — Audit rows before ITR rows in the category table
 - **Context:** docs/19 §2.3 orders the rules tds_deposit, tds_returns, advance_tax, itr, audit, forms with "first match wins". An audit-report row names the return it precedes ("… required to submit his return of income on October 31") and so matched `itr`.
 - **Options:** A move `audit` above `itr` (legend order follows) / B keep the order and add "audit report" as an exclusion on the ITR rule
 - **Default used:** A — one row moved, no new rule shape.
 - **Blast radius:** one row in `CATEGORIES` in `statutory/rules.rs`; the legend shows Audit before ITR.
-- **Answer:**
-- **Resolved:** no
+- **Answer:** A — move `audit` above `itr`; legend order follows (Audit & reports before ITR filing). Update docs/19 §2.3 to the new order so the spec and the code agree.
+- **Resolved:** yes

@@ -277,7 +277,7 @@ function NoticesList({ rows, limits }: { rows: WorkItemRow[]; limits: WorkItemRo
       ))}
       {limits.map((r) => (
         <div key={`lim:${r.id}`} className="stat-cal-row">
-          <span className="pill accent">Limitation</span>
+          <span className="pill" title="Limitation date (Q56)">Limitation</span>
           <span className="stat-cal-row-title">{r.client_name} · {sectionLabel(r)}</span>
           <LimitationCell isAssessment date={r.limitation_date} />
           <a className="btn small" href={href({ name: "item", module: r.module, id: r.id })}>View</a>

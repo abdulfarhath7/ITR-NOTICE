@@ -1,7 +1,7 @@
 //! Excel export (docs/11-exports.md, docs/18 §4). Built in the core, one
 //! tab per module; the proceedings sheet is the firm's own 16 columns in
-//! order, then Viewed by AO and Limitation Date (Build 4), then Owner and
-//! Note. Dates are real Excel dates (`dd-mmm-yyyy`), amounts numeric with
+//! order, then Viewed by AO, Viewed On and Limitation Date (Build 4, Q51),
+//! then Owner and Note. Dates are real Excel dates (`dd-mmm-yyyy`), amounts numeric with
 //! two decimals, identifiers text so Excel leaves leading zeros alone.
 //! Blank means blank: a gap-flagged field is an empty cell, never "N/A".
 //! Every status is exported; only the Attention list filters by status.
@@ -78,8 +78,10 @@ pub struct ProcRow {
     type_label: String, assessee: Option<String>, section: Option<String>, display: Option<String>,
     din: Option<String>, issued: Option<String>, due: Option<String>, manual: Option<String>,
     submitted: Option<String>, file_no: Option<String>,
-    /// `Yes (dd-mm-yyyy)` / `No` / blank (docs/18 §4.4, D-064).
+    /// `Yes` / `No` / blank (docs/18 §4.4, D-064, Q51 B).
     ao_viewed: Option<String>,
+    /// The date the AO viewed the reply, a real date cell (Q51 B).
+    ao_viewed_on: Option<String>,
     limitation: Option<String>,
     owner: Option<String>, note: Option<String>,
     status: String,
@@ -109,6 +111,7 @@ pub const PROCEEDING_SHEET: &[ProcColumn] = &[
     ProcColumn { header: "Response Submitted On", cell: |r, _| date(r.submitted.as_deref()) },
     ProcColumn { header: "Client File #", cell: |r, _| text(r.file_no.as_deref()) },
     ProcColumn { header: "Viewed by AO", cell: |r, _| text(r.ao_viewed.as_deref()) },
+    ProcColumn { header: "Viewed On", cell: |r, _| date(r.ao_viewed_on.as_deref()) },
     ProcColumn { header: "Limitation Date", cell: |r, _| date(r.limitation.as_deref()) },
     ProcColumn { header: "Owner", cell: |r, _| text(r.owner.as_deref()) },
     ProcColumn { header: "Note", cell: |r, _| text(r.note.as_deref()) },
@@ -392,22 +395,21 @@ fn collect_proceedings(con: &Connection, scope: &ExportScope) -> AppResult<(Vec<
         // Column 17 (docs/18 §4.4, D-064): the latest inbound notice's AO
         // date; "No" only once a reply to it is on record; blank otherwise
         // and always blank off assessment proceedings.
-        let ao_viewed = if is_assessment == 1 {
+        let (ao_viewed, ao_viewed_on) = if is_assessment == 1 {
             let latest: Option<(String, Option<String>)> = con.prepare_cached(
                 "SELECT id, ao_viewed_on FROM communications WHERE proceeding_id = ?1 AND direction = 'inbound'
                   ORDER BY issued_on DESC, created_at DESC LIMIT 1")?
                 .query_row([&id], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
             match latest {
-                Some((_, Some(seen))) => Some(match parse_portal_date(&seen) {
-                    Some(d) => format!("Yes ({})", d.format("%d-%m-%Y")), None => format!("Yes ({seen})") }),
+                Some((_, Some(seen))) => (Some("Yes".to_string()), Some(seen)),
                 Some((cid, None)) => {
                     let replied: i64 = con.prepare_cached("SELECT count(*) FROM responses WHERE in_reply_to = ?1")?
                         .query_row([&cid], |r| r.get(0))?;
-                    if replied > 0 { Some("No".into()) } else { None }
+                    (if replied > 0 { Some("No".into()) } else { None }, None)
                 }
-                None => None,
+                None => (None, None),
             }
-        } else { None };
+        } else { (None, None) };
         let section = match (s2025.as_deref(), s1961.as_deref()) {
             (Some(n), Some(o)) => Some(format!("{n} ({o})")), (Some(n), None) => Some(n.to_string()),
             (None, Some(o)) => Some(o.to_string()), (None, None) => None,
@@ -418,7 +420,7 @@ fn collect_proceedings(con: &Connection, scope: &ExportScope) -> AppResult<(Vec<
             code, name, pan, self_other, ay, type_label, assessee, section, display,
             din: din.or(comm.as_ref().and_then(|c| c.0.clone())),
             issued: initiated.or(comm.as_ref().and_then(|c| c.1.clone())),
-            due, manual, submitted, file_no, ao_viewed,
+            due, manual, submitted, file_no, ao_viewed, ao_viewed_on,
             limitation: if is_assessment == 1 { limitation } else { None },
             owner, note, status,
         });
@@ -778,10 +780,11 @@ mod tests {
         assert!(shared.contains("Filter: All proceedings, every status"));
         assert!(shared.contains("Unverified: "));
         assert!(shared.contains("Viewed by AO") && shared.contains("Limitation Date"));
-        assert_eq!(PROCEEDING_SHEET.len(), 20);
+        assert_eq!(PROCEEDING_SHEET.len(), 21);
         for (i, name) in PROCEEDING_COLUMNS.iter().enumerate() { assert_eq!(PROCEEDING_SHEET[i].header, *name, "column {}", i + 1); }
         assert_eq!(PROCEEDING_SHEET[16].header, "Viewed by AO");
-        assert_eq!(PROCEEDING_SHEET[17].header, "Limitation Date");
+        assert_eq!(PROCEEDING_SHEET[17].header, "Viewed On");
+        assert_eq!(PROCEEDING_SHEET[18].header, "Limitation Date");
         assert!(shared.contains("Client File #"));
         assert!(!shared.contains("N/A"));
         let _ = std::fs::remove_dir_all(&dir);

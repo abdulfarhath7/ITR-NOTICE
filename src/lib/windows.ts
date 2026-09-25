@@ -97,7 +97,7 @@ export const RISK_TONE: Record<RiskTile, "danger" | "warning" | "muted"> = {
 
 /** Tiles kept as a filter value; `nodate` is not on the strip but the
  *  Calendar's "without a due date" link still lands on it. */
-export type TileFilter = "" | "overdue" | "due3" | "nodate";
+export type TileFilter = "" | "overdue" | "due3" | "nodate" | "drafts";
 
 export function inRiskTile(row: WorkItemRow, tile: RiskTile, today: Ymd): boolean {
   if (!isOpen(row)) return false;
@@ -113,6 +113,7 @@ export function inTileFilter(row: WorkItemRow, tile: TileFilter, today: Ymd): bo
   switch (tile) {
     case "": return true;
     case "nodate": return isOpen(row) && daysToDue(row, today) === null;
+    case "drafts": return isOpen(row) && row.drafts_to_review > 0;
     default: return inRiskTile(row, tile, today);
   }
 }

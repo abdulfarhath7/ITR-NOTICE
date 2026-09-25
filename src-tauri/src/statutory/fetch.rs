@@ -117,15 +117,18 @@ pub fn apply_page(con: &Connection, year: i32, html: &str) -> AppResult<Outcome>
 
 /// GET one year's page. Plain client, browser-like headers, one try.
 pub async fn get_page(year: i32) -> Result<String, String> {
-    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(45)).build().map_err(|e| e.to_string())?;
+    // Q66: a normal browser's headers, redirects followed, a 403 reported
+    // as `failed` with its status code.
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(45))
+        .redirect(reqwest::redirect::Policy::limited(5)).build().map_err(|e| e.to_string())?;
     let res = client.get(format!("{URL}{year}"))
-        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) LitigationCommandCenter/0.2")
-        .header("Accept", "text/html,application/xhtml+xml")
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         .header("Accept-Language", "en-IN,en;q=0.9")
         .send().await.map_err(|e| e.to_string())?;
     let status = res.status();
     let body = res.text().await.map_err(|e| e.to_string())?;
-    if !status.is_success() { return Err(format!("the portal answered {status}")); }
+    if !status.is_success() { return Err(format!("the portal answered HTTP {}", status.as_u16())); }
     if body.contains("Access Denied") && body.len() < 2000 { return Err("the portal refused the request (access denied)".into()); }
     Ok(body)
 }

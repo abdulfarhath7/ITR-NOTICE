@@ -20,9 +20,13 @@ function read<F>(screen: string, migrate?: MigrateView): SavedView<F>[] {
       ? (v as SavedView<F>[]).filter((x) => x && typeof x.id === "string" && typeof x.name === "string" && x.filters)
       : [];
     if (migrate) {
-      let changed = false;
-      for (const view of views) if (migrate(view.filters as Record<string, unknown>)) changed = true;
-      if (changed) write(screen, views);
+      let changed = 0;
+      for (const view of views) if (migrate(view.filters as Record<string, unknown>)) changed++;
+      if (changed) {
+        write(screen, views);
+        // Q49: the migration is per device and runs once; the count shows in the devtools console.
+        console.info(`[lcc] migrated ${changed} saved view(s) on ${screen} from lane buckets to windows`);
+      }
     }
     return views;
   } catch { return []; }

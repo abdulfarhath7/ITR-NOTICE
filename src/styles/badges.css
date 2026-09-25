@@ -63,3 +63,5 @@
 @media (max-width: 900px) { .exp-grid { grid-template-columns: 1fr; } }
 
 .clients-foot { margin: 0.25rem 0 0; }
+
+.att-drafts-line { margin: -0.375rem 0 0; font-size: 0.75rem; color: var(--text-muted); }

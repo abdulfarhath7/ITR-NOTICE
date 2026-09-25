@@ -405,7 +405,16 @@ Read `docs/18-build-4.md` §7 and `docs/17-scrape-scopes.md`. UI reference: `swe
 - [x] **29.5** Sweep run summary counts `ao_viewed` ledger entries as AO-viewed flips.
 - [x] **29.6** `./scripts/check.sh` green. Commit. Add the Build 4 session entry to `NOTES.md` listing every TODO pushed through.
 
-## Phase 30 — Apply the answered questions (reserved)
+## Phase 30 — Apply the answered questions
+
+Q49, Q52–Q55, Q57, Q58, Q60 confirmed the defaults. Applied within their seams:
+
+- [x] **30.1** (Q50 B) Migration 0025: `is_assessment = 1` for `rectification_154` and `revision_263`. Data only.
+- [x] **30.2** (Q51 B) Proceedings sheet: column 17 `Viewed by AO` (Yes / No / blank), 18 `Viewed On` (real date), 19 `Limitation Date`; Owner and Note follow. `docs/11-exports.md` updated; the dialog preview reads the same table.
+- [x] **30.3** (Q56) The Calendar's Limitation pill is the muted tint.
+- [x] **30.4** (Q59 C) Under the risk strip: "n drafts to review", a link that applies a `drafts` tile filter. The strip stays four tiles.
+- [x] **30.5** (Q49) The saved-view migration logs its count once per device (devtools console); noted in `NOTES.md`.
+- [x] **30.6** (Q47) Walked logins with open items carry `notes = 'open items'` on their run rows; probe-skipped ones keep `'unchanged'`.
 
 Do not start. Farhath answers Q49 onward after testing Phases 25–29. Then add one task here per answer that differs from its default, in the shape of Phase 12 and Phase 22, each scoped to the seam named in `docs/18-build-4.md` §10. Edit in place; no module is rebuilt, renamed or restructured to apply an answer. If an answer cannot be applied within its seam, stop that task, note why in `NOTES.md`, and continue with the rest.
 
@@ -455,6 +464,11 @@ Same operating rules as Builds 1–4. Installed as Build 5 / Phase 31 because Bu
 - [x] **31.17** `.ics` export (§7) via `export_statutory_ics`, saved through the existing save dialog; "Print month" stylesheet.
 - [x] **31.18** Docs: `09-ui-spec.md` (Calendar screen, overlay, sidebar, settings), `02-data-model.md`, `08-api-contract.md`, `11-exports.md` (ics), `USER-GUIDE.md` one section "The calendar: portal dates, your dates, and notices". `DECISIONS.md` entries. Final `NOTES.md` with the manual test list. `./scripts/check.sh` exits 0. Commit.
 
-## Phase 32 — Apply the answered questions (do not start until answers exist)
+## Phase 32 — Apply the answered questions
+
+Q61–Q65 confirmed the defaults. Applied within their seams:
+
+- [x] **32.1** (Q66) Fetcher sends a normal Chrome User-Agent and Accept headers, follows up to five redirects, and reports a 403 as `failed` with `HTTP 403` in the error. The real fixture still waits on the office machine (TODO(blocked) 31.2 stays until then).
+- [x] **32.2** (Q67) `docs/19` §2.3 lists `audit` before `itr`, matching the rule table.
 
 Placeholder, same rules as Phases 22 and 24, from Q61 onward.

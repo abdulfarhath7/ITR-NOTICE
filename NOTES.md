@@ -936,3 +936,14 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
 6. Sidebar "Next deadlines" and the Attention "Next statutory" tile open
    the Calendar on the day.
 7. Then answer Q61–Q67 in `QUESTIONS.md`.
+
+### Phases 30 and 32 — answers applied
+- Q50 B (migration 0025), Q51 B (Viewed by AO + Viewed On, sheet is 16 + 3
+  + Owner + Note), Q56 (muted pill), Q59 C (drafts line under the strip),
+  Q47 (`notes = 'open items'` on walked logins), Q49 (migration count in the
+  devtools console: it runs per device on first read, so the count cannot
+  be written here), Q66 (browser headers, redirects, `HTTP 403` in the
+  error), Q67 (docs/19 order). Everything else confirmed as built.
+- Still waiting on: the real portal page for the fixture (Q66 part 2), and
+  the mockup PNGs under `docs/mockups/build-4/` and `build-5/` (Q58) for
+  the refit pass.

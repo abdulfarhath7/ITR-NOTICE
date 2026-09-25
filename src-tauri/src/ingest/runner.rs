@@ -1089,6 +1089,12 @@ impl<R: tauri::Runtime> Runner<R> {
         source.set_target(self.item.as_ref().and_then(|p| p.proceeding.clone()));
 
         let todo: Vec<&str> = panels.iter().copied().filter(|p| !cursor.panels_done.iter().any(|d| d == p)).collect();
+        // Q47: a login with open items is walked without a probe; say so on
+        // its run rows so the Sync history shows why.
+        let open_items = self.scope.kind == RunKind::Sweep && module == Module::Proceedings && {
+            let con = self.db.lock().map_err(|e| SourceError::Other(e.to_string()))?;
+            scopes::login_has_open_items(&con, &job.login_ref).unwrap_or(false)
+        };
         let probed = if cursor.panels_done.is_empty() { self.probe(source, job, module, &todo).await? } else { None };
         if let Some((true, _)) = &probed {
             // Unchanged on every panel: done, and zero is still a finding.
@@ -1140,7 +1146,8 @@ impl<R: tauri::Runtime> Runner<R> {
                         "changed": sink.counts.changed - before.changed,
                         "older_than_window": sink.older,
                     });
-                    self.record_run(&con, job, Some(panel), found, status, gaps, r.note.as_deref());
+                    let why = if open_items { Some("open items") } else { None };
+                    self.record_run(&con, job, Some(panel), found, status, gaps, r.note.as_deref().or(why));
                     cursor.panels_done.push(panel.into());
                     queue::save_cursor(&con, &job.id, &cursor).map_err(|e| SourceError::Other(e.to_string()))?;
                     sink.counts.panels_done += 1;
