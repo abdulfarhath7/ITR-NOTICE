@@ -6,6 +6,7 @@
 //! explicit queries returning explicit DTOs.
 
 pub mod cadence;
+pub mod client_delete;
 pub mod clients;
 pub mod documents;
 pub mod drafts;

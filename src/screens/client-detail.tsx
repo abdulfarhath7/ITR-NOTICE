@@ -24,6 +24,7 @@ import { Avatar } from "../ui/owner-select";
 import { StatusPill } from "../ui/pill";
 import PendingDocs from "../ui/pending-docs";
 import ClientForm from "./client-form";
+import ClientMenu, { PauseDialog } from "./client-menu";
 
 function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
   const open = rows.filter((r) => !isSettled(parseStatus(r.status))).length;
@@ -204,50 +205,6 @@ function HistoryLine({ c, onFetch }: { c: ClientDetail; onFetch: () => void }) {
   );
 }
 
-/** Turning sync off asks for an optional reason (docs/17 §6.2). */
-function PauseDialog({ onPause, onClose }: { onPause: (reason: string | null) => void; onClose: () => void }) {
-  const [reason, setReason] = useState("");
-  return (
-    <Dialog title="Pause sync for this client" onClose={onClose} footer={
-      <>
-        <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn accent" onClick={() => onPause(reason.trim() || null)}>Pause</button>
-      </>
-    }>
-      <Field label="Reason (optional)" hint="whole-book and scheduled sweeps skip this client; Sync now still works">
-        <input className="input" value={reason} maxLength={120} aria-label="Reason (optional)" onChange={(e) => setReason(e.target.value)}
-               onKeyDown={(e) => { if (e.key === "Enter") onPause(reason.trim() || null); }} />
-      </Field>
-    </Dialog>
-  );
-}
-
-/** Header overflow: one item, the nightly pin (docs/17 §2.5). */
-function MoreMenu({ pinned, onTogglePin }: { pinned: boolean; onTogglePin: () => void }) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    window.addEventListener("click", close);
-    window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("click", close); window.removeEventListener("keydown", onKey); };
-  }, [open]);
-  return (
-    <span className="c360-more">
-      <button type="button" className="btn icon" aria-label="More" title="More" aria-haspopup="menu" aria-expanded={open}
-              onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}><Icon name="more" /></button>
-      {open ? (
-        <span className="c360-menu" role="menu">
-          <button type="button" role="menuitem" autoFocus onClick={() => { setOpen(false); onTogglePin(); }}>
-            <Icon name="pin" /><span>{pinned ? "Allow weekly when dormant" : "Keep syncing nightly"}</span>
-          </button>
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
 /** Client detail — Client 360 (docs/16 §7): header with the sync switch,
  *  five summary tiles, then tabs. The module tabs reuse the per-module
  *  list, filtered to the chosen year. */
@@ -308,14 +265,6 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
   };
   // Off asks for a reason first; on goes straight through.
   const toggleSync = (on: boolean) => { if (on) void setSync(true, null); else setPausing(true); };
-  const togglePin = async (pinned: boolean) => {
-    try {
-      await api.pinClientCadence(id, pinned);
-      toast(pinned ? "Kept on the nightly sweep." : "Moves to weekly when dormant.");
-      invalidate(`clients:${id}`);
-      invalidate("clients:list");
-    } catch (e) { toastError(describeError(e)); }
-  };
   const saveFileNo = async () => {
     if (fileNo === null) return;
     try {
@@ -366,9 +315,11 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
                       title={estimate.data !== undefined ? approxDuration(estimate.data) : undefined}>
                 <Icon name="refresh" /><span>Sync now</span>
               </button>
-              <MoreMenu pinned={pinned} onTogglePin={() => { void togglePin(!pinned); }} />
             </>
           ) : <span className="pill accent">ERI</span>}
+          <ClientMenu client={{ id, name: c.name, source: c.source, syncEnabled: syncOn, pinned,
+                                tier: c.cadence_tier ?? "nightly", historyNote: c.history_note ?? null }}
+                      onDeleted={() => navigate({ name: "clients" })} />
         </div>
 
         <div className="c360-tiles">

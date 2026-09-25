@@ -597,3 +597,14 @@ Date: 2026-09-25
 Context: docs/17 §2.8 titles the Updates card "Last night".
 Decision: the card is titled "Last night" when the sweep started between 18:00 and 09:00 IST and finished within 20 hours. Otherwise it is "Last run". Parked, deep fetched and warm cached counts appear only when not zero.
 Reversible: easily.
+
+## D-060 — Deleting a client is a hard, synced delete
+Date: 2026-09-25
+Context: the user asked for a delete option on clients. Nothing deleted clients before.
+Decision:
+- Every row under the client is removed children first, each through `rows::delete_with`: documents, drafts, owner/note meta, responses, adjournments, notices, payments, demand replies, demands, returns (newest revision first), forms, proceedings, years, then the client.
+- Each removal is a ledger delete, so other devices remove the same rows when they sync.
+- Local rows: the run audit keeps its rows with the client id cleared; deep requests go; probe hashes go unless the login is shared. Blobs no document references are dropped.
+- The keychain entry goes unless another client uses the same login.
+- Refused while a run is in flight. The dialog asks for the client's name.
+Reversible: no. The dialog says so and suggests exporting first.

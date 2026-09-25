@@ -417,6 +417,7 @@ pub struct ClientSummary {
     pub year_count: i64,
     /// docs/17 §6.4: History pill and the weekly (dormant) pill.
     pub history_depth: String,
+    pub history_note: Option<String>,
     pub cadence_tier: String,
     pub cadence_pinned: bool,
     pub sync_enabled: bool,
@@ -435,7 +436,7 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
                 (SELECT run_at FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
                 (SELECT status FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
                 (SELECT count(*) FROM year_contexts y WHERE y.client_id = cl.id),
-                cl.history_depth, cl.cadence_tier, cl.cadence_pinned, cl.sync_enabled
+                cl.history_depth, cl.cadence_tier, cl.cadence_pinned, cl.sync_enabled, cl.history_note
          FROM clients cl
          WHERE (?2 IS NULL OR lower(cl.name) LIKE ?2 OR lower(coalesce(cl.client_code,'')) LIKE ?2
                 OR cl.pan LIKE ?3)
@@ -451,6 +452,7 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
             overdue_count: r.get(11)?, last_sync_at: r.get(12)?, last_sync_status: r.get(13)?,
             year_count: r.get(14)?, history_depth: r.get(15)?, cadence_tier: r.get(16)?,
             cadence_pinned: r.get::<_, i64>(17)? == 1, sync_enabled: r.get::<_, i64>(18)? == 1,
+            history_note: r.get(19)?,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)

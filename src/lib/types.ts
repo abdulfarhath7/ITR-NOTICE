@@ -28,6 +28,7 @@ export interface ClientSummary {
   year_count: number;
   /** docs/17 §6.4 */
   history_depth: HistoryDepth;
+  history_note: string | null;
   cadence_tier: CadenceTier;
   cadence_pinned: boolean;
   sync_enabled: boolean;
@@ -719,4 +720,16 @@ export interface SyncOverview {
   estimate_all_s: number;
   deep_queued: number;
   rows: SyncRow[];
+}
+
+/** What deleting a client removes (the confirmation dialog). */
+export interface DeletePreview {
+  client_id: string;
+  name: string;
+  years: number;
+  work_items: number;
+  communications: number;
+  documents: number;
+  /** Another client signs in with the same login; its password stays. */
+  login_shared: boolean;
 }

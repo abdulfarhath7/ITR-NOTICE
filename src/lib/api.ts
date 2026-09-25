@@ -6,7 +6,7 @@ import type {
   RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
-  DeepDepth, DeepFetchRequest, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
+  DeepDepth, DeepFetchRequest, DeletePreview, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
 } from "./types";
 
 export const api = {
@@ -27,6 +27,8 @@ export const api = {
   forgetClientCredential: (clientId: string) => invoke<void>("forget_client_credential", { clientId }),
   setClientSyncEnabled: (clientId: string, enabled: boolean) => invoke<void>("set_client_sync_enabled", { clientId, enabled }),
   setClientNote: (clientId: string, note: string) => invoke<void>("set_client_note", { clientId, note }),
+  clientDeletePreview: (clientId: string) => invoke<DeletePreview>("client_delete_preview", { clientId }),
+  deleteClient: (clientId: string) => invoke<void>("delete_client", { clientId }),
 
   workItems: (filter?: WorkItemFilter) => invoke<WorkItemRow[]>("list_work_items", { filter: filter ?? null }),
   proceeding: (id: string) => invoke<ProceedingDetail>("get_proceeding", { id }),

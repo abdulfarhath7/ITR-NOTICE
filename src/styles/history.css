@@ -49,3 +49,10 @@
 
 /* Add-client checkbox (§4) */
 .field.client-add-history > label.check { font: inherit; color: var(--text); }
+
+/* Client actions menu (Clients list and Client 360) */
+.c360-menu .menu-sep { height: 1px; margin: 0.25rem 0; background: var(--border); }
+.c360-menu button.danger { color: var(--danger); }
+.c360-menu button.danger:hover, .c360-menu button.danger:focus-visible { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.table .client-actions { width: 2.75rem; text-align: right; }
+.table .client-actions .btn.icon { height: 1.75rem; width: 1.75rem; }

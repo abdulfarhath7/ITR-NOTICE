@@ -24,6 +24,12 @@ derive_from_gstin(gstin) -> { pan, state_code, state_name }
 import_clients_csv(path, dry_run) -> { ok: Row[], errors: RowError[] }
 ```
 
+Build 3 additions:
+```
+client_delete_preview(client_id) -> { name, years, work_items, communications, documents, login_shared }
+delete_client(client_id)       // children first, each a ledgered delete; refused while a run is in flight
+```
+
 ### Work items
 ```
 list_work_items(filter) -> WorkItemRow[]      // across all four modules

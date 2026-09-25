@@ -13,6 +13,7 @@ import Icon from "../ui/icons";
 import { Page, PageBody, PageHead } from "../ui/page";
 import ClientForm from "./client-form";
 import ClientImport from "./client-import";
+import ClientMenu from "./client-menu";
 
 type SortKey = "name" | "client_code" | "open_count" | "overdue_count" | "last_sync_at";
 const DEFAULT_DIR: Record<SortKey, 1 | -1> = { name: 1, client_code: 1, open_count: -1, overdue_count: -1, last_sync_at: -1 };
@@ -118,6 +119,7 @@ export default function ClientsScreen() {
                 <Th k="name" sort={sort} onSort={toggle}>Name</Th><Th k="client_code" sort={sort} onSort={toggle}>Code</Th><th>PAN</th><th>Source</th>
                 <Th k="open_count" sort={sort} onSort={toggle} num>Open</Th><Th k="overdue_count" sort={sort} onSort={toggle} num>Overdue</Th>
                 <Th k="last_sync_at" sort={sort} onSort={toggle} num>Last sync</Th><th>History</th><th>Status</th>
+                <th className="client-actions"><span className="sr-only">Actions</span></th>
               </tr></thead>
               <tbody>
                 {rows.map((c, i) => (
@@ -137,6 +139,10 @@ export default function ClientsScreen() {
                     <td className="num">{stamp(c.last_sync_at)}</td>
                     <td><HistoryCell c={c} /></td>
                     <td><ClientStatus c={c} /></td>
+                    <td className="client-actions">
+                      <ClientMenu label="Actions" client={{ id: c.id, name: c.name, source: c.source, syncEnabled: c.sync_enabled,
+                                                            pinned: c.cadence_pinned, tier: c.cadence_tier, historyNote: c.history_note }} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

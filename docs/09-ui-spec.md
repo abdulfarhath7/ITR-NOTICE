@@ -66,6 +66,21 @@ created, and never enters the client record. The add form has one checkbox, off 
 default: "Also fetch full history tonight". It queues an all-years,
 index-only deep fetch.
 
+**Client actions.** Each row on the Clients list and the Client 360 header
+share one ⋯ menu:
+- Edit details
+- Sync now
+- Fetch history
+- Pause sync / Resume sync
+- Keep syncing nightly
+- Delete client
+
+Delete opens a dialog that counts what goes (years, work items, notices,
+documents) and says the delete reaches every device through sync. It
+cannot be undone. You confirm by typing the client's name. The stored
+portal password goes too, unless another client signs in with the same
+login.
+
 ## 3 — Client detail
 
 Client 360 (Build 2, `16-dashboard-v2.md` §7). Header: initials avatar,

@@ -237,3 +237,32 @@ pub fn set_client_note(state: State<AppState>, client_id: String, note: String) 
     c.updated_at = now();
     clients::save(&con, &c)
 }
+
+// ------------------------------------------------------------ delete
+
+/// What deleting a client would remove, for the confirmation dialog.
+#[tauri::command]
+pub fn client_delete_preview(state: State<AppState>, client_id: String) -> AppResult<crate::repo::client_delete::DeletePreview> {
+    let con = lock_db(&state)?;
+    crate::repo::client_delete::preview(&con, &client_id)
+}
+
+/// Delete a client and everything under it, here and — through the
+/// ledger — on every device of the firm. Refused while a run is in flight
+/// so the runner never writes under a client that is gone.
+#[tauri::command]
+pub fn delete_client(state: State<AppState>, client_id: String) -> AppResult<()> {
+    if crate::commands::ingestion::busy(&state) {
+        return Err(AppError::state("a sweep is running; delete the client when it finishes"));
+    }
+    let (login, shared) = {
+        let mut con = lock_db(&state)?;
+        crate::repo::client_delete::delete(&mut con, &client_id)?
+    };
+    // The keychain entry belongs to the login; keep it while another
+    // client still signs in with it.
+    if !shared {
+        let _ = keychain::forget_portal_password(&login);
+    }
+    Ok(())
+}
