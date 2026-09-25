@@ -20,6 +20,7 @@ mod migrate;
 mod relay;
 mod repo;
 mod snapshot;
+pub mod statutory;
 mod sync;
 mod wipe;
 
@@ -109,6 +110,10 @@ pub fn run() {
             commands::export::preview_export_sheet, commands::export::export_columns,
             commands::export::export_clients, commands::export::clients_export_name,
             commands::export::export_sweep_run, commands::export::sweep_run_export_name, commands::scopes::deep_probe_info,
+            commands::statutory::list_statutory, commands::statutory::refresh_statutory, commands::statutory::statutory_status,
+            commands::statutory::get_calendar_settings, commands::statutory::set_calendar_settings,
+            commands::statutory::list_firm_dates, commands::statutory::upsert_firm_date, commands::statutory::delete_firm_date,
+            commands::statutory::export_statutory_ics, commands::statutory::set_client_calendar_profile,
             commands::documents::open_document, commands::documents::save_document_as,
             commands::documents::get_document_base64,
             commands::ingestion::start_ingestion_run, commands::ingestion::resume_ingestion_sweep,

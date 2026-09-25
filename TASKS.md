@@ -408,3 +408,53 @@ Read `docs/18-build-4.md` §7 and `docs/17-scrape-scopes.md`. UI reference: `swe
 ## Phase 30 — Apply the answered questions (reserved)
 
 Do not start. Farhath answers Q49 onward after testing Phases 25–29. Then add one task here per answer that differs from its default, in the shape of Phase 12 and Phase 22, each scoped to the seam named in `docs/18-build-4.md` §10. Edit in place; no module is rebuilt, renamed or restructured to apply an answer. If an answer cannot be applied within its seam, stop that task, note why in `NOTES.md`, and continue with the rest.
+
+---
+
+---
+
+# Build 5 — Statutory calendar
+
+Specification: `docs/19-statutory-calendar.md`. Read it in full, then read
+the five vcfo files it names (read-only) before Phase 31. 
+
+Same operating rules as Builds 1–4. Installed as Build 5 / Phase 31 because Build 4 and Phase 25 already exist; the seeded questions are Q61–Q65. Phase 32 is reserved for answers.
+
+## Phase 31 — Statutory calendar (one milestone per lettered group)
+
+### 31.A Data and fetch
+
+- [x] **31.1** Migrations: `statutory_deadlines`, `statutory_fetches`, `firm_dates`, the four `clients` profile columns (§2.2). Ledger entity types `statutory_deadline`, `statutory_fetch`, `firm_date`; the first two collector-owned and carried by changesets, `firm_date` user-authored like `work_item_meta`.
+- [x] **31.2** Fetch the real portal page for the current year once, save it as `sidecar/tests/fixtures/statutory/yearly-deadlines-<year>.html` (no PII on that page; commit it), and write the Rust parser `src-tauri/src/statutory/parse.rs` against it: month headings, weekday-date headings, description paragraphs, note paragraphs. Ids per §2.2.
+  - *Done when:* the fixture parses to one row per portal deadline with no `other` category above 15% of rows; every row has a valid `due_on`.
+- [x] **31.3** Category rules (§2.3) and applicability tags (§2.4) as two ordered rule tables in `statutory/rules.rs`, data not code, with a unit test per rule using the fixture titles.
+- [x] **31.4** Fetcher `statutory/fetch.rs`: plain `reqwest` GET per `yfmv`, normalise, hash, diff per §3.2, extension regex per §3.3, ledger entries `statutory_added` / `statutory_extended` / `statutory_removed` / `statutory_unparsed`. Never deletes rows.
+  - *Done when:* re-running against an unchanged fixture writes an `unchanged` fetch row and no ledger entries; a fixture edited to add an extension note moves `due_on`, sets `original_on`, and writes one `statutory_extended` entry.
+- [x] **31.5** `public` scope step at the start of the overnight pipeline (docs/17 §2) with the cadence in §3.1; `refresh_statutory` command; `statutory_status`. No credentials, no session lock, no time-budget charge.
+- [x] **31.6** `list_statutory(from, to, scope)` with `applies_count`; `firm_dates` commands; `set_client_calendar_profile`. `NOTES.md` entry. Commit.
+
+### 31.B Calendar card
+
+- [ ] **31.7** `lib/calendar-grid.ts`: port `buildStatutoryMonthGrid`, `calendarCellIndexAfterKey`, `nextInMonthCellIndex`, `statutoryDaysUntil`, `statutoryStatus`, `statutoryStatusLabel`, `statutoryHeatLevel`, `statutoryPillLabel` from vcfo's `statutory-calendar-utils.ts`, Monday-first, `today` passed in, pure. `lib/calendar-prefs.ts`: tolerant read/write of `lcc.calendar.prefs.v1`.
+- [ ] **31.8** `styles/calendar.css`: every `stat-cal-*` and `stat-max-*` rule from vcfo re-expressed with LCC tokens; fixed dot slots; reduced-motion guard on the flash.
+- [ ] **31.9** Rebuild `screens/calendar.tsx` as the minimized card (§4): header with FY badge, scope control, Full screen button; month line with clamped nav; six-row Monday-first grid with dots and Notices pills; `role="grid"` and the full keyboard set; legend with counts, mute, Shift-solo, Show all, Notices row with `Due`/`Issued` toggle; agenda with day groups, flash-scroll, status labels, extension rendering, "Open" navigation; the three empty/warning states.
+  - *Done when:* the Build 2 Calendar's behaviours (day counts, keyboard movement, Due/Issued, filters as chips) all still work inside the card.
+- [ ] **31.10** Updates screen groups "Deadline extended" and "Calendar changed" (§3.4). `NOTES.md` entry. Commit.
+
+### 31.C Full screen, sidebar, tile
+
+- [ ] **31.11** `ui/calendar-overlay.tsx` (§5): fixed overlay over the content column, sidebar collapse/restore, body scroll lock, Escape and focus return, top bar with Month/Year/Agenda, scope, category chips, nav, `.ics`, exit button. Shared state with the card.
+- [ ] **31.12** Month view with trimmed weeks, three fixed pill slots, "+n more", Notices line, right agenda panel.
+- [ ] **31.13** Year view: 4×3 mini-months, heat squares, today outline, hover tooltip, click-to-month.
+- [ ] **31.14** Agenda view: FY list grouped by month and day, Today pinned, `j`/`k`.
+- [ ] **31.15** Sidebar mini "Next deadlines" and collapsed badge; Attention strip tile "Next statutory" (grid to five columns). `NOTES.md` entry. Commit.
+
+### 31.D Settings, profile, export, docs
+
+- [ ] **31.16** Settings → Calendar rows (§8) and the Firm dates manager; client Profile tab fields (§8 last paragraph).
+- [ ] **31.17** `.ics` export (§7) via `export_statutory_ics`, saved through the existing save dialog; "Print month" stylesheet.
+- [ ] **31.18** Docs: `09-ui-spec.md` (Calendar screen, overlay, sidebar, settings), `02-data-model.md`, `08-api-contract.md`, `11-exports.md` (ics), `USER-GUIDE.md` one section "The calendar: portal dates, your dates, and notices". `DECISIONS.md` entries. Final `NOTES.md` with the manual test list. `./scripts/check.sh` exits 0. Commit.
+
+## Phase 32 — Apply the answered questions (do not start until answers exist)
+
+Placeholder, same rules as Phases 22 and 24, from Q61 onward.

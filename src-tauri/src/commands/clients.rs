@@ -97,6 +97,7 @@ pub fn create_client(state: State<AppState>, input: ClientInput) -> AppResult<Cl
     let c = Client {
         sync_enabled: None, note: None, history_depth: None, history_fetched_at: None, history_note: None,
         cadence_tier: None, cadence_pinned: None, last_swept_at: None, sync_pause_reason: None,
+        entity_kind: None, audit_case: None, tp_case: None, tds_deductor: None,
         id: crate::ids::new_id(),
         client_code: clean(input.client_code),
         name,

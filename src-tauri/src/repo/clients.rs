@@ -24,6 +24,10 @@ pub fn from_row(r: &Row) -> rusqlite::Result<Client> {
         cadence_pinned: r.get("cadence_pinned").unwrap_or(None),
         last_swept_at: r.get("last_swept_at").unwrap_or(None),
         sync_pause_reason: r.get("sync_pause_reason").unwrap_or(None),
+        entity_kind: r.get("entity_kind").unwrap_or(None),
+        audit_case: r.get("audit_case").unwrap_or(None),
+        tp_case: r.get("tp_case").unwrap_or(None),
+        tds_deductor: r.get("tds_deductor").unwrap_or(None),
     })
 }
 
@@ -63,6 +67,7 @@ pub fn create_minimal(con: &Connection, pan: &str, name: Option<&str>) -> AppRes
     let c = Client {
         sync_enabled: None, note: None, history_depth: None, history_fetched_at: None, history_note: None,
         cadence_tier: None, cadence_pinned: None, last_swept_at: None, sync_pause_reason: None,
+        entity_kind: None, audit_case: None, tp_case: None, tds_deductor: None,
         id: new_id(),
         client_code: None,
         name: name.map(str::trim).filter(|n| !n.is_empty()).unwrap_or(&pan).to_string(),

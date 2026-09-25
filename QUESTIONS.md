@@ -494,3 +494,59 @@ Still open: **Q11** (count the AR panel) and **Q08** (run the two session tests)
 - **Blast radius:** `repo/events.rs` (writers), migration 0023 (the table); B would touch `ledger.rs`, `merge.rs`, `snapshot.rs`, the relay.
 - **Answer:**
 - **Resolved:** no
+
+### Q61 — Other acts (GST, MCA, Labour) as an optional import
+- **Context:** docs/19 §2.5. vcfo's FY 2026-27 dataset is typed from an SBC PDF; it would go stale silently.
+- **Options:** A income tax only from the portal, firm dates by hand / B offer a one-click import of the vcfo dataset, labelled "typed from PDF, not live", as extra legend acts
+- **Default used:** A.
+- **Blast radius:** a seed file, two legend acts, an import button in Settings → Calendar.
+- **Answer:**
+- **Resolved:** no
+
+### Q62 — Applies-to-us profile fields now
+- **Context:** docs/19 §2.4 adds entity type, audit, TP and TDS-deductor fields to the client profile.
+- **Options:** A build now (fields blank until set; scope falls back to `everyone`) / B defer; scope shows only All and Overdue
+- **Default used:** A — the scope is the main reason a CA opens the calendar.
+- **Blast radius:** four columns, four form fields, one scope option.
+- **Answer:**
+- **Resolved:** no
+
+### Q63 — First day of week
+- **Context:** docs/19 §4. vcfo is Sunday-first; Build 2's calendar and the mockups are Monday-first.
+- **Options:** A Monday, with a setting / B Sunday to match vcfo exactly
+- **Default used:** A.
+- **Blast radius:** one constant in `lib/calendar-grid.ts` and the setting.
+- **Answer:**
+- **Resolved:** no
+
+### Q64 — Where the Notices "Open" action lands
+- **Context:** docs/19 §4 agenda. Clicking "Open" on a day's notices goes to Attention with the matching Due bucket, or to the Build 2 day list beyond 30 days.
+- **Options:** A as specified / B always the day list, inside the calendar
+- **Default used:** A.
+- **Blast radius:** one navigate() call.
+- **Answer:**
+- **Resolved:** no
+
+### Q65 — Portal fetch cadence
+- **Context:** docs/19 §3.1. Weekly, nightly around the FY boundary.
+- **Options:** A as specified / B nightly always (one cheap GET)
+- **Default used:** A.
+- **Blast radius:** the cadence rule in the `public` step.
+- **Answer:**
+- **Resolved:** no
+
+### Q66 — The portal calendar cannot be fetched from the build machine
+- **Context:** docs/19 §2.1 and task 31.2 ask for the real `yearly-deadlines.aspx` page as the fixture. incometaxindia.gov.in answered HTTP 403 "Access Denied" (Akamai edge) to curl with browser headers and to headless Chromium alike, for every URL tried.
+- **Options:** A a synthetic fixture in the described structure, clearly labelled, and the parser and fetcher built against it; swap in the real page when a machine can reach the portal / B wait for the real page before any of Build 5
+- **Default used:** A. The parser walks headings and paragraphs in order and never drops a dated row, so a wording difference on the real page degrades to `other`, not to a miss. The fetcher's failure path (a `failed` fetch row, rows untouched, a warning line on the screen) is what the app will show until the portal answers.
+- **Blast radius:** `sidecar/tests/fixtures/statutory/yearly-deadlines-2026.html` (replace the file; the three parser tests then pin the real structure) and, if the real markup differs, the heading/paragraph walk in `statutory/parse.rs`. TODO(blocked) on 31.2.
+- **Answer:**
+- **Resolved:** no
+
+### Q67 — Audit rows before ITR rows in the category table
+- **Context:** docs/19 §2.3 orders the rules tds_deposit, tds_returns, advance_tax, itr, audit, forms with "first match wins". An audit-report row names the return it precedes ("… required to submit his return of income on October 31") and so matched `itr`.
+- **Options:** A move `audit` above `itr` (legend order follows) / B keep the order and add "audit report" as an exclusion on the ITR rule
+- **Default used:** A — one row moved, no new rule shape.
+- **Blast radius:** one row in `CATEGORIES` in `statutory/rules.rs`; the legend shows Audit before ITR.
+- **Answer:**
+- **Resolved:** no

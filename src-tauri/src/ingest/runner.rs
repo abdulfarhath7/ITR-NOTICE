@@ -618,6 +618,22 @@ impl<R: tauri::Runtime> Runner<R> {
     /// any item fetch that waited for the session, then the summary.
     pub async fn run(self) {
         self.log("info", &format!("{} started, sweep {}", self.kind(), &self.sweep_id[..8.min(self.sweep_id.len())]));
+        // docs/19 §3.1: the `public` step — the portal's public calendar,
+        // no credentials, no lock, no charge against the client budget.
+        if self.scope.scheduled && self.whole_book {
+            let due = self.db.lock().ok().and_then(|con| {
+                let first = self.settings.days.iter().copied().min();
+                crate::statutory::fetch_due(&con, scheduler::ist_now().date(), first).ok()
+            }).unwrap_or(false);
+            if due {
+                match crate::statutory::fetch::refresh(&self.db, scheduler::ist_now().date()).await {
+                    Ok(outcomes) => for o in outcomes {
+                        self.log("info", &format!("public calendar {}: {} ({} added, {} extended, {} removed)", o.year, o.status, o.added, o.extended, o.removed));
+                    },
+                    Err(e) => self.log("warn", &format!("public calendar fetch failed: {e}")),
+                }
+            }
+        }
         let renewal = match self.take_lease().await {
             Ok(h) => h,
             Err(e) => {

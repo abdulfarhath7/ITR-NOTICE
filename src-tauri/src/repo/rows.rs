@@ -12,6 +12,7 @@ pub const SYNCED_TABLES: &[&str] = &[
     "clients", "year_contexts", "proceedings", "communications", "responses",
     "adjournment_requests", "demands", "demand_responses", "payments", "returns",
     "filed_forms", "documents", "type_registry", "drafts", "work_item_meta", "proceeding_events",
+    "statutory_deadlines", "statutory_fetches", "statutory_events", "firm_dates",
 ];
 
 /// Local tables written through the same function for uniformity, never

@@ -866,3 +866,27 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
 8. Sweep: role pill, stats from the last run, Export run log; Deep fetch one
    client with Everything / Last 3 AYs / Since date, Index + download PDFs.
 9. Then answer Q49–Q60 in `QUESTIONS.md`.
+
+## Session 8 — 2026-09-25, Build 5 (Phase 31, statutory calendar)
+
+### Install
+- New `files.zip` (spec "18-statutory-calendar", tasks "Build 4 / Phase 25",
+  questions Q46–Q50) collided with Build 4 on every number. Installed as
+  **docs/19**, **Build 5 / Phase 31**, **Q61–Q65** (D-067). `vcfo-suite`
+  is at `~/Documents/vcfo-suite` (hyphen), read-only.
+
+### 31.A
+- Migration 0024: `statutory_deadlines`, `statutory_fetches`, `firm_dates`,
+  `statutory_events`, four client profile columns. All synced.
+- `statutory/parse.rs` (page walk, ids, extension regex), `rules.rs` (two
+  ordered tables; audit moved above ITR, Q67), `fetch.rs` (hash, diff,
+  never deletes), `repo.rs` (lists, firm dates, `.ics`), `mod.rs`
+  (settings KV, FY maths, cadence). Commands in `commands/statutory.rs`.
+- The public step runs at the start of a scheduled whole-book run (D-069).
+- **TODO(blocked) 31.2:** the portal returns 403 to every fetch from this
+  machine (curl with browser headers, headless Chromium). The fixture at
+  `sidecar/tests/fixtures/statutory/yearly-deadlines-2026.html` is
+  **synthetic**, labelled so in its first comment, in the structure docs/19
+  §2.1 describes. Replace it with the real page when one can be fetched;
+  the parser tests then pin the real markup (Q66).
+- `regex` crate added.

@@ -644,3 +644,21 @@ Date: 2026-09-25
 Context: docs/18 §7 wants `AY <first> → <last> · ~n items · ~m min` "from the listing probe", else `Estimate after probe`. The probe stores a hash and a row count per panel (docs/17 §2.2), not AYs.
 Decision: `deep_probe_info` returns the AYs the client already holds, the sum of the probe's row counts (None until a probe has run), and docs/17 §2.9's seconds. The line reads `Estimate after probe` until `probe_rows` exists.
 Reversible: easily.
+
+## D-067 — Build 5 installed as Phase 31, document 19, questions Q61–Q67
+Date: 2026-09-25
+Context: the install notes called this "Build 4 / Phase 25 / docs/18 / Q46–Q50", all of which the tree already used for the cumulative-windows build.
+Decision: `docs/19-statutory-calendar.md`, Phase 31 (31.A–31.D), Phase 32 reserved, seeded questions Q61–Q65; every cross-reference rewritten at install.
+Reversible: n/a.
+
+## D-068 — Statutory change events are rows of `statutory_events`
+Date: 2026-09-25
+Context: docs/19 §3.2 names four ledger entry kinds. As with D-062, a ledger entry here is a table upsert.
+Decision: a synced `statutory_events` table (deadline_id, kind, JSON payload, at); the fetcher writes one row per change; the Updates screen classifies them into "Deadline extended" and "Calendar changed". Merge matches on (deadline, kind, at). Deadline ids are content hashes, so the same row from two devices is one row.
+Reversible: yes.
+
+## D-069 — The public step runs before the lease, only on scheduled whole-book runs
+Date: 2026-09-25
+Context: docs/19 §3.1 puts the fetch at the start of the overnight pipeline, with no lock and no budget charge.
+Decision: `Runner::run` fetches when `fetch_due` says so, before `take_lease`, so a device that is not the collector never fetches on a nightly run, and the fetch never touches a client session. `Refresh now` in Settings runs the same code on demand from any device.
+Reversible: easily.

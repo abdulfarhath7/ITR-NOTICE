@@ -44,6 +44,10 @@ This is an unattended build. The user is asleep. There is no one to ask.
    building and starting — before touching the next. Do not begin
    Phase 22 until QUESTIONS.md Q30 onward carry answers.
 
+10. `vcfo-suite` (`~/Documents/vcfo-suite`) is a read-only reference for Build 5. Port behaviour
+    and structure from the files docs/19 names; never copy its Tailwind
+    classes, its data file, or anything outside those files.
+
 **If you run low on context:** update `TASKS.md` and `NOTES.md` first so the
 next session can resume cleanly. That is the highest-value thing you can do
 with your last tokens.
@@ -123,6 +127,7 @@ docs/                 the specification you are building from
 | `16-dashboard-v2.md` | Build 2 — Phases 14 to 22, read in full before Phase 14 |
 | `17-scrape-scopes.md` | Build 3 — Phase 23, read in full before it; re-read `05` and `protocol.py` too |
 | `18-build-4.md` | Build 4 — Phases 25 to 30, read in full before Phase 25 |
+| `19-statutory-calendar.md` | Build 5 — Phase 31; read the vcfo files it names before starting |
 
 ---
 

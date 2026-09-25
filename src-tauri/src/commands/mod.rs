@@ -9,6 +9,7 @@ pub mod export;
 pub mod ingestion;
 pub mod scopes;
 pub mod settings;
+pub mod statutory;
 pub mod sync;
 pub mod work_items;
 

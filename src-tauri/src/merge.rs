@@ -27,6 +27,7 @@ pub const ORDER: &[&str] = &[
     "type_registry", "clients", "year_contexts", "proceedings", "communications", "responses",
     "adjournment_requests", "demands", "demand_responses", "payments", "returns", "filed_forms",
     "documents", "drafts", "work_item_meta", "proceeding_events",
+    "statutory_deadlines", "statutory_fetches", "statutory_events", "firm_dates",
 ];
 
 /// Foreign-key columns per table and the table they point at.
@@ -73,6 +74,10 @@ pub fn natural_match(con: &Connection, table: &str, row: &Value) -> AppResult<Op
         "drafts" => q("SELECT id FROM drafts WHERE communication_id = ?1", vec![str_of(row, "communication_id")])?,
         // Immutable and written once per change; the same sighting from two
         // devices is one event.
+        // Content-addressed ids (docs/19 §2.2): the same row on two devices
+        // already shares an id. Events match on what and when.
+        "statutory_events" => q("SELECT id FROM statutory_events WHERE deadline_id = ?1 AND kind = ?2 AND at = ?3",
+                                vec![str_of(row, "deadline_id"), str_of(row, "kind"), str_of(row, "at")])?,
         "proceeding_events" => q("SELECT id FROM proceeding_events WHERE proceeding_id = ?1 AND kind = ?2 AND at = ?3",
                                  vec![str_of(row, "proceeding_id"), str_of(row, "kind"), str_of(row, "at")])?,
         "payments" => match str_of(row, "cin") {

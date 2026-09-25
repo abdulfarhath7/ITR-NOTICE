@@ -44,6 +44,73 @@ pub struct Client {
     pub last_swept_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync_pause_reason: Option<String>,
+    /// Migration 0024 (docs/19 §2.4): the calendar profile, set by a
+    /// person. Same skip-when-unset rule.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entity_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audit_case: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tp_case: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tds_deductor: Option<i64>,
+}
+
+/// docs/19 §2.2. Collector-owned, synced.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StatutoryDeadline {
+    pub id: String,
+    pub due_on: String,
+    pub original_on: Option<String>,
+    pub title: String,
+    pub category: String,
+    pub note: Option<String>,
+    pub circular: Option<String>,
+    /// JSON array of tags
+    pub applies: String,
+    pub source_year: i32,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub removed_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StatutoryFetch {
+    pub id: String,
+    pub source_year: i32,
+    pub fetched_at: String,
+    pub status: String,
+    pub page_hash: Option<String>,
+    pub rows: Option<i64>,
+    pub error: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StatutoryEvent {
+    pub id: String,
+    pub deadline_id: String,
+    pub kind: String,
+    pub payload: String,
+    pub at: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// docs/19 §2.2, user-authored from any device.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FirmDate {
+    pub id: String,
+    pub due_on: String,
+    pub title: String,
+    pub category: String,
+    pub note: Option<String>,
+    pub created_by: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
