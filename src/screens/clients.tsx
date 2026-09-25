@@ -1,6 +1,9 @@
 /** Screen 2 — Clients. The client book: search, sortable columns, and a
  *  status pill that says the one thing worth knowing about each client. */
 import { useCallback, useMemo, useState } from "react";
+import { save } from "@tauri-apps/plugin-dialog";
+import { api, describeError } from "../lib/api";
+import { toast, toastError } from "../lib/toast";
 import { useClients } from "../hooks/use-clients";
 import { useRowNav } from "../hooks/use-row-nav";
 import { plural } from "../lib/labels";
@@ -39,6 +42,12 @@ function Th({ k, sort, onSort, num = false, children }: { k: SortKey; sort: Sort
   );
 }
 
+/** docs/18 §6: the latest run's outcome, colours per the mockup. */
+function ResultPill({ c }: { c: ClientSummary }) {
+  if (!c.last_result) return <span className="faint">—</span>;
+  return <span className={`pill ${c.last_result_tone}`}>{c.last_result}</span>;
+}
+
 function ClientStatus({ c }: { c: ClientSummary }) {
   if (c.overdue_count) return <span className="pill danger">{plural(c.overdue_count, "overdue item")}</span>;
   if (c.last_sync_status === "credentials_parked") return <span className="pill danger">Credentials need attention</span>;
@@ -69,7 +78,21 @@ export default function ClientsScreen() {
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false);
   const q = useClients(search.trim());
+
+  // docs/18 §5: straight to the save-as prompt, no dialog. Passwords never
+  // leave the keychain: the export path reads none.
+  const exportAll = async () => {
+    try {
+      const path = await save({ defaultPath: await api.clientsExportName(), filters: [{ name: "Excel workbook", extensions: ["xlsx"] }] });
+      if (!path) return;
+      setExportingAll(true);
+      const n = await api.exportClients(path);
+      toast(`Wrote ${plural(n, "client")} to the workbook.`);
+    } catch (e) { toastError(describeError(e)); }
+    finally { setExportingAll(false); }
+  };
 
   const rows = useMemo(() => {
     const list = [...(q.data ?? [])];
@@ -78,7 +101,8 @@ export default function ClientsScreen() {
   }, [q.data, sort]);
   const summary = useMemo(() => {
     const all = q.data ?? [];
-    return { total: all.length, overdue: all.filter((c) => c.overdue_count).length, never: all.filter((c) => !c.last_sync_at).length };
+    return { total: all.length, overdue: all.filter((c) => c.overdue_count).length, never: all.filter((c) => !c.last_sync_at).length,
+             failures: all.filter((c) => c.last_result_tone === "danger" || c.last_result_tone === "warning").length };
   }, [q.data]);
 
   const openAt = useCallback((i: number) => { const c = rows[i]; if (c) navigate({ name: "client", id: c.id }); }, [rows]);
@@ -87,14 +111,15 @@ export default function ClientsScreen() {
 
   return (
     <Page>
-      <PageHead title="Clients" meta={q.data ? plural(summary.total, "client") : undefined}>
+      <PageHead title="Clients" meta={q.data ? `${summary.total} registered · ${summary.failures} with sync failures` : undefined}>
         <label className="search">
           <Icon name="search" />
-          <input placeholder="Name, code or PAN" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search clients" />
+          <input placeholder="Name, PAN or GSTIN" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search clients" />
         </label>
         <button className="btn" onClick={() => setImporting(true)}><Icon name="download" /><span>Import</span></button>
-        <button className="btn" onClick={() => setExporting(true)}><Icon name="upload" /><span>Export</span></button>
-        <button className="btn accent" onClick={() => setAdding(true)}><Icon name="plus" /><span>Add</span></button>
+        <button className="btn" onClick={() => setExporting(true)} title="Work items of every client"><Icon name="upload" /><span>Export items</span></button>
+        <button className="btn" onClick={() => { void exportAll(); }} disabled={exportingAll || !summary.total}><Icon name="upload" /><span>Export all clients</span></button>
+        <button className="btn accent" onClick={() => setAdding(true)}><Icon name="plus" /><span>Add client</span></button>
       </PageHead>
       <PageBody>
         {q.data && !search && summary.total ? (
@@ -118,7 +143,7 @@ export default function ClientsScreen() {
               <thead><tr>
                 <Th k="name" sort={sort} onSort={toggle}>Name</Th><Th k="client_code" sort={sort} onSort={toggle}>Code</Th><th>PAN</th><th>Source</th>
                 <Th k="open_count" sort={sort} onSort={toggle} num>Open</Th><Th k="overdue_count" sort={sort} onSort={toggle} num>Overdue</Th>
-                <Th k="last_sync_at" sort={sort} onSort={toggle} num>Last sync</Th><th>History</th><th>Status</th>
+                <Th k="last_sync_at" sort={sort} onSort={toggle} num>Last sync</Th><th>Result</th><th>History</th><th>Status</th>
                 <th className="client-actions"><span className="sr-only">Actions</span></th>
               </tr></thead>
               <tbody>
@@ -137,6 +162,7 @@ export default function ClientsScreen() {
                     <td className="num">{c.open_count}</td>
                     <td className="num">{c.overdue_count ? <span className="due danger">{c.overdue_count}</span> : <span className="faint">0</span>}</td>
                     <td className="num">{stamp(c.last_sync_at)}</td>
+                    <td><ResultPill c={c} /></td>
                     <td><HistoryCell c={c} /></td>
                     <td><ClientStatus c={c} /></td>
                     <td className="client-actions">
@@ -149,6 +175,9 @@ export default function ClientsScreen() {
             </table>
           </div>
         )}
+        {q.data?.length ? (
+          <p className="meta clients-foot">Export all clients writes every registration field as entered; empty fields are left empty. Portal passwords are never exported.</p>
+        ) : null}
       </PageBody>
       {adding ? <ClientForm existing={null} onClose={() => setAdding(false)}
                             onSaved={(c) => { setAdding(false); navigate({ name: "client", id: c.id }); }} /> : null}

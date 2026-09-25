@@ -31,6 +31,9 @@ export interface ClientSummary {
   /** docs/17 §6.4 */
   history_depth: HistoryDepth;
   history_note: string | null;
+  /** docs/18 §6: `OK · 2 new` · `Unchanged` · `Login failed` · `OTP needed` · `Failed` · `Incomplete`; null = never swept. */
+  last_result: string | null;
+  last_result_tone: "" | "success" | "warning" | "danger";
   cadence_tier: CadenceTier;
   cadence_pinned: boolean;
   sync_enabled: boolean;

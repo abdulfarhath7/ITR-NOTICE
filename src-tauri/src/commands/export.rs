@@ -21,6 +21,18 @@ pub fn preview_export_sheet(state: State<AppState>, scope: ExportScope, options:
     export::preview_proceedings(&con, &scope, &options.unwrap_or_default(), window.as_deref())
 }
 
+/// docs/18 §5: the client book, registration fields only, never a credential.
+#[tauri::command]
+pub fn export_clients(state: State<AppState>, path: String) -> AppResult<usize> {
+    let con = lock_db(&state)?;
+    export::export_clients(&con, &path)
+}
+
+#[tauri::command]
+pub fn clients_export_name() -> String {
+    export::clients_file_name()
+}
+
 /// Every proceedings-sheet column in order, for the picker.
 #[tauri::command]
 pub fn export_columns() -> Vec<String> {

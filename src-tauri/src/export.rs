@@ -604,6 +604,60 @@ pub fn export_workbook_with(con: &Connection, scope: &ExportScope, options: &Exp
     Ok(report)
 }
 
+/// docs/18 §5: every registration field as entered, blanks blank, plus the
+/// sync-health columns at the end (Q55). Never a credential: this module
+/// does not import `keychain.rs` and reads no secret.
+pub const CLIENT_COLUMNS: [&str; 17] = [
+    "S.No", "Client ID", "Client Name", "PAN", "Entity Type", "Group", "Phone", "Email", "GSTIN", "Client File #",
+    "Tags", "Login", "Source", "Added On", "Last Sync", "Last Result", "Open Items",
+];
+
+fn entity_label(code: &str) -> String {
+    match code {
+        "individual" => "Individual", "company" => "Company", "firm" => "Firm", "huf" => "HUF",
+        "trust" => "Trust", "aop" => "AOP", _ => "Other",
+    }.into()
+}
+
+pub fn export_clients(con: &Connection, path: &str) -> AppResult<usize> {
+    let styles = Styles::new();
+    let prov = provenance(con)?;
+    let mut wb = Workbook::new();
+    let clients = crate::repo::clients::list(con)?;
+    let mut rows: Vec<Vec<Cell>> = Vec::new();
+    for (i, c) in clients.iter().enumerate() {
+        let health = runs::sync_health(con, &c.id)?;
+        let open: i64 = con.query_row(
+            "SELECT count(*) FROM proceedings p JOIN year_contexts y ON y.id = p.year_context_id
+              WHERE y.client_id = ?1 AND p.status IN ('open','adjournment_sought','unknown')", [&c.id], |r| r.get(0))?;
+        // Phone stays blank when no number was entered, even though the
+        // country code defaults to +91.
+        let phone = c.phone.as_deref().map(str::trim).filter(|p| !p.is_empty()).map(|p| format!("{} {p}", c.phone_cc.trim()));
+        rows.push(vec![
+            Cell::Int(i as i64 + 1),
+            text(c.client_code.as_deref()), Cell::Text(c.name.clone()), Cell::Text(c.pan.clone()),
+            Cell::Text(entity_label(&c.entity_type)), text(c.client_group.as_deref()), text(phone.as_deref()),
+            text(c.email.as_deref()), text(c.gstin.as_deref()), text(c.client_file_no.as_deref()), text(c.tags.as_deref()),
+            Cell::Text(c.portal_login_ref.clone().unwrap_or_else(|| "Own".into())), Cell::Text(c.source.clone()),
+            date(Some(&c.created_at[..10.min(c.created_at.len())])),
+            match &health.last_run_at { Some(t) => Cell::Text(ist_of(t)), None => Cell::Blank },
+            text(health.label.as_deref()), Cell::Int(open),
+        ]);
+    }
+    let ws = wb.add_worksheet();
+    ws.set_name("Clients").map_err(|e| AppError::state(e.to_string()))?;
+    let meta = SheetMeta { title: "Clients", module: "Clients", client_scope: "all clients".into(), status: "every status".into() };
+    header_block(ws, &styles, &header_lines(&prov, "All clients", &meta, rows.len(), 0))?;
+    finish_sheet(ws, &CLIENT_COLUMNS, &styles, &rows)?;
+    wb.save(path).map_err(|e| AppError::Io { message: format!("could not write the workbook: {e}") })?;
+    Ok(rows.len())
+}
+
+/// `LCC_clients_<yyyy-mm-dd>.xlsx` (docs/18 §5).
+pub fn clients_file_name() -> String {
+    format!("LCC_clients_{}.xlsx", chrono::Utc::now().with_timezone(&chrono_tz::Asia::Kolkata).format("%Y-%m-%d"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

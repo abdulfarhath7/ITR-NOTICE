@@ -462,6 +462,9 @@ pub struct ClientSummary {
     /// docs/17 §6.4: History pill and the weekly (dormant) pill.
     pub history_depth: String,
     pub history_note: Option<String>,
+    /// docs/18 §6: the latest run's outcome as the table labels it.
+    pub last_result: Option<String>,
+    pub last_result_tone: String,
     pub cadence_tier: String,
     pub cadence_pinned: bool,
     pub sync_enabled: bool,
@@ -483,7 +486,7 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
                 cl.history_depth, cl.cadence_tier, cl.cadence_pinned, cl.sync_enabled, cl.history_note
          FROM clients cl
          WHERE (?2 IS NULL OR lower(cl.name) LIKE ?2 OR lower(coalesce(cl.client_code,'')) LIKE ?2
-                OR cl.pan LIKE ?3)
+                OR cl.pan LIKE ?3 OR coalesce(cl.gstin,'') LIKE ?3)
          ORDER BY cl.name COLLATE NOCASE")?;
     let needle = search.map(str::trim).filter(|s| !s.is_empty()).map(|s| format!("%{}%", s.to_lowercase()));
     let pan_needle = search.map(str::trim).filter(|s| !s.is_empty()).map(|s| format!("%{}%", s.to_ascii_uppercase()));
@@ -496,10 +499,16 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
             overdue_count: r.get(11)?, last_sync_at: r.get(12)?, last_sync_status: r.get(13)?,
             year_count: r.get(14)?, history_depth: r.get(15)?, cadence_tier: r.get(16)?,
             cadence_pinned: r.get::<_, i64>(17)? == 1, sync_enabled: r.get::<_, i64>(18)? == 1,
-            history_note: r.get(19)?,
+            history_note: r.get(19)?, last_result: None, last_result_tone: String::new(),
         })
     })?;
-    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    let mut out: Vec<ClientSummary> = rows.collect::<Result<Vec<_>, _>>()?;
+    for c in out.iter_mut() {
+        let h = crate::repo::runs::sync_health(con, &c.id)?;
+        c.last_result = h.label;
+        c.last_result_tone = h.tone.into();
+    }
+    Ok(out)
 }
 
 /// Full client for the detail and edit screens. PAN is unmasked here — the

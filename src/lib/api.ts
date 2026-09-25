@@ -128,6 +128,8 @@ export const api = {
   previewExportSheet: (scope: ExportScope, options: ExportOptions, window: string | null) =>
     invoke<ExportPreview>("preview_export_sheet", { scope, options, window }),
   exportColumns: () => invoke<string[]>("export_columns"),
+  exportClients: (path: string) => invoke<number>("export_clients", { path }),
+  clientsExportName: () => invoke<string>("clients_export_name"),
 
   dataDir: () => invoke<DataDirInfo>("get_data_dir"),
   openDataDir: () => invoke<void>("open_data_dir"),

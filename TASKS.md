@@ -388,11 +388,11 @@ Read `docs/18-build-4.md` §4 and `docs/11-exports.md`. UI reference: `export-di
 
 Read `docs/18-build-4.md` §5–6. UI reference: `clients.png`.
 
-- [ ] **28.1** Rust: `export_clients` writing the 17-column `Clients` sheet per §5 with the four-row header block. The module must not import `keychain.rs` and must not read any credential table or secret (`docs/07-security.md`). Add a comment at the top of the file stating this.
-- [ ] **28.2** Rust: per-client sync health read model — last run, result label, open count — from the local ledger and `ingestion_runs`.
-- [ ] **28.3** Frontend: Clients table gains Last sync, Result (pill colours per mockup), Open. Header count `<n> registered · <m> with sync failures`. Search over name, PAN, GSTIN. Footer copy literal from §6.
-- [ ] **28.4** Frontend: `Export all clients` button left of Add client, save-as prompt with the suggested filename, no dialog.
-- [ ] **28.5** `./scripts/check.sh` green. Commit.
+- [x] **28.1** Rust: `export_clients` writing the 17-column `Clients` sheet per §5 with the four-row header block. The module must not import `keychain.rs` and must not read any credential table or secret (`docs/07-security.md`). Add a comment at the top of the file stating this.
+- [x] **28.2** Rust: per-client sync health read model — last run, result label, open count — from the local ledger and `ingestion_runs`.
+- [x] **28.3** Frontend: Clients table gains Last sync, Result (pill colours per mockup), Open. Header count `<n> registered · <m> with sync failures`. Search over name, PAN, GSTIN. Footer copy literal from §6.
+- [x] **28.4** Frontend: `Export all clients` button left of Add client, save-as prompt with the suggested filename, no dialog.
+- [x] **28.5** `./scripts/check.sh` green. Commit.
 
 ## Phase 29 — Sweep screen and run-log export
 

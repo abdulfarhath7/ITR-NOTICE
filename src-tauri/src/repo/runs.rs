@@ -26,6 +26,55 @@ pub fn latest(con: &Connection) -> AppResult<Option<IngestionRun>> {
 }
 
 
+/// Per-client sync health (docs/18 §5–§6): the latest run's outcome as
+/// the Clients screen labels it. From this device's `ingestion_runs`, the
+/// same caveat as the Updates screen (Q37).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SyncHealth {
+    pub last_run_at: Option<String>,
+    /// `OK · 2 new` · `Unchanged` · `Login failed` · `OTP needed` · `Failed` · `Incomplete`
+    pub label: Option<String>,
+    /// `success` · `warning` · `danger` · `` (muted)
+    pub tone: &'static str,
+}
+
+pub fn sync_health(con: &Connection, client_id: &str) -> AppResult<SyncHealth> {
+    let latest: Option<(String, String, Option<String>)> = con.query_row(
+        "SELECT run_at, status, notes FROM ingestion_runs WHERE client_id = ?1 ORDER BY run_at DESC LIMIT 1",
+        [client_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?;
+    let Some((run_at, status, notes)) = latest else {
+        return Ok(SyncHealth { last_run_at: None, label: None, tone: "" });
+    };
+    // The run's sweep window: every run of this client since the sweep that
+    // holds the newest run started.
+    let start: String = con.query_row(
+        "SELECT started_at FROM ingestion_sweeps WHERE started_at <= ?1 ORDER BY started_at DESC LIMIT 1",
+        [&run_at], |r| r.get(0)).optional()?.unwrap_or_else(|| run_at.clone());
+    let worst: Option<String> = con.query_row(
+        "SELECT status FROM ingestion_runs WHERE client_id = ?1 AND run_at >= ?2
+          ORDER BY CASE status WHEN 'credentials_parked' THEN 0 WHEN 'awaiting_operator' THEN 1 WHEN 'failed' THEN 2
+                               WHEN 'incomplete' THEN 3 ELSE 4 END LIMIT 1",
+        rusqlite::params![client_id, start], |r| r.get(0)).optional()?;
+    let (label, tone) = match worst.as_deref().unwrap_or(status.as_str()) {
+        "credentials_parked" => ("Login failed".to_string(), "danger"),
+        "awaiting_operator" => ("OTP needed".to_string(), "warning"),
+        "failed" => ("Failed".to_string(), "danger"),
+        "incomplete" => ("Incomplete".to_string(), "warning"),
+        _ => {
+            if notes.as_deref() == Some("unchanged") {
+                ("Unchanged".to_string(), "")
+            } else {
+                let new: i64 = con.query_row(
+                    "SELECT coalesce(sum(coalesce(json_extract(gaps, '$.changed'), 0)), 0) FROM ingestion_runs
+                      WHERE client_id = ?1 AND run_at >= ?2 AND json_valid(gaps)",
+                    rusqlite::params![client_id, start], |r| r.get(0))?;
+                (format!("OK · {new} new"), "success")
+            }
+        }
+    };
+    Ok(SyncHealth { last_run_at: Some(run_at), label: Some(label), tone })
+}
+
 /// The Attention screen's sync line (docs/16 §1.1): when the latest sweep
 /// ran, how many clients it touched and how many of its runs failed or
 /// parked on credentials. The window is the sweep that holds the newest

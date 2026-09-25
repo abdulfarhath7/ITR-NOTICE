@@ -61,3 +61,5 @@
 .exp-sheet .exp-head td { font-weight: 600; background: var(--surface-1); }
 .exp-foot { flex: 1; text-align: left; }
 @media (max-width: 900px) { .exp-grid { grid-template-columns: 1fr; } }
+
+.clients-foot { margin: 0.25rem 0 0; }
