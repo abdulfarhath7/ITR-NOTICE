@@ -54,3 +54,8 @@ tr.sync-row:hover .sync-next, tr.sync-row:focus-within .sync-next, tr.sync-row:f
 .sync-card > .banner { border-radius: 0; border-width: 1px 0 0; border-color: var(--border); }
 .sync-card > .banner:first-child { border-top: 0; }
 .sync-card > .empty, .sync-card > .loading { border-top: 0; }
+
+/* Sweep selected: a narrow checkbox column; the row keeps its height. */
+.sync-table .sync-pick { width: 2.25rem; text-align: center; padding-left: 0.5rem; padding-right: 0; }
+.sync-table .sync-pick input { margin: 0; cursor: pointer; }
+.sync-table tr.selected td { background: color-mix(in srgb, var(--accent) 8%, transparent); }

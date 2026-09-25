@@ -160,6 +160,11 @@ label is **Sync**.
 - **Rows:** hover shows `Sync now` and, on failed rows, `Retry`. A row opens
   its client.
 - **Filters:** All · Running · Failed · Queued · Dormant, persisted.
+- **Sweep selected:** a checkbox per row, and a header box that selects every
+  row shown. With any selected, the toolbar shows "n clients selected ·
+  Clear · Sweep selected · ≈ n min". It sweeps those clients now, every
+  module, in tonight's order. Paused or dormant clients picked by hand are
+  swept too.
 
 ## 6 — Devices
 

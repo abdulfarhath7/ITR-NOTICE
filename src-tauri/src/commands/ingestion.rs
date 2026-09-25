@@ -103,6 +103,10 @@ pub fn launch_sweep(app: AppHandle, state: &AppState, scope: Scope, all_now: boo
         let modules: Vec<String> = match &scope {
             Scope::Module { module } => vec![module.clone()],
             Scope::Client { .. } => every,
+            Scope::Clients { client_ids } => {
+                if client_ids.is_empty() { return Err(AppError::state("select at least one client")); }
+                every
+            }
             Scope::All => if all_now { every } else {
                 let due = cadence::modules_due(&con)?;
                 if due.is_empty() { return Err(AppError::state("nothing is due yet by cadence; use Sweep everything now")); }

@@ -15,6 +15,9 @@ pub enum Scope {
     All,
     Module { module: String },
     Client { client_id: String },
+    /// A hand-picked set (the Sync screen's "Sweep selected"). Picked
+    /// explicitly, so paused and dormant clients in it are swept too.
+    Clients { client_ids: Vec<String> },
 }
 
 /// What kind of run a sweep row is (docs/17 §1). The Build 1 selector
@@ -71,7 +74,7 @@ impl SweepScope {
     }
 
     pub fn whole_book(&self) -> bool {
-        self.kind == RunKind::Sweep && !matches!(self.selector, Scope::Client { .. })
+        self.kind == RunKind::Sweep && matches!(self.selector, Scope::All | Scope::Module { .. })
     }
 }
 
@@ -191,6 +194,8 @@ pub fn create_sweep_scoped(con: &Connection, device_id: &str, scope: &SweepScope
                FROM clients WHERE source = 'portal' AND sync_enabled = 1 ORDER BY name COLLATE NOCASE", None),
         Scope::Client { client_id } => (
             "SELECT id, pan, portal_login_ref, name, 0, last_swept_at FROM clients WHERE id = ?1", Some(client_id.clone())),
+        Scope::Clients { .. } => (
+            "SELECT id, pan, portal_login_ref, name, 0, last_swept_at FROM clients WHERE id = ?1 AND source = 'portal'", None),
     };
     let map = |r: &Row| -> rusqlite::Result<Candidate> {
         let pan: String = r.get(1)?;
@@ -199,9 +204,16 @@ pub fn create_sweep_scoped(con: &Connection, device_id: &str, scope: &SweepScope
                        dormant: r.get::<_, i64>(4)? != 0, last_swept_at: r.get(5)? })
     };
     let mut st = con.prepare(sql)?;
-    let mut rows: Vec<Candidate> = match &bind {
-        Some(b) => st.query_map([b], map)?.collect::<Result<_, _>>()?,
-        None => st.query_map([], map)?.collect::<Result<_, _>>()?,
+    let mut rows: Vec<Candidate> = match (&scope.selector, &bind) {
+        (Scope::Clients { client_ids }, _) => {
+            let mut out = Vec::new();
+            for id in client_ids {
+                if let Some(c) = st.query_row([id], map).optional()? { out.push(c); }
+            }
+            out
+        }
+        (_, Some(b)) => st.query_map([b], map)?.collect::<Result<_, _>>()?,
+        (_, None) => st.query_map([], map)?.collect::<Result<_, _>>()?,
     };
     if scope.whole_book() && !is_dormant_day(&settings, today) {
         rows.retain(|c| !c.dormant);
@@ -216,7 +228,7 @@ pub fn create_sweep_scoped(con: &Connection, device_id: &str, scope: &SweepScope
         carried_over(con)?
     } else { Vec::new() };
 
-    let ordered: Vec<(String, String)> = if scope.whole_book() {
+    let ordered: Vec<(String, String)> = if scope.whole_book() || matches!(scope.selector, Scope::Clients { .. }) {
         order_logins(con, &rows)?
     } else {
         rows.iter().map(|c| (c.login.clone(), c.client_id.clone())).collect()

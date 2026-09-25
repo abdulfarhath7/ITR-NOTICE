@@ -254,15 +254,20 @@ function NextCell({ row, weekday }: { row: SyncRow; weekday: number }) {
   }
 }
 
-function QueueRow({ row, nav, now, weekday, busy, onSync, onRetry }: {
+function QueueRow({ row, nav, now, weekday, busy, selected, onSelect, onSync, onRetry }: {
   row: SyncRow; nav: RowNavProps; now: number; weekday: number; busy: boolean;
+  selected: boolean; onSelect: (on: boolean) => void;
   onSync: () => void; onRetry: () => void;
 }) {
   const st = statusText(row, now);
   const failed = isFailed(row);
   const stop = (f: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); f(); };
   return (
-    <tr className="row-link sync-row" onClick={() => navigate({ name: "client", id: row.client_id })} {...nav}>
+    <tr className={`row-link sync-row${selected ? " selected" : ""}`} onClick={() => navigate({ name: "client", id: row.client_id })} {...nav}>
+      <td className="sync-pick" onClick={(e) => e.stopPropagation()}>
+        <input type="checkbox" checked={selected} aria-label={`Select ${row.client_name}`}
+               onChange={(e) => onSelect(e.target.checked)} />
+      </td>
       <td className="sync-client">
         <span className="sync-name">{row.client_name}</span>
         <div className="sub mono">{row.pan_masked}</div>
@@ -486,6 +491,41 @@ export default function IngestionScreen({ filter }: { filter?: "failed" }) {
 
   const estimate = o ? estimateLabel(o.estimate_all_s) : "";
 
+  // "Sweep selected": a hand-picked set, kept across filter changes and
+  // dropped for clients that leave the book.
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    setPicked((p) => {
+      const ids = new Set(rows.map((r) => r.client_id));
+      const next = new Set([...p].filter((id) => ids.has(id)));
+      return next.size === p.size ? p : next;
+    });
+  }, [rows]);
+  const pick = (id: string, on: boolean) => setPicked((p) => {
+    const next = new Set(p);
+    if (on) next.add(id); else next.delete(id);
+    return next;
+  });
+  const visibleIds = visible.map((r) => r.client_id);
+  const allVisiblePicked = visibleIds.length > 0 && visibleIds.every((id) => picked.has(id));
+  const pickVisible = (on: boolean) => setPicked((p) => {
+    const next = new Set(p);
+    for (const id of visibleIds) { if (on) next.add(id); else next.delete(id); }
+    return next;
+  });
+  const pickedKey = [...picked].sort().join(",");
+  const [pickedEstimate, setPickedEstimate] = useState<number | null>(null);
+  useEffect(() => {
+    if (!pickedKey) { setPickedEstimate(null); return; }
+    let live = true;
+    api.sweepEstimate(pickedKey.split(",")).then((n) => { if (live) setPickedEstimate(n); }).catch(() => { if (live) setPickedEstimate(null); });
+    return () => { live = false; };
+  }, [pickedKey]);
+  const sweepSelected = () => {
+    const ids = rows.filter((r) => picked.has(r.client_id)).map((r) => r.client_id);   // frozen order, not click order
+    void ing.start({ kind: "clients", client_ids: ids }, true).then(() => { setPicked(new Set()); invalidate(OVERVIEW_KEY); });
+  };
+
   return (
     <Page>
       <PageHead title="Sync" meta={o ? plural(rows.length, "client") : undefined}>
@@ -529,7 +569,16 @@ export default function IngestionScreen({ filter }: { filter?: "failed" }) {
             ))}
           </div>
           <span className="grow" />
-          <span className="meta">↑ ↓ to move · Enter to open</span>
+          {picked.size ? (
+            <>
+              <span className="meta">{plural(picked.size, "client")} selected</span>
+              <button className="btn small" onClick={() => setPicked(new Set())}>Clear</button>
+              <button className="btn small accent" disabled={running} title={running ? "A run is in progress" : undefined}
+                      onClick={sweepSelected}>
+                Sweep selected{pickedEstimate ? ` · ${estimateLabel(pickedEstimate)}` : ""}
+              </button>
+            </>
+          ) : <span className="meta">↑ ↓ to move · Enter to open</span>}
         </div>
 
         {allPaused ? (
@@ -559,16 +608,22 @@ export default function IngestionScreen({ filter }: { filter?: "failed" }) {
           ) : (
             <table className="table sync-table" onKeyDown={nav.onKeyDown} aria-label="Sync queue">
               <colgroup>
+                <col style={{ width: "2.25rem" }} />
                 <col style={{ width: "26%" }} /><col style={{ width: "13%" }} /><col style={{ width: "24%" }} />
                 <col style={{ width: "8%" }} /><col style={{ width: "11%" }} /><col style={{ width: "18%" }} />
               </colgroup>
               <thead><tr>
+                <th className="sync-pick">
+                  <input type="checkbox" checked={allVisiblePicked} aria-label="Select every client shown"
+                         onChange={(e) => pickVisible(e.target.checked)} />
+                </th>
                 <th>Client</th><th>Scope</th><th>Status</th><th className="num">Changes</th><th>Last sweep</th><th>Next</th>
               </tr></thead>
               <tbody>
                 {visible.map((r, i) => (
                   <QueueRow key={`${r.client_id}:${r.scope}`} row={r} nav={nav.rowProps(i)} now={now} weekday={o?.dormant_weekday ?? 7}
                             busy={busy === r.client_id}
+                            selected={picked.has(r.client_id)} onSelect={(on) => pick(r.client_id, on)}
                             onSync={() => { void syncNow(r); }} onRetry={() => { void retry(r); }} />
                 ))}
               </tbody>

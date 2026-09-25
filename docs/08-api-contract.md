@@ -52,7 +52,7 @@ Both are available for every status. Only `create_draft` is status-gated.
 
 ### Ingestion
 ```
-start_ingestion_run(scope) -> run_id         // scope: all | module | client
+start_ingestion_run(scope) -> run_id         // scope: all | module | client | clients {client_ids}
 pause_ingestion_run() / resume_ingestion_run()
 get_ingestion_state() -> { current_client, queue_pos, panel, awaiting_operator }
 submit_login_challenge(run_id, kind, value)  // captcha text or OTP

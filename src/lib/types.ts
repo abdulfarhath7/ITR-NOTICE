@@ -412,7 +412,9 @@ export interface DueDateAnswer { due_date: string | null; basis: string | null }
 export type Scope =
   | { kind: "all" }
   | { kind: "module"; module: Module }
-  | { kind: "client"; client_id: string };
+  | { kind: "client"; client_id: string }
+  /** A hand-picked set; paused or dormant clients in it are swept too. */
+  | { kind: "clients"; client_ids: string[] };
 
 export interface Challenge { kind: "otp" | "captcha" | string; image_b64: string | null }
 
