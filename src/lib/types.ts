@@ -26,7 +26,15 @@ export interface ClientSummary {
   last_sync_at: string | null;
   last_sync_status: string | null;
   year_count: number;
+  /** docs/17 §6.4 */
+  history_depth: HistoryDepth;
+  cadence_tier: CadenceTier;
+  cadence_pinned: boolean;
+  sync_enabled: boolean;
 }
+
+export type HistoryDepth = "recent" | "partial" | "full";
+export type CadenceTier = "nightly" | "weekly";
 
 export interface YearContext {
   id: string;
@@ -62,6 +70,14 @@ export interface ClientDetail {
   sync_enabled?: number | null;
   note?: string | null;
   last_sync_at: string | null;
+  /** docs/17 §2.4, §2.5, §6.2 (migration 0022). */
+  history_depth?: HistoryDepth | null;
+  history_fetched_at?: string | null;
+  history_note?: string | null;
+  cadence_tier?: CadenceTier | null;
+  cadence_pinned?: number | null;
+  last_swept_at?: string | null;
+  sync_pause_reason?: string | null;
 }
 
 export interface ClientInput {
@@ -78,6 +94,8 @@ export interface ClientInput {
   source?: string | null;
   client_file_no?: string | null;
   tags?: string | null;
+  /** Add-client only (docs/17 §4). */
+  fetch_history_tonight?: boolean;
 }
 
 export interface Derived { pan: string; state_code: string; state_name: string | null }
@@ -138,6 +156,8 @@ export interface WorkItemRow {
   drafts_to_review: number;
   /** Demands: current outstanding, else the demand amount. */
   amount: number | null;
+  /** Documents indexed but not fetched yet (docs/17 §6.4). */
+  pending_documents: number;
 }
 
 /** Owner and note a person authored for one item (docs/16 §2.2). */
@@ -398,12 +418,17 @@ export interface Challenge { kind: "otp" | "captcha" | string; image_b64: string
 
 export interface IngestionCounts {
   cards: number; notices: number; fetched: number; skipped: number; changed: number; panels_done: number;
+  /** Headers recorded with documents left pending (docs/17 §2.3). */
+  indexed: number;
 }
+
+export type RunScope = "sweep" | "deep" | "item";
 
 export interface IngestionState {
   running: boolean;
   paused: boolean;
   sweep_id: string | null;
+  scope: RunScope | null;
   job_id: string | null;
   current_login_ref_masked: string | null;
   current_client_id: string | null;
@@ -438,7 +463,8 @@ export interface IngestionJob {
   finished_at: string | null;
 }
 
-export type UpdateGroup = "new_notice" | "due_changed" | "response_filed" | "closed" | "demand_changed" | "sync_failed";
+export type UpdateGroup = "new_notice" | "due_changed" | "response_filed" | "closed" | "demand_changed" | "sync_failed"
+  | "history_fetched";
 
 /** One change since the previous sync (docs/16 §4). */
 export interface UpdateEntry {
@@ -460,6 +486,8 @@ export interface UpdateEntry {
   reason: string | null;
   status: string | null;
   run_status: string | null;
+  /** Documents of the item not fetched yet (docs/17 §6.4). history_fetched: new_value is the item count, reason the note. */
+  pending_documents: number;
 }
 
 export interface UpdatesReport { since: string | null; entries: UpdateEntry[] }
@@ -484,15 +512,18 @@ export interface IngestionRun {
   operator: string | null;
   status: string;
   notes: string | null;
+  scope: RunScope;
 }
 
 /** What the runner and the sidecar say, on the `ingestion` channel. */
-export type IngestionEvent =
+export type IngestionEvent = (
   | { ev: "state" }
   | { ev: "log"; level: "info" | "warn" | "error"; msg: string }
   | { ev: "progress"; data: Record<string, unknown> }
   | { ev: "viewport"; img: string }
-  | { ev: "challenge"; kind: string };
+  | { ev: "challenge"; kind: string }
+  | { ev: "summary"; summary: SweepSummary | null }
+) & { scope?: RunScope };
 
 export interface DeviceInfo {
   device_id: string;
@@ -571,4 +602,119 @@ export interface ExportReport { path: string; proceedings: number; demands: numb
 export interface DataDirInfo { path: string; archive_bytes: number }
 export interface SetupState { done: boolean; relay_configured: boolean; permission: string | null; client_count: number; removed: boolean }
 
-export interface SweepSchedule { enabled: boolean; time: string; days: number[]; scope: "due" | "all" }
+/** The scheduler settings KV (docs/17 §6.5); `get_sweep_schedule` returns the same object. */
+export interface SweepSchedule {
+  enabled: boolean;
+  /** HH:MM IST; replaces the Build 1 `time`. */
+  run_window_start: string;
+  run_window_end: string;
+  days: number[];
+  scope: "due" | "all";
+  lookback_days: number;
+  /** null = never dormant */
+  dormant_after_days: number | null;
+  dormant_cadence: "weekly" | "fortnightly";
+  /** ISO weekday 1 = Monday … 7 = Sunday */
+  dormant_weekday: number;
+  client_timeout_min: number;
+  docs_policy: "index" | "download";
+  /** 0 = off */
+  warm_cache_days: number;
+  auto_item_fetch: boolean;
+}
+export type SweepSettings = SweepSchedule;
+
+/** docs/17 §2.8 */
+export interface SweepSummary {
+  swept: number;
+  skipped_unchanged: number;
+  failed: number;
+  parked: number;
+  deep_done: number;
+  warm_cached: number;
+  duration_s: number;
+  window_closed: boolean;
+}
+
+export interface SummaryCard {
+  sweep_id: string;
+  started_at: string;
+  finished_at: string | null;
+  summary: SweepSummary | null;
+}
+
+export type DeepDepth = "all" | "years" | "since";
+export type DocsPolicy = "index" | "download";
+
+export interface DeepFetchRequest {
+  id: string;
+  client_id: string;
+  client_name: string | null;
+  depth: DeepDepth;
+  depth_value: string | null;
+  modules: Module[];
+  docs_policy: DocsPolicy;
+  mode: "tonight" | "now";
+  status: "queued" | "running" | "done" | "failed" | "cancelled";
+  requested_by: string | null;
+  requested_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  /** JSON {module, panel, done, total} */
+  progress: string | null;
+  last_error: string | null;
+}
+
+export interface DeepFetchResult { request: DeepFetchRequest; status: "started" | "queued"; sweep_id: string | null }
+export interface ItemFetchResult { status: "started" | "queued" | "busy"; sweep_id: string | null }
+
+export interface RunCard {
+  sweep_id: string;
+  kind: RunScope;
+  scheduled: boolean;
+  started_at: string;
+  done: number;
+  total: number;
+  swept: number;
+  skipped: number;
+  failed: number;
+}
+
+export type SyncRowStatus = "running" | "awaiting" | "done" | "skipped" | "failed" | "parked" | "incomplete"
+  | "queued" | "dormant" | "paused" | "idle";
+
+/** One row of the Sync screen's queue table (docs/17 §6.1). */
+export interface SyncRow {
+  client_id: string;
+  client_name: string;
+  pan_masked: string;
+  scope: RunScope;
+  /** Deep: "full" | "2 AYs" | "since 2026-04-01" */
+  deep_label: string | null;
+  deep_request_id: string | null;
+  status: SyncRowStatus;
+  /** failed/parked/incomplete: reason; paused: reason; awaiting: OTP/CAPTCHA; queued: "after sweep" */
+  detail: string | null;
+  started_at: string | null;
+  duration_s: number | null;
+  changes: number | null;
+  last_swept_at: string | null;
+  next: "nightly" | "weekly" | "tonight" | "fix" | "none";
+  cadence_tier: CadenceTier;
+  cadence_pinned: boolean;
+  position: number | null;
+}
+
+export interface SyncOverview {
+  run: RunCard | null;
+  last_summary: SummaryCard | null;
+  schedule_enabled: boolean;
+  window_start: string;
+  window_end: string;
+  dormant_weekday: number;
+  /** IST "YYYY-MM-DD HH:MM" */
+  next_run_at: string | null;
+  estimate_all_s: number;
+  deep_queued: number;
+  rows: SyncRow[];
+}

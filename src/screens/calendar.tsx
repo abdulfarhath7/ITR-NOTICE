@@ -21,6 +21,7 @@ import ExportDialog from "../ui/export-dialog";
 import Icon from "../ui/icons";
 import { Avatar } from "../ui/owner-select";
 import { Page, PageBody, PageHead } from "../ui/page";
+import PendingDocs, { pendingOf } from "../ui/pending-docs";
 import { StatusPill } from "../ui/pill";
 
 function DayList({ rows, field, today, listRef }: {
@@ -39,7 +40,7 @@ function DayList({ rows, field, today, listRef }: {
               <span>{r.client_name}</span>
               <span className="sub mono">{[r.client_code, r.pan_masked].filter(Boolean).join(" · ")}</span>
             </div>
-            <span className={`pill ${sectionTone(r)}`}>{sectionLabel(r)}</span>
+            <span className="pill-with-mark"><span className={`pill ${sectionTone(r)}`}>{sectionLabel(r)}</span><PendingDocs count={pendingOf(r)} /></span>
             <span className="cal-item-when">{field === "issued" ? <span className={`due ${due.tone}`}>{due.date} {due.suffix}</span> : null}</span>
             <Avatar name={r.assignee} />
             <span className="cal-item-stage">

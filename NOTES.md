@@ -722,3 +722,87 @@ Owner/Note columns and the "Active filters" line. Then answer Q30–Q40 in
 
 - TODO(blocked): `docs/17-scrape-scopes.md` does not exist in the tree.
   Phase 23 is a placeholder in `TASKS.md`; work continued with request 4.
+
+## Session 6 — 2026-09-25, Build 3 (Phase 23, scrape scopes)
+
+### Install
+- `files.zip` unpacked: `docs/17-scrape-scopes.md` added, the Build 3 tasks
+  replace the Phase 23 placeholder in `TASKS.md`, and the reading-order row
+  is in `CLAUDE.md`. The five seeded questions became **Q42–Q46**, because
+  Q41 was already taken.
+- A second Claude session started Phase 23 in the same tree at the same time
+  (uncommitted: sidecar v3, `walk.py` target and index, the start of
+  migration 0022). The user gave this session ownership. Its sidecar work was
+  kept. Two collisions were fixed: migration 22 was registered twice
+  (`NotContiguous(22)` failed 22 tests), and `probe_state` and
+  `deep_fetch_requests` were listed twice in `LOCAL_TABLES`.
+
+### Built
+- **23.A:** migration 0022, the scope JSON `{kind, selector, scheduled, …}`
+  (old rows rewritten), sidecar protocol v3 (`probe`, `index`,
+  `list.target`, in `sidecar/ingest/probe.py`), and the sweep settings as a
+  superset of the schedule. `time` is read as `run_window_start`.
+- **23.B:**
+  - The frozen order and carry-over are in `repo/queue.rs`; probe state, deep
+    requests, tiers, estimates and item plans are in `repo/scopes.rs`.
+  - The pure decision table is `ingest/decide.rs`.
+  - The runner rewrite covers probe, index, deep, item, window, timeout, the
+    deep queue, warm cache, queued item fetches and the summary.
+  - The new commands are in `commands/scopes.rs`.
+- **23.C:** Sync screen (`screens/ingestion.tsx`, nav "Sync"), deep fetch
+  dialog, Client 360 history line, pause reason and pin, Clients History
+  column, add-client checkbox, the pending-documents icon on every list, the
+  work item banner, Settings → Sweeps rows, and the Updates summary card with
+  the History fetched group. UI styles are in `styles/sync.css`,
+  `history.css` and `badges.css`.
+- Tests: two new Rust tests for the 23.7 and 23.10 "done when" checks, and
+  one sidecar test for the 23.3 probe hash. The five existing ingestion tests
+  now set `docs_policy = download` and a wide lookback, so they keep their
+  Build 1 meaning.
+- Frozen sidecar rebuilt (`sidecar/build.sh`) so the app ships protocol v3.
+
+### Errors hit
+- `NotContiguous(22)`: the duplicate migration line (above).
+- `cargo clippy --all-targets` reports `items_after_test_module` in
+  `export.rs` and `queue.rs`. This predates Build 3, and `check.sh` runs
+  clippy without `--all-targets`. Left alone.
+
+### Real sweep (install step 4–5) — TODO(blocked)
+- `NOTES.md` has no "Real data" heading, so the five clients are not
+  registered or their folder is not recorded. The live sweep, deep fetch and
+  item fetch were not run, and no live-portal fixes were made. Next session:
+  register the clients (Clients → Add client, with the password in the
+  credentials field), add the data folder path under "Real data", then run
+  steps 4–5.
+
+### Manual test list (Build 3)
+1. **Settings → Sweeps.** Every row from docs/17 §6.5 shows and saves; the
+   old schedule time appears as the window start.
+2. **Clients.** History pills (`recent` by default). Add a client with "Also
+   fetch full history tonight" ticked; Sync shows it as `Deep · full ·
+   Queued · after sweep`.
+3. **Client 360.**
+   - The History line and `Fetch history` open the dialog: estimate,
+     modules, depth; Queue for tonight replaces an existing request.
+   - Turning sync off asks for a reason and shows `Paused · reason`.
+   - The overflow menu pins the client to nightly.
+4. **Sync.** `Sweep all now` shows an estimate. During a run: the run card,
+   progress and legend, rows in frozen order, status strings, a live
+   `Running · m:ss`, hover `Sync now` / `Retry`, the persisted filters, and
+   the live session with OTP / captcha. Under "More sweep options": the
+   module picker and Sweep what is due.
+5. **First sweep of a client.** Rows are indexed with no downloads, and cloud
+   icons appear on Attention, Calendar, Updates, and the client's list.
+6. **Work item with pending documents.** The banner auto-fetches (Settings →
+   "Fetch documents when I open an item"), shows progress, then disappears.
+   While a sweep runs, it offers "Queue after sweep".
+7. **Second sweep of an unchanged client with no open items.**
+   `Skipped · unchanged` shows within seconds.
+8. **Scheduled run.** Set a window a few minutes wide. It stops with
+   "Stopped · window closed", and the next scheduled run starts with the
+   remainder.
+9. **Updates.** The "Last night" card is first and counts in the badge;
+   History fetched appears after a deep fetch.
+10. **Dormant.** A client with no open items and nothing in 90 days goes
+    `weekly` after its sweep and shows `Dormant` / `Weekly · Sun` on Sync.
+11. Then answer Q42–Q48 in `QUESTIONS.md` (and Q41 from Build 2).

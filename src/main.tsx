@@ -5,6 +5,9 @@ import { api } from "./lib/api";
 import { applyScale, cachedScale } from "./lib/scale";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/sync.css";
+import "./styles/history.css";
+import "./styles/badges.css";
 
 // Text size: the cached value before first paint, then the saved one.
 applyScale(cachedScale());

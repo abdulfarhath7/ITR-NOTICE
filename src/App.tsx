@@ -29,7 +29,7 @@ const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: { name: "updates" }, label: "Updates", icon: "bell" },
   { route: { name: "calendar" }, label: "Calendar", icon: "calendar" },
   { route: { name: "clients" }, label: "Clients", icon: "users" },
-  { route: { name: "ingestion" }, label: "Ingestion", icon: "download" },
+  { route: { name: "ingestion" }, label: "Sync", icon: "refresh" },
   { route: { name: "devices" }, label: "Devices", icon: "monitor" },
   { route: { name: "settings" }, label: "Settings", icon: "sliders" },
 ];

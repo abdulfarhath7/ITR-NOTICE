@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { useQuery } from "../lib/query";
-import type { UpdatesReport } from "../lib/types";
+import type { SummaryCard, UpdatesReport } from "../lib/types";
 
 const KEY = "lcc.updates.seen_until";
 
@@ -31,9 +31,26 @@ export function useUpdates() {
   return useQuery<UpdatesReport>("work_items:updates", () => api.updates());
 }
 
-/** Entries newer than the watermark, for the sidebar badge. */
+/** The last finished sweep's summary card (docs/17 §2.8), keyed under
+ *  work_items for the same reason as the updates themselves. */
+export function useLastSweepSummary() {
+  return useQuery<SummaryCard | null>("work_items:last_summary", () => api.lastSweepSummary());
+}
+
+/** The summary counts as one entry once the sweep has finished and wrote one. */
+export function summaryAt(card: SummaryCard | null | undefined): string | null {
+  return card?.summary && card.finished_at ? card.finished_at : null;
+}
+
+/** Entries newer than the watermark, for the sidebar badge; the last
+ *  sweep's summary counts as one more while unseen. */
 export function useUnreadUpdates(): number {
   const q = useUpdates();
+  const s = useLastSweepSummary();
   const [seen] = useSeenUntil();
-  return useMemo(() => (q.data?.entries ?? []).filter((e) => e.at > seen).length, [q.data, seen]);
+  return useMemo(() => {
+    const entries = (q.data?.entries ?? []).filter((e) => e.at > seen).length;
+    const at = summaryAt(s.data);
+    return entries + (at && at > seen ? 1 : 0);
+  }, [q.data, s.data, seen]);
 }

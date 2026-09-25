@@ -7,12 +7,13 @@ import { useWorkItems } from "../hooks/use-work-items";
 import { api, describeError } from "../lib/api";
 import { describeDue } from "../lib/due";
 import { MODULE_LABEL } from "../lib/labels";
-import { invalidate } from "../lib/query";
+import { invalidate, useQuery } from "../lib/query";
 import { navigate } from "../lib/router";
 import { isSettled, parseStatus } from "../lib/status";
 import { toast, toastError } from "../lib/toast";
-import type { Module, WorkItemRow } from "../lib/types";
+import type { ClientDetail, Module, WorkItemRow } from "../lib/types";
 import { stamp } from "../ui/dates";
+import DeepFetchDialog, { approxDuration } from "../ui/deep-fetch-dialog";
 import { Confirm, Dialog } from "../ui/dialog";
 import DueText from "../ui/due-text";
 import ExportDialog from "../ui/export-dialog";
@@ -21,6 +22,7 @@ import Icon from "../ui/icons";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { Avatar } from "../ui/owner-select";
 import { StatusPill } from "../ui/pill";
+import PendingDocs from "../ui/pending-docs";
 import ClientForm from "./client-form";
 
 function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
@@ -42,7 +44,7 @@ function ModulePane({ module, rows }: { module: Module; rows: WorkItemRow[] }) {
                     onKeyDown={(e) => { if (e.key === "Enter") navigate({ name: "item", module: r.module, id: r.id }); }}>
                   <td className="wrap">{r.title}<div className="sub">{r.type_label}{r.section ? ` · ${r.section}` : ""}{r.assessment_year ? ` · AY ${r.assessment_year}` : ""}</div></td>
                   <td className="right"><DueText due={due} /></td>
-                  <td><StatusPill status={r.status} /></td>
+                  <td><StatusPill status={r.status} /> <PendingDocs count={r.pending_documents} /></td>
                 </tr>
               );
             })}
@@ -178,6 +180,74 @@ function ClientNotes({ clientId, saved }: { clientId: string; saved: string }) {
   );
 }
 
+/** `12 Sep` in the local zone. */
+function dayMonth(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+/** `History: recent only · Fetch history` and its partial / full forms (docs/17 §6.2). */
+function HistoryLine({ c, onFetch }: { c: ClientDetail; onFetch: () => void }) {
+  const depth = c.history_depth ?? "recent";
+  const [text, action] = depth === "full"
+    ? [`History: full${c.history_fetched_at ? ` · fetched ${dayMonth(c.history_fetched_at)}` : ""}`, "Fetch more"]
+    : depth === "partial"
+      ? [`History: ${c.history_note || "partial"}`, "Fetch more"]
+      : ["History: recent only", "Fetch history"];
+  return (
+    <span className="c360-history">
+      <span>{text}</span>
+      {" · "}
+      <button type="button" className="link-btn" onClick={onFetch}>{action}</button>
+    </span>
+  );
+}
+
+/** Turning sync off asks for an optional reason (docs/17 §6.2). */
+function PauseDialog({ onPause, onClose }: { onPause: (reason: string | null) => void; onClose: () => void }) {
+  const [reason, setReason] = useState("");
+  return (
+    <Dialog title="Pause sync for this client" onClose={onClose} footer={
+      <>
+        <button className="btn" onClick={onClose}>Cancel</button>
+        <button className="btn accent" onClick={() => onPause(reason.trim() || null)}>Pause</button>
+      </>
+    }>
+      <Field label="Reason (optional)" hint="whole-book and scheduled sweeps skip this client; Sync now still works">
+        <input className="input" value={reason} maxLength={120} aria-label="Reason (optional)" onChange={(e) => setReason(e.target.value)}
+               onKeyDown={(e) => { if (e.key === "Enter") onPause(reason.trim() || null); }} />
+      </Field>
+    </Dialog>
+  );
+}
+
+/** Header overflow: one item, the nightly pin (docs/17 §2.5). */
+function MoreMenu({ pinned, onTogglePin }: { pinned: boolean; onTogglePin: () => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("click", close);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("click", close); window.removeEventListener("keydown", onKey); };
+  }, [open]);
+  return (
+    <span className="c360-more">
+      <button type="button" className="btn icon" aria-label="More" title="More" aria-haspopup="menu" aria-expanded={open}
+              onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}><Icon name="more" /></button>
+      {open ? (
+        <span className="c360-menu" role="menu">
+          <button type="button" role="menuitem" autoFocus onClick={() => { setOpen(false); onTogglePin(); }}>
+            <Icon name="pin" /><span>{pinned ? "Allow weekly when dormant" : "Keep syncing nightly"}</span>
+          </button>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 /** Client detail — Client 360 (docs/16 §7): header with the sync switch,
  *  five summary tiles, then tabs. The module tabs reuse the per-module
  *  list, filtered to the chosen year. */
@@ -195,6 +265,10 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
   const [exporting, setExporting] = useState(false);
   const [fileNo, setFileNo] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [fetchingHistory, setFetchingHistory] = useState(false);
+  // A label only; never blocks Sync now (docs/17 §2.9).
+  const estimate = useQuery<number>(`clients:${id}:estimate`, () => api.sweepEstimate([id]));
 
   const years = q.data?.years ?? [];
   const selectedYear = year === undefined ? null : year;   // null = every year
@@ -218,17 +292,29 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
   const syncNow = async () => {
     try {
       await api.refreshClient(id);
-      toast("Sync queued for this client. Watch it on the Ingestion screen.");
+      toast("Sync queued for this client. Watch it on the Sync screen.");
     } catch (e) { toastError(describeError(e)); }
   };
-  const toggleSync = async (on: boolean) => {
+  const setSync = async (on: boolean, reason: string | null) => {
     setSyncBusy(true);
     try {
-      await api.setClientSyncEnabled(id, on);
+      await api.setClientSync(id, on, reason);
+      setPausing(false);
       toast(on ? "Included in sweeps again." : "Left out of whole-book and scheduled sweeps. Sync now still works.");
       invalidate(`clients:${id}`);
+      invalidate("clients:list");
     } catch (e) { toastError(describeError(e)); }
     finally { setSyncBusy(false); }
+  };
+  // Off asks for a reason first; on goes straight through.
+  const toggleSync = (on: boolean) => { if (on) void setSync(true, null); else setPausing(true); };
+  const togglePin = async (pinned: boolean) => {
+    try {
+      await api.pinClientCadence(id, pinned);
+      toast(pinned ? "Kept on the nightly sweep." : "Moves to weekly when dormant.");
+      invalidate(`clients:${id}`);
+      invalidate("clients:list");
+    } catch (e) { toastError(describeError(e)); }
   };
   const saveFileNo = async () => {
     if (fileNo === null) return;
@@ -244,6 +330,9 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
   if (!q.data) return <LoadingPage />;
   const c = q.data;
   const syncOn = c.sync_enabled !== 0;
+  const pinned = c.cadence_pinned === 1;
+  const tierText = pinned ? "nightly · pinned" : (c.cadence_tier ?? "nightly");
+  const lastSwept = c.last_swept_at ?? c.last_sync_at;
   const pick = (t: TabKey) => { setTab(t); navigate({ name: "client", id, tab: t }); };
   const moduleRows = (m: Module) => all.filter((r) => r.module === m && (selectedYear === null || r.year_context_id === selectedYear));
 
@@ -259,15 +348,25 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
             <span className="c360-name">{c.name}</span>
             <span className="c360-line">{[<span key="p" className="mono">{c.pan_masked}</span>, c.gstin ? <span key="g" className="mono">{c.gstin}</span> : null,
               c.phone ? <span key="ph" className="num">{`${c.phone_cc} ${c.phone}`}</span> : null].filter(Boolean).reduce<React.ReactNode[]>((acc, x, i) => (i ? [...acc, " · ", x] : [x]), [])}</span>
+            {c.source === "portal" ? <HistoryLine c={c} onFetch={() => setFetchingHistory(true)} /> : null}
           </div>
           <span className="grow" />
           {c.source === "portal" ? (
             <>
+              {!syncOn ? (
+                <span className="c360-paused" title={c.sync_pause_reason ?? undefined}>
+                  {c.sync_pause_reason ? `Paused · ${c.sync_pause_reason}` : "Paused"}
+                </span>
+              ) : null}
               <label className="c360-sync" title="Off: whole-book and scheduled sweeps skip this client">
                 <span>Sync</span>
-                <span className="switch"><input type="checkbox" checked={syncOn} disabled={syncBusy} onChange={(e) => { void toggleSync(e.target.checked); }} aria-label="Include in sweeps" /><span className="track" /></span>
+                <span className="switch"><input type="checkbox" checked={syncOn} disabled={syncBusy} onChange={(e) => toggleSync(e.target.checked)} aria-label="Include in sweeps" /><span className="track" /></span>
               </label>
-              <button className="btn" onClick={() => { void syncNow(); }}><Icon name="refresh" /><span>Sync now</span></button>
+              <button className="btn" onClick={() => { void syncNow(); }}
+                      title={estimate.data !== undefined ? approxDuration(estimate.data) : undefined}>
+                <Icon name="refresh" /><span>Sync now</span>
+              </button>
+              <MoreMenu pinned={pinned} onTogglePin={() => { void togglePin(!pinned); }} />
             </>
           ) : <span className="pill accent">ERI</span>}
         </div>
@@ -277,7 +376,7 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
           <Tile label="Overdue" value={items.data ? tiles.overdue : "—"} tone={tiles.overdue ? "danger" : ""} />
           <Tile label="Demands total" value={!items.data ? "—" : tiles.demandCount ? <>{rupees(tiles.demandTotal)}{tiles.demandsUnstated ? <span className="unverified" title="some demands state no amount">+ unstated</span> : null}</> : "None"} />
           <Tile label="Returns filed" value={<span className="num">{tiles.filedYears} / {years.length}</span>} />
-          <Tile label="Last synced" value={<span className="c360-small">{c.last_sync_at ? stamp(c.last_sync_at) : "Never"}</span>} />
+          <Tile label="Last synced" value={<span className="c360-small">{lastSwept ? stamp(lastSwept) : "Never"}{c.source === "portal" ? ` · ${tierText}` : ""}</span>} />
         </div>
 
         <div className="tabs" role="tablist" aria-label="Client sections">
@@ -343,6 +442,9 @@ export default function ClientDetailScreen({ id, tab: routeTab }: { id: string; 
       </PageBody>
       {editing ? <ClientForm existing={c} onClose={() => setEditing(false)}
                              onSaved={() => { setEditing(false); invalidate(`clients:${id}`); }} /> : null}
+      {pausing ? <PauseDialog onPause={(r) => { void setSync(false, r); }} onClose={() => setPausing(false)} /> : null}
+      {fetchingHistory ? <DeepFetchDialog clientId={c.id} clientName={c.name} historyNote={c.history_note}
+                                          tier={c.cadence_tier} onClose={() => setFetchingHistory(false)} /> : null}
       {exporting ? <ExportDialog onClose={() => setExporting(false)} choices={{
         client: { id: c.id, name: c.name },
         // On a module tab, the rows on screen (that module, the chosen year).

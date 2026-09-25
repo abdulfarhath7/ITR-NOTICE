@@ -4,7 +4,7 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { useMemo, useState } from "react";
 import { useDraft } from "../hooks/use-draft";
-import { useSeenUntil, useUpdates } from "../hooks/use-updates";
+import { summaryAt, useLastSweepSummary, useSeenUntil, useUpdates } from "../hooks/use-updates";
 import { api, describeError } from "../lib/api";
 import { shortDateOf } from "../lib/due";
 import { exportFileName } from "../lib/export-name";
@@ -13,12 +13,13 @@ import { invalidate } from "../lib/query";
 import { href, navigate } from "../lib/router";
 import { sectionTone } from "../lib/section-tone";
 import { toast, toastError } from "../lib/toast";
-import type { UpdateEntry, UpdateGroup } from "../lib/types";
+import type { SummaryCard, UpdateEntry, UpdateGroup } from "../lib/types";
 import { stamp } from "../ui/dates";
 import DraftDrawer from "../ui/draft-drawer";
 import EmptyState from "../ui/empty-state";
 import Icon, { type IconName } from "../ui/icons";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
+import PendingDocs from "../ui/pending-docs";
 
 const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
   { key: "new_notice", label: "New notices", icon: "inbox" },
@@ -27,7 +28,49 @@ const GROUPS: { key: UpdateGroup; label: string; icon: IconName }[] = [
   { key: "closed", label: "Proceeding closed", icon: "shield" },
   { key: "demand_changed", label: "Demand changed", icon: "activity" },
   { key: "sync_failed", label: "Sync failed", icon: "alert" },
+  { key: "history_fetched", label: "History fetched", icon: "cloud-down" },
 ];
+
+/** A finished sweep within this many hours reads "Last night"; anything
+ *  older, or a daytime run, reads "Last run". */
+const LAST_NIGHT_HOURS = 20;
+
+function istHour(iso: string): number | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return Number(d.toLocaleString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false })) % 24;
+}
+
+function summaryTitle(card: SummaryCard, finishedAt: string): string {
+  const age = Date.now() - new Date(finishedAt).getTime();
+  const h = istHour(card.started_at);
+  const overnight = h !== null && (h >= 18 || h < 9);
+  return overnight && age >= 0 && age <= LAST_NIGHT_HOURS * 3_600_000 ? "Last night" : "Last run";
+}
+
+/** "Last night: swept 187, skipped 12 unchanged, 3 failed" (docs/17 §2.8). */
+function SummaryCardView({ card, unread }: { card: SummaryCard; unread: boolean }) {
+  const s = card.summary;
+  const at = summaryAt(card);
+  if (!s || !at) return null;
+  const n = (v: number) => v.toLocaleString("en-IN");
+  const parts = [`swept ${n(s.swept)}`, `skipped ${n(s.skipped_unchanged)} unchanged`, `${n(s.failed)} failed`];
+  if (s.parked) parts.push(`${n(s.parked)} parked`);
+  if (s.deep_done) parts.push(`${n(s.deep_done)} deep fetched`);
+  if (s.warm_cached) parts.push(`${n(s.warm_cached)} warm cached`);
+  return (
+    <section className={`card upd-summary${unread ? " unread" : ""}`} aria-label="Last sweep summary">
+      <div className="card-body">
+        <Icon name="activity" />
+        <span className="num">
+          {summaryTitle(card, at)}: {parts.join(", ")}{s.window_closed ? " · window closed" : ""}
+        </span>
+        <span className="grow" />
+        <span className="meta">{stamp(at)}</span>
+      </div>
+    </section>
+  );
+}
 
 function SectionPill({ e }: { e: UpdateEntry }) {
   if (!e.section) return null;
@@ -51,6 +94,8 @@ function Detail({ e }: { e: UpdateEntry }) {
       return <span className="num"><s className="muted">{e.old_value ?? "—"}</s> → {e.new_value ?? "—"}</span>;
     case "sync_failed":
       return <span className="wrap">{e.reason ?? (e.run_status === "credentials_parked" ? "Credentials need attention" : "The run failed")}</span>;
+    case "history_fetched":
+      return null;
   }
 }
 
@@ -71,6 +116,8 @@ function Actions({ e, onDraft, onDate }: { e: UpdateEntry; onDraft: () => void; 
       </span>;
     case "response_filed":
       return view ? <a className="btn small" href={view}>Open</a> : null;
+    case "history_fetched":
+      return e.client_id ? <a className="btn small" href={href({ name: "client", id: e.client_id })}>View</a> : null;
     case "sync_failed":
       return e.client_id ? (e.run_status === "credentials_parked"
         ? <button className="btn small" onClick={() => navigate({ name: "client", id: e.client_id!, tab: "credentials" })}>Fix</button>
@@ -78,6 +125,18 @@ function Actions({ e, onDraft, onDate }: { e: UpdateEntry; onDraft: () => void; 
     default:
       return view ? <a className="btn small" href={view}>View</a> : null;
   }
+}
+
+/** "History fetched · <client> · 1,204 items", the depth note beneath. */
+function HistoryLine({ e }: { e: UpdateEntry }) {
+  const count = Number.parseInt(e.new_value ?? "", 10);
+  const items = Number.isFinite(count) ? `${count.toLocaleString("en-IN")} ${count === 1 ? "item" : "items"}` : null;
+  return (
+    <div className="upd-client upd-span">
+      <span>{["History fetched", e.client_name ?? "Client not in the book", items].filter(Boolean).join(" · ")}</span>
+      {e.reason ? <span className="upd-history-note">{e.reason}</span> : null}
+    </div>
+  );
 }
 
 function GroupCard({ group, entries, onDraft, onDate }: {
@@ -92,13 +151,18 @@ function GroupCard({ group, entries, onDraft, onDate }: {
         <span className={`pill ${group.key === "sync_failed" ? "danger" : ""}`}>{entries.length}</span>
       </div>
       <div className="upd-rows">
-        {entries.map((e, i) => (
+        {entries.map((e, i) => e.group === "history_fetched" ? (
+          <div key={`${e.group}:${e.client_id}:${e.at}:${i}`} className="upd-row">
+            <HistoryLine e={e} />
+            <div className="upd-actions"><Actions e={e} onDraft={() => onDraft(e)} onDate={() => onDate(e)} /></div>
+          </div>
+        ) : (
           <div key={`${e.group}:${e.item_id ?? e.client_id}:${e.at}:${i}`} className="upd-row">
             <div className="upd-client">
               <span>{e.client_name ?? <span className="muted">Client not in the book</span>}</span>
               <span className="sub mono">{[e.pan_masked, e.assessment_year ? `AY ${e.assessment_year}` : null].filter(Boolean).join(" · ")}</span>
             </div>
-            <div><SectionPill e={e} /></div>
+            <div><SectionPill e={e} /><PendingDocs count={e.pending_documents} /></div>
             <div><Detail e={e} /></div>
             <div className="upd-actions"><Actions e={e} onDraft={() => onDraft(e)} onDate={() => onDate(e)} /></div>
           </div>
@@ -121,18 +185,22 @@ function Groups({ entries, onDraft, onDate }: { entries: UpdateEntry[]; onDraft:
 
 export default function UpdatesScreen() {
   const q = useUpdates();
+  const last = useLastSweepSummary();
   const [seen, markSeen] = useSeenUntil();
   const [showSeen, setShowSeen] = useState(false);
   const draft = useDraft();
   const entries = useMemo(() => q.data?.entries ?? [], [q.data]);
   const fresh = entries.filter((e) => e.at > seen);
+  const card = last.data ?? null;
+  const cardAt = summaryAt(card);
+  const cardUnread = !!cardAt && cardAt > seen;
   const old = entries.filter((e) => e.at <= seen);
 
   if (q.error) return <ErrorPage message={q.error} />;
   if (!q.data) return <LoadingPage />;
 
   const markAll = () => {
-    const newest = entries.reduce((m, e) => (e.at > m ? e.at : m), new Date().toISOString());
+    const newest = [...entries.map((e) => e.at), cardAt ?? ""].reduce((m, at) => (at > m ? at : m), new Date().toISOString());
     markSeen(newest);
     toast("All updates marked seen.");
   };
@@ -156,10 +224,11 @@ export default function UpdatesScreen() {
   return (
     <Page>
       <PageHead title="Updates" meta={q.data.since ? `Compared with sync on ${stamp(q.data.since)}` : "Nothing synced yet"}>
-        {fresh.length ? <button className="btn quiet" onClick={markAll}>Mark all seen</button> : null}
+        {fresh.length || cardUnread ? <button className="btn quiet" onClick={markAll}>Mark all seen</button> : null}
         <button className="btn" onClick={() => { void exportAll(); }} disabled={!entries.length}><Icon name="upload" /><span>Export</span></button>
       </PageHead>
       <PageBody>
+        {card ? <SummaryCardView card={card} unread={cardUnread} /> : null}
         {!entries.length ? (
           <div className="card">
             <EmptyState title={q.data.since ? "Nothing changed since the last sync." : "No sync has run yet."}

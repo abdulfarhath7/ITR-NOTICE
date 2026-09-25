@@ -35,6 +35,7 @@ import ExportDialog from "../ui/export-dialog";
 import Icon from "../ui/icons";
 import OwnerSelect, { Avatar } from "../ui/owner-select";
 import { Page, PageBody, PageHead } from "../ui/page";
+import PendingDocs, { pendingOf } from "../ui/pending-docs";
 import { StatusPill } from "../ui/pill";
 
 /** Rows rendered at a time; the rest arrive on request. */
@@ -230,7 +231,7 @@ function Row({ item, nav, today, owning, onOwn, onDraft, onDate }: {
         <div className="sub mono">{[r.client_code, r.pan_masked].filter(Boolean).join(" · ")}</div>
       </td>
       <td className="wrap">
-        <span className={`pill ${sectionTone(r)}`} title={r.title}>{sectionLabel(r)}</span>
+        <span className={`pill ${sectionTone(r)}`} title={r.title}>{sectionLabel(r)}</span><PendingDocs count={pendingOf(r)} />
         <div className="sub">{MODULE_NOUN[r.module]}{r.assessment_year ? ` · AY ${r.assessment_year}` : ""}</div>
       </td>
       <td>{issued ? <span className="num">{issued}</span> : <span className="muted" title="No issued date stated">—</span>}</td>

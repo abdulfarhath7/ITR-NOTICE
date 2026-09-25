@@ -6,6 +6,7 @@ import type {
   RelayConfig, Roster, SyncLine, UpdatesReport, SyncResult, SyncState, ClientInput, ClientSummary, DemandDetail, Derived, Draft, DueDateAnswer,
   FiledFormDetail, ImportPreview, IngestionEvent, IngestionJob, IngestionRun, IngestionState, Module,
   ProceedingDetail, ReturnDetail, Scope, Settings, SweepSchedule, TypeEntry, WorkItemFilter, WorkItemMeta, WorkItemRow,
+  DeepDepth, DeepFetchRequest, DeepFetchResult, DocsPolicy, ItemFetchResult, SummaryCard, SweepSettings, SyncOverview,
 } from "./types";
 
 export const api = {
@@ -70,6 +71,26 @@ export const api = {
   ingestionRuns: (limit?: number) => invoke<IngestionRun[]>("list_ingestion_runs", { limit: limit ?? null }),
   syncLine: () => invoke<SyncLine>("get_sync_line"),
   updates: (since?: string) => invoke<UpdatesReport>("list_updates", { since: since ?? null }),
+  // Scrape scopes (docs/17 §7)
+  requestDeepFetch: (clientId: string, depth: DeepDepth, depthValue: string | null, modules: Module[],
+                     docsPolicy: DocsPolicy, mode: "tonight" | "now") =>
+    invoke<DeepFetchResult>("request_deep_fetch", { clientId, depth, depthValue, modules, docsPolicy, mode }),
+  cancelDeepFetch: (id: string) => invoke<void>("cancel_deep_fetch", { id }),
+  retryDeepFetch: (id: string) => invoke<void>("retry_deep_fetch", { id }),
+  deepFetchRequests: () => invoke<DeepFetchRequest[]>("list_deep_fetch_requests"),
+  fetchItem: (module: Module, id: string, queueIfBusy = false) =>
+    invoke<ItemFetchResult>("fetch_item", { module, id, queueIfBusy }),
+  sweepEstimate: (clientIds?: string[]) => invoke<number>("sweep_estimate", { clientIds: clientIds ?? null }),
+  deepEstimate: (clientId: string, depth: DeepDepth, depthValue: string | null) =>
+    invoke<number>("deep_estimate", { clientId, depth, depthValue }),
+  sweepSettings: () => invoke<SweepSettings>("get_sweep_settings"),
+  setSweepSettings: (settings: SweepSettings) => invoke<void>("set_sweep_settings", { settings }),
+  setClientSync: (clientId: string, enabled: boolean, reason: string | null) =>
+    invoke<void>("set_client_sync", { clientId, enabled, reason }),
+  pinClientCadence: (clientId: string, pinned: boolean) => invoke<void>("pin_client_cadence", { clientId, pinned }),
+  syncOverview: () => invoke<SyncOverview>("get_sync_overview"),
+  lastSweepSummary: () => invoke<SummaryCard | null>("get_last_sweep_summary"),
+
   exportUpdates: (path: string, since?: string) => invoke<number>("export_updates", { since: since ?? null, path }),
 
   deviceInfo: () => invoke<DeviceInfo>("get_device_info"),

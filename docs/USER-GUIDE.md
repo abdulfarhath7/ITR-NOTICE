@@ -130,6 +130,34 @@ Export bundle / Import bundle, or Settings → Data). A bundle is encrypted with
 Importing merges — nothing is overwritten or deleted. Passwords are left out
 unless you ask twice.
 
+## What the nightly run fetches, and how to fetch more
+
+The nightly run (Settings → Sweeps, default 01:00–06:00) reads only what the
+dashboard needs:
+
+- every item still open, re-checked for a new notice, a moved due date or a
+  reply;
+- anything new issued in the last 30 days.
+
+It records each notice without downloading its PDF. Those items show a small
+cloud icon. A client with no open items whose portal listing has not changed
+is skipped in a few seconds. A client quiet for 90 days drops to a weekly
+sweep (Sundays) until something changes. **Sync** shows tonight's order, what
+each client did and what comes next. If the window closes mid-run, the rest
+continues the next night from where it stopped.
+
+To get more:
+- **Open an item.** Its documents download then, automatically unless you
+  turned that off, or with the **Fetch** button on the banner. Items due
+  within a week are usually downloaded ahead of time when the night has time
+  to spare.
+- **Fetch history** on a client's page brings in older years for that one
+  client: everything, the last few assessment years, or since a date. Choose
+  index only or every PDF, and **Queue for tonight** or **Run now**. A new
+  client can queue its full history from the add form.
+- **Sync now** on a client, or **Sweep all now** on the Sync screen, runs a
+  sweep straight away.
+
 ## Exports
 
 Attention, Clients and a client's page each have **Export**. One workbook,

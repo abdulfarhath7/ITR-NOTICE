@@ -585,3 +585,15 @@ Date: 2026-09-25
 Context: §2.7: a run that stopped on the window boundary resumes next night at the same position, then re-orders.
 Decision: the next scheduled sweep puts the previous window-closed sweep's unfinished jobs first, with their cursors. The rest follows in the fresh §2.1 order. The old jobs are marked `cancelled` with the note "carried to the next run", so no job is carried twice.
 Reversible: yes.
+
+## D-058 — The Sync screen keeps the Build 1 sweep options, collapsed
+Date: 2026-09-25
+Context: docs/17 §6.1 replaces the Ingestion layout. The old screen had the module picker, "Sweep what is due" and a one-client start.
+Decision: those options sit in a collapsed "More sweep options" section. The old Jobs table is gone; the queue table replaces it. The old per-panel run history is a collapsed "Panel history" section with a Scope column.
+Reversible: easily.
+
+## D-059 — The "Last night" card is "Last run" outside the night
+Date: 2026-09-25
+Context: docs/17 §2.8 titles the Updates card "Last night".
+Decision: the card is titled "Last night" when the sweep started between 18:00 and 09:00 IST and finished within 20 hours. Otherwise it is "Last run". Parked, deep fetched and warm cached counts appear only when not zero.
+Reversible: easily.

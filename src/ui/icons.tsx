@@ -7,7 +7,7 @@ export type IconName =
   | "inbox" | "users" | "download" | "monitor" | "sliders" | "search" | "chevron-right" | "chevron-down"
   | "check" | "x" | "external" | "sun" | "moon" | "refresh" | "file" | "arrow-left" | "plus"
   | "upload" | "command" | "alert" | "clock" | "shield" | "info" | "bell" | "database" | "sparkles"
-  | "calendar" | "note" | "more" | "activity" | "chevron-left";
+  | "calendar" | "note" | "more" | "activity" | "chevron-left" | "cloud-down" | "pause" | "pin";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   inbox: <><path d="M3 12l2.5-7h13L21 12v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M3 12h5l1.5 3h5L16 12h5" /></>,
@@ -24,6 +24,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
   note: <><path d="M5 4h14v11l-5 5H5z" /><path d="M14 20v-5h5" /><path d="M8 9h8M8 12h5" /></>,
   more: <><circle cx="6" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="18" cy="12" r="1" /></>,
   activity: <path d="M3 12h4l3-7 4 14 3-7h4" />,
+  "cloud-down": <><path d="M7 17.5H6.5a4 4 0 0 1-.6-7.95A6 6 0 0 1 17.6 8.1 4.5 4.5 0 0 1 17.5 17.5H17" /><path d="M12 11.5v8" /><path d="M9 16.5l3 3 3-3" /></>,
+  pause: <><path d="M9 5v14" /><path d="M15 5v14" /></>,
+  pin: <><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z" /><path d="M12 14v7" /></>,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   x: <><path d="M6 6l12 12" /><path d="M18 6L6 18" /></>,
   external: <><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,

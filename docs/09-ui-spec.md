@@ -10,7 +10,7 @@ Read `10-design-system.md` alongside this.
 | 2 | Clients | The client book. |
 | 3 | Client detail | One client, years down the side, modules across. |
 | 4 | Work item detail | One proceeding, demand, return or form with its documents. |
-| 5 | Ingestion monitor | Live run state, operator challenges, pause and resume. |
+| 5 | Sync | The run, the queue in tonight's order, operator challenges, pause and resume (Build 3; was Ingestion monitor). |
 | 6 | Devices | Roster, collector nomination, sync state. |
 | 7 | Settings | Sectioned like a desktop app: General, Sweeps, Drafting, Notifications, Data, Firm and sync, About. |
 | 8 | First-run wizard | Firm setup, admin, recovery code, collector. |
@@ -58,6 +58,10 @@ row of five rank counts is gone from the UI (Q32); rank 2 shows as the
 
 Table: name, client code, PAN (masked), source chip (`portal` / `ERI`), open
 count, last sync, status pill. Toolbar: Add, Import, Export, Sync.
+Build 3 adds a **History** pill (`recent` / `partial` / `full`) and a
+`weekly` pill for dormant clients. The add form has one checkbox, off by
+default: "Also fetch full history tonight". It queues an all-years,
+index-only deep fetch.
 
 ## 3 — Client detail
 
@@ -71,6 +75,16 @@ the years down the left ("All years" first). Profile is the read view with
 Edit and the portal-credentials card; Notes is one synced free-text note.
 Export offers the rows on the current tab, or the whole client.
 
+Build 3 (`17-scrape-scopes.md` §6.2):
+- Under the identifiers: `History: recent only · Fetch history`,
+  `History: full · fetched 12 Sep`, or `History: last 2 AYs, index only ·
+  Fetch more`. The link opens the **deep fetch dialog**: how far back, which
+  documents, which modules, an estimate, then Cancel · Run now · Queue for
+  tonight.
+- Turning Sync off asks for an optional reason, shown as `Paused · <reason>`.
+- The Last synced tile shows the tier (`6:12 am · nightly`).
+- The header overflow menu pins the client to nightly.
+
 ## 4 — Work item detail
 
 Left: metadata including both statute references, rendered as
@@ -83,6 +97,17 @@ again. Owner and notes apply to all four modules.
 Any field in `gap_flags` renders as `not stated` in muted type with a small
 "unverified" marker. Never an empty cell.
 
+When any document is still `pending` (indexed by a sweep, not fetched), a
+banner under the header reads `Documents not fetched yet · Fetch`. Fetch
+starts an item fetch with an inline progress line. If "Fetch documents when
+I open an item" is on, the fetch starts on open. If a sweep holds the login,
+the banner offers "Queue after sweep" instead.
+
+**Pending documents in lists.** On Attention, module lists, Updates rows and
+the Calendar day list, an item with any pending document shows a small
+outline cloud-down icon after the section pill, with the tooltip "Documents
+not fetched yet". There is no text badge.
+
 ## 8 — Updates
 
 What changed since the previous sync, grouped: New notices · Due date
@@ -94,6 +119,11 @@ groups are not drawn. Head line "Compared with sync on <date time>" and
 "Seen earlier". Export writes one sheet per group. The sidebar shows the
 unread count. Detail in `16-dashboard-v2.md` §4.
 
+Build 3: the first card is the **Last night** summary ("Last night: swept
+187, skipped 12 unchanged, 3 failed"), and the badge counts it. A **History
+fetched** group lists completed deep fetches: "History fetched · <client> ·
+1,204 items".
+
 ## 9 — Calendar
 
 A month grid (Monday first, IST) of open items on their effective due date,
@@ -104,11 +134,29 @@ day's list. Client and module come from the Attention filters and show as
 chips. Items with no due date never appear on a day; "n without a due date
 →" opens Attention on the No due date tile. Detail in §5 of `16`.
 
-## 5 — Ingestion monitor
+## 5 — Sync (was Ingestion monitor)
 
-Current client, queue position, panel being swept, counts so far. When the run
-needs a human it shows a prominent challenge card for captcha or OTP. The run
-does not fail while waiting.
+Build 3, `17-scrape-scopes.md` §6.1. The route stays `#/ingestion`; the nav
+label is **Sync**.
+
+- **Head:** `Sweep all now · ≈ 42 min` and `Pause`.
+- **Run card:** "Tonight's run · started 01:00 · window ends 06:00" and
+  "128 / 200 · 02:47 elapsed · 1:10 left", a progress bar, and a legend:
+  Swept · Skipped unchanged · Failed · Deep queued. With no run active it
+  shows the last summary and the next run.
+- **Live session:** the current client, panel and counts, plus the captcha /
+  OTP challenge card. The run does not fail while waiting.
+- **Queue table** in tonight's frozen order, with columns Client · Scope ·
+  Status · Changes · Last sweep · Next.
+  - Scope pills: `Sweep`, `Deep · full`, `Deep · 2 AYs`,
+    `Deep · since 1 Apr`, `Item`.
+  - Status strings: `Running · 0:38`, `Done · 0:41`, `Skipped · unchanged`,
+    `Failed · <reason>`, `Queued · after sweep`, `Dormant`,
+    `Paused · <reason>`, `Awaiting you · OTP`.
+  - Next: `Nightly`, `Weekly · Sun`, `Tonight`, `Fix credentials`.
+- **Rows:** hover shows `Sync now` and, on failed rows, `Retry`. A row opens
+  its client.
+- **Filters:** All · Running · Failed · Queued · Dormant, persisted.
 
 ## 6 — Devices
 
@@ -127,6 +175,18 @@ Notifications (desktop moments, the collector-silent email), Data (folder,
 archive size, bundle export and import), Firm and sync (firm, this device's
 id and signing key, leave), About (version, the two guarantees). Adding a
 setting is one row; adding a concern is one section file.
+
+Sweeps, Build 3 (`17` §6.5), adds these rows:
+- Run window (start / end)
+- Look back for new items
+- Re-check open items every night (read-only)
+- Dormant after (days, or Never)
+- Dormant cadence
+- Per-client timeout
+- Documents during sweep (Index only / Download within window)
+- Warm cache after sweep (Off / 3 / 7 / 15 days)
+- Fetch documents when I open an item
+- Retry failed clients (read-only: "Next night, every night until fixed")
 
 ## Shell
 
@@ -185,3 +245,10 @@ styled to look confirmed.
 
 Every list has a designed empty state. Every failure has a specific message.
 "Something went wrong" is not acceptable anywhere in this app.
+
+Sync screen (Build 3):
+- **No clients:** "No clients to sync yet", with Add client.
+- **No run yet:** the run card says "No run yet" and when the next run is.
+- **All paused:** "Every client is paused". Paused clients are skipped.
+- **Window closed mid-run:** "Stopped · window closed. The rest continues
+  tonight at 01:00."

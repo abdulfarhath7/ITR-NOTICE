@@ -1,0 +1,32 @@
+/* docs/17 Build 3 UI: badges. */
+
+/* The "Indexed" marker after a section pill (§6.4). Inline and smaller
+   than the pill so no row grows. */
+.pending-docs {
+  display: inline-flex; align-items: center; vertical-align: middle;
+  margin-left: 0.25rem; color: var(--text-faint); line-height: 0;
+}
+.pending-docs svg { width: 14px; height: 14px; }
+.pill-with-mark { display: inline-flex; align-items: center; min-width: 0; }
+
+/* Work item banner (§3). */
+.pending-banner { margin-bottom: 0.25rem; }
+.pending-banner > svg { color: var(--text-muted); flex: none; }
+.link-btn {
+  padding: 0; border: 0; background: none; font: inherit; color: var(--accent);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.link-btn:hover { color: var(--text); }
+.link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+/* Updates: the last-run summary card (§2.8) and history rows. */
+.upd-summary .card-body { display: flex; align-items: center; gap: 0.625rem; }
+.upd-summary .card-body > svg { color: var(--text-muted); flex: none; }
+.upd-summary.unread { border-color: var(--accent); }
+.upd-history-note { font-size: 0.6875rem; line-height: 1rem; color: var(--text-muted); }
+
+/* Settings › Sweeps: small number inputs and paired controls. */
+.input.num-short { width: 5rem; }
+.settings-inline { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.settings-readonly { color: var(--text); }
+.upd-row .upd-span { grid-column: 1 / 4; }

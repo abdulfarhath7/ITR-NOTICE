@@ -35,6 +35,7 @@ export default function ClientForm({ existing, onClose, onSaved }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [fetchHistory, setFetchHistory] = useState(false);
   const set = (k: keyof ClientInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // Derive as the GSTIN is typed; the derived fields stay editable.
@@ -54,7 +55,7 @@ export default function ClientForm({ existing, onClose, onSaved }: {
   const submit = async () => {
     setBusy(true); setError(null);
     try {
-      const saved = existing ? await api.updateClient(existing.id, form) : await api.createClient(form);
+      const saved = existing ? await api.updateClient(existing.id, form) : await api.createClient({ ...form, fetch_history_tonight: fetchHistory });
       invalidate("clients");
       invalidate("work_items");
       toast(existing ? "Client updated." : "Client added.");
@@ -123,6 +124,15 @@ export default function ClientForm({ existing, onClose, onSaved }: {
         <Field label="Tags" hint="comma separated" wide>
           <input className="input" value={form.tags ?? ""} onChange={(e) => set("tags", e.target.value)} />
         </Field>
+        {!existing ? (
+          <div className="field wide client-add-history">
+            <label className="check">
+              <input type="checkbox" checked={fetchHistory} onChange={(e) => setFetchHistory(e.target.checked)} />
+              Also fetch full history tonight
+            </label>
+            <span className="hint">Index only; documents download when you open an item</span>
+          </div>
+        ) : null}
       </div>
     </Dialog>
   );

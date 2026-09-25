@@ -58,6 +58,9 @@ pub struct WorkItemRow {
     pub drafts_to_review: i64,
     /// Demands: current outstanding, else the demand amount. None elsewhere.
     pub amount: Option<f64>,
+    /// Documents indexed but not fetched yet (docs/17 §6.4 cloud-down icon).
+    #[serde(default)]
+    pub pending_documents: i64,
 }
 
 fn gaps(json: Option<String>) -> Vec<String> {
@@ -71,11 +74,34 @@ pub fn list(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow>>
     if want("demands") { out.extend(list_demands(con, f)?); }
     if want("returns") { out.extend(list_returns(con, f)?); }
     if want("forms") { out.extend(list_forms(con, f)?); }
+    fill_pending_documents(con, &mut out)?;
     // Stated due first, soonest first; then most recently seen.
     out.sort_by(|a, b| a.due_date.is_none().cmp(&b.due_date.is_none())
         .then_with(|| a.due_date.cmp(&b.due_date))
         .then_with(|| b.last_seen_at.cmp(&a.last_seen_at)));
     Ok(out)
+}
+
+/// Pending documents per item, one query per module (docs/17 §6.4).
+pub fn fill_pending_documents(con: &Connection, rows: &mut [WorkItemRow]) -> AppResult<()> {
+    let mut counts: std::collections::HashMap<(String, String), i64> = std::collections::HashMap::new();
+    let mut st = con.prepare(
+        "SELECT 'proceedings', m.proceeding_id, count(*) FROM documents d JOIN communications m
+            ON d.parent_type = 'communication' AND d.parent_id = m.id WHERE d.state = 'pending' GROUP BY m.proceeding_id
+         UNION ALL
+         SELECT 'returns', d.parent_id, count(*) FROM documents d WHERE d.parent_type = 'return' AND d.state = 'pending'
+          GROUP BY d.parent_id
+         UNION ALL
+         SELECT 'forms', d.parent_id, count(*) FROM documents d WHERE d.parent_type = 'filed_form' AND d.state = 'pending'
+          GROUP BY d.parent_id")?;
+    for row in st.query_map([], |r| Ok(((r.get::<_, String>(0)?, r.get::<_, String>(1)?), r.get::<_, i64>(2)?)))? {
+        let (k, n) = row?;
+        counts.insert(k, n);
+    }
+    for r in rows.iter_mut() {
+        r.pending_documents = counts.get(&(r.module.clone(), r.id.clone())).copied().unwrap_or(0);
+    }
+    Ok(())
 }
 
 /// The WHERE clause shared by the four module queries: client, year,
@@ -144,7 +170,7 @@ fn list_proceedings(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkI
             limitation_date: r.get(15)?, status: r.get(16)?, source_panel: r.get(17)?,
             verified_flag: r.get(18)?, gap_flags: gaps(r.get(19)?), document_count: r.get(20)?,
             open_communications: r.get(21)?, last_seen_at: r.get(22)?,
-            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, note_preview: r.get(26)?, drafts_to_review: r.get(27)?, amount: None,
+            issued_on: r.get(23)?, assignee: r.get(24)?, has_note: r.get(25)?, note_preview: r.get(26)?, drafts_to_review: r.get(27)?, amount: None, pending_documents: 0,
         })
     })?;
     let mut out: Vec<WorkItemRow> = rows.collect::<Result<Vec<_>, _>>()?;
@@ -188,7 +214,7 @@ fn list_demands(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: 0, open_communications: responses, last_seen_at: r.get(15)?,
-            issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0,
+            issued_on: r.get(11)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, pending_documents: 0,
             amount: outstanding.or(r.get::<_, Option<f64>>(9)?),
         })
     })?;
@@ -229,7 +255,7 @@ fn list_returns(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemR
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(13)?, source_panel: None, verified_flag: r.get(14)?, gap_flags: gaps(r.get(15)?),
             document_count: r.get(17)?, open_communications: 0, last_seen_at: r.get(16)?,
-            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, note_preview: r.get(20)?, drafts_to_review: 0, amount: None,
+            issued_on: r.get(10)?, assignee: r.get(18)?, has_note: r.get(19)?, note_preview: r.get(20)?, drafts_to_review: 0, amount: None, pending_documents: 0,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -261,7 +287,7 @@ fn list_forms(con: &Connection, f: &WorkItemFilter) -> AppResult<Vec<WorkItemRow
             due_date: None, manual_due_date: None, suggested_due_date: None, limitation_date: None,
             status: r.get(12)?, source_panel: None, verified_flag: r.get(13)?, gap_flags: gaps(r.get(14)?),
             document_count: r.get(16)?, open_communications: 0, last_seen_at: r.get(15)?,
-            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, amount: None,
+            issued_on: r.get(10)?, assignee: r.get(17)?, has_note: r.get(18)?, note_preview: r.get(19)?, drafts_to_review: 0, amount: None, pending_documents: 0,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -389,6 +415,11 @@ pub struct ClientSummary {
     pub last_sync_at: Option<String>,
     pub last_sync_status: Option<String>,
     pub year_count: i64,
+    /// docs/17 §6.4: History pill and the weekly (dormant) pill.
+    pub history_depth: String,
+    pub cadence_tier: String,
+    pub cadence_pinned: bool,
+    pub sync_enabled: bool,
 }
 
 pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec<ClientSummary>> {
@@ -403,7 +434,8 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
                     AND coalesce(p.manual_due_date, p.due_date) IS NOT NULL AND coalesce(p.manual_due_date, p.due_date) < ?1),
                 (SELECT run_at FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
                 (SELECT status FROM ingestion_runs r WHERE r.client_id = cl.id ORDER BY run_at DESC LIMIT 1),
-                (SELECT count(*) FROM year_contexts y WHERE y.client_id = cl.id)
+                (SELECT count(*) FROM year_contexts y WHERE y.client_id = cl.id),
+                cl.history_depth, cl.cadence_tier, cl.cadence_pinned, cl.sync_enabled
          FROM clients cl
          WHERE (?2 IS NULL OR lower(cl.name) LIKE ?2 OR lower(coalesce(cl.client_code,'')) LIKE ?2
                 OR cl.pan LIKE ?3)
@@ -417,7 +449,8 @@ pub fn client_summaries(con: &Connection, search: Option<&str>) -> AppResult<Vec
             gstin: r.get(4)?, entity_type: r.get(5)?, client_group: r.get(6)?, source: r.get(7)?,
             portal_login_ref: r.get(8)?, tags: r.get(9)?, open_count: r.get(10)?,
             overdue_count: r.get(11)?, last_sync_at: r.get(12)?, last_sync_status: r.get(13)?,
-            year_count: r.get(14)?,
+            year_count: r.get(14)?, history_depth: r.get(15)?, cadence_tier: r.get(16)?,
+            cadence_pinned: r.get::<_, i64>(17)? == 1, sync_enabled: r.get::<_, i64>(18)? == 1,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)

@@ -20,6 +20,7 @@ import EmptyState from "../ui/empty-state";
 import Gap from "../ui/gap";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { NotesCard, OwnerRow } from "../ui/item-meta";
+import { PendingBanner } from "../ui/pending-docs";
 import { StatusPill } from "../ui/pill";
 import ThreadFlow from "../ui/thread-flow";
 import { DemandScreen, FiledFormScreen, ReturnScreen } from "./module-items";
@@ -80,6 +81,7 @@ function ProceedingScreen({ id }: { id: string }) {
         <OwnerRow module="proceedings" id={p.id} />
       </PageHead>
       <PageBody>
+        <PendingBanner key={p.id} module="proceedings" id={p.id} pending={allDocs.filter((d) => d.state === "pending").length} />
         <div className="grid-2">
           <div className="card">
             <div className="card-head"><h2>Proceeding</h2><span className="meta">{p.type_label}</span></div>

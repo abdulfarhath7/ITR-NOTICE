@@ -47,6 +47,21 @@ function ClientStatus({ c }: { c: ClientSummary }) {
   return <span className="pill success">Clear</span>;
 }
 
+const HISTORY_TONE = { full: "success", partial: "accent", recent: "" } as const;
+
+/** History depth, plus the dormant and paused facts (docs/17 §6.4). */
+function HistoryCell({ c }: { c: ClientSummary }) {
+  if (c.source === "eri") return <span className="faint">—</span>;
+  return (
+    <span className="client-history">
+      <span className={`pill ${HISTORY_TONE[c.history_depth] ?? ""}`}>{c.history_depth}</span>
+      {c.cadence_tier === "weekly" && !c.cadence_pinned
+        ? <span className="pill" title="Dormant: swept once a week">weekly</span> : null}
+      {!c.sync_enabled ? <span className="pill" title="Left out of sweeps">Paused</span> : null}
+    </span>
+  );
+}
+
 export default function ClientsScreen() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<Sort>({ key: "name", dir: 1 });
@@ -102,7 +117,7 @@ export default function ClientsScreen() {
               <thead><tr>
                 <Th k="name" sort={sort} onSort={toggle}>Name</Th><Th k="client_code" sort={sort} onSort={toggle}>Code</Th><th>PAN</th><th>Source</th>
                 <Th k="open_count" sort={sort} onSort={toggle} num>Open</Th><Th k="overdue_count" sort={sort} onSort={toggle} num>Overdue</Th>
-                <Th k="last_sync_at" sort={sort} onSort={toggle} num>Last sync</Th><th>Status</th>
+                <Th k="last_sync_at" sort={sort} onSort={toggle} num>Last sync</Th><th>History</th><th>Status</th>
               </tr></thead>
               <tbody>
                 {rows.map((c, i) => (
@@ -120,6 +135,7 @@ export default function ClientsScreen() {
                     <td className="num">{c.open_count}</td>
                     <td className="num">{c.overdue_count ? <span className="due danger">{c.overdue_count}</span> : <span className="faint">0</span>}</td>
                     <td className="num">{stamp(c.last_sync_at)}</td>
+                    <td><HistoryCell c={c} /></td>
                     <td><ClientStatus c={c} /></td>
                   </tr>
                 ))}

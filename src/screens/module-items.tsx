@@ -8,8 +8,11 @@ import { DateCell } from "../ui/dates";
 import { DocList, DocPreview } from "../ui/doc-list";
 import { ErrorPage, LoadingPage, Page, PageBody, PageHead } from "../ui/page";
 import { NotesCard, OwnerRow } from "../ui/item-meta";
+import { PendingBanner } from "../ui/pending-docs";
 import { StatusPill } from "../ui/pill";
-import type { Module } from "../lib/types";
+import type { Document, Module } from "../lib/types";
+
+const pendingIn = (docs: Document[]) => docs.filter((d) => d.state === "pending").length;
 
 function money(v: number | null): React.ReactNode {
   if (v === null) return <span className="muted">Not stated</span>;
@@ -20,9 +23,12 @@ function Gap({ value, mono = false }: { value: string | null | undefined; mono?:
   return value ? <span className={mono ? "mono" : undefined}>{value}</span> : <span className="muted">Not stated</span>;
 }
 
-function Frame({ title, item, client, status, verified, docs, children }: {
+function Frame({ title, item, client, status, verified, docs, pending, children }: {
   title: string; item: { module: Module; id: string }; client: { id: string; name: string }; status: string; verified: number;
-  docs: ReturnType<typeof useDocuments>; children: React.ReactNode;
+  docs: ReturnType<typeof useDocuments>;
+  /** Documents of this item still in state `pending` (docs/17 §3). */
+  pending: number;
+  children: React.ReactNode;
 }) {
   return (
     <Page>
@@ -31,7 +37,7 @@ function Frame({ title, item, client, status, verified, docs, children }: {
                   {verified ? <span className="pill success">Verified</span> : <span className="pill warning">Unverified</span>}</span>}>
         <OwnerRow module={item.module} id={item.id} />
       </PageHead>
-      <PageBody>{children}<NotesCard module={item.module} id={item.id} /></PageBody>
+      <PageBody><PendingBanner key={`${item.module}:${item.id}`} module={item.module} id={item.id} pending={pending} />{children}<NotesCard module={item.module} id={item.id} /></PageBody>
       <DocPreview docs={docs} />
     </Page>
   );
@@ -45,7 +51,7 @@ export function DemandScreen({ id }: { id: string }) {
   const d = q.data;
   const allDocs = [...d.documents, ...d.responses.flatMap((r) => r.documents)];
   return (
-    <Frame title={`Demand ${d.demand_reference_number ?? ""}`.trim()} item={{ module: "demands", id }} client={{ id: d.client_id, name: d.client_name }} status={d.status} verified={d.verified_flag} docs={docs}>
+    <Frame title={`Demand ${d.demand_reference_number ?? ""}`.trim()} item={{ module: "demands", id }} client={{ id: d.client_id, name: d.client_name }} status={d.status} verified={d.verified_flag} docs={docs} pending={pendingIn(allDocs)}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Demand</h2><span className="meta">{d.section_or_demand_type ?? ""}</span></div>
@@ -115,7 +121,7 @@ export function ReturnScreen({ id }: { id: string }) {
   if (!q.data) return <LoadingPage />;
   const r = q.data;
   return (
-    <Frame title={`${r.return_type ?? "Return"} · ${r.acknowledgement_number}`} item={{ module: "returns", id }} client={{ id: r.client_id, name: r.client_name }} status={r.status} verified={r.verified_flag} docs={docs}>
+    <Frame title={`${r.return_type ?? "Return"} · ${r.acknowledgement_number}`} item={{ module: "returns", id }} client={{ id: r.client_id, name: r.client_name }} status={r.status} verified={r.verified_flag} docs={docs} pending={pendingIn(r.documents)}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Return</h2><span className="meta">{r.filing_type ?? ""}</span></div>
@@ -168,7 +174,7 @@ export function FiledFormScreen({ id }: { id: string }) {
   if (!q.data) return <LoadingPage />;
   const f = q.data;
   return (
-    <Frame title={f.form_label ?? f.type_label} item={{ module: "forms", id }} client={{ id: f.client_id, name: f.client_name }} status={f.status} verified={f.verified_flag} docs={docs}>
+    <Frame title={f.form_label ?? f.type_label} item={{ module: "forms", id }} client={{ id: f.client_id, name: f.client_name }} status={f.status} verified={f.verified_flag} docs={docs} pending={pendingIn(f.documents)}>
       <div className="grid-2">
         <div className="card">
           <div className="card-head"><h2>Form</h2><span className="meta">{f.type_label}</span></div>

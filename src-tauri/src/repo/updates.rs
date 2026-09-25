@@ -43,6 +43,8 @@ pub struct UpdateEntry {
     pub status: Option<String>,
     /// Sync failed: `failed` or `credentials_parked` (Fix vs Retry).
     pub run_status: Option<String>,
+    /// Documents of the item not fetched yet (docs/17 §6.4).
+    pub pending_documents: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -144,6 +146,7 @@ fn blank(group: &str, at: &str) -> UpdateEntry {
         group: group.into(), at: at.into(), client_id: None, client_name: None, pan_masked: None, assessment_year: None,
         module: None, item_id: None, reference: None, section: None, section_1961: None, due_date: None,
         old_value: None, new_value: None, filed_on: None, reason: None, status: None, run_status: None,
+        pending_documents: 0,
     }
 }
 
@@ -305,6 +308,15 @@ pub fn list(con: &Connection, since: Option<String>) -> AppResult<UpdatesReport>
         Ok(e)
     })?;
     for e in runs { entries.push(e?); }
+
+    let mut pending = con.prepare_cached(
+        "SELECT count(*) FROM documents d JOIN communications m ON d.parent_type = 'communication' AND d.parent_id = m.id
+          WHERE m.proceeding_id = ?1 AND d.state = 'pending'")?;
+    for e in entries.iter_mut() {
+        if let (Some("proceedings"), Some(id)) = (e.module.as_deref(), e.item_id.as_deref()) {
+            e.pending_documents = pending.query_row([id], |r| r.get(0))?;
+        }
+    }
 
     Ok(UpdatesReport { since: Some(since), entries })
 }
