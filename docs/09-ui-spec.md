@@ -59,7 +59,10 @@ row of five rank counts is gone from the UI (Q32); rank 2 shows as the
 Table: name, client code, PAN (masked), source chip (`portal` / `ERI`), open
 count, last sync, status pill. Toolbar: Add, Import, Export, Sync.
 Build 3 adds a **History** pill (`recent` / `partial` / `full`) and a
-`weekly` pill for dormant clients. The add form has one checkbox, off by
+`weekly` pill for dormant clients. The add form also takes an optional
+**Portal password** for portal clients. It is written to the OS keychain,
+keyed by the login that reaches the client, right after the client is
+created, and never enters the client record. The add form has one checkbox, off by
 default: "Also fetch full history tonight". It queues an all-years,
 index-only deep fetch.
 

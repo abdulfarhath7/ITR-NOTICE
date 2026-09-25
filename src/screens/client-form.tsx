@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, describeError } from "../lib/api";
 import { invalidate } from "../lib/query";
-import { toast } from "../lib/toast";
+import { toast, toastError } from "../lib/toast";
 import type { ClientDetail, ClientInput } from "../lib/types";
 import { Dialog } from "../ui/dialog";
 import Field from "../ui/field";
@@ -36,6 +36,9 @@ export default function ClientForm({ existing, onClose, onSaved }: {
   const [error, setError] = useState<string | null>(null);
 
   const [fetchHistory, setFetchHistory] = useState(false);
+  // Add only. Goes straight to the OS keychain after the client exists;
+  // it is never part of the client record.
+  const [password, setPassword] = useState("");
   const set = (k: keyof ClientInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // Derive as the GSTIN is typed; the derived fields stay editable.
@@ -56,10 +59,20 @@ export default function ClientForm({ existing, onClose, onSaved }: {
     setBusy(true); setError(null);
     try {
       const saved = existing ? await api.updateClient(existing.id, form) : await api.createClient({ ...form, fetch_history_tonight: fetchHistory });
+      let stored = false;
+      if (!existing && password && (form.source ?? "portal") === "portal") {
+        try {
+          await api.setClientCredential(saved.id, password);
+          stored = true;
+        } catch (e) {
+          toastError(`Client added, but the password was not stored: ${describeError(e)}. Set it from the client's Profile.`);
+        }
+        setPassword("");            // never leave it in the DOM
+      }
       invalidate("clients");
       invalidate("work_items");
-      toast(existing ? "Client updated." : "Client added.");
-      onSaved(saved);
+      toast(existing ? "Client updated." : stored ? "Client added. Password stored in the OS keychain." : "Client added.");
+      onSaved(stored ? await api.client(saved.id) : saved);
     } catch (e) { setError(describeError(e)); }
     finally { setBusy(false); }
   };
@@ -124,6 +137,15 @@ export default function ClientForm({ existing, onClose, onSaved }: {
         <Field label="Tags" hint="comma separated" wide>
           <input className="input" value={form.tags ?? ""} onChange={(e) => set("tags", e.target.value)} />
         </Field>
+        {!existing && (form.source ?? "portal") === "portal" ? (
+          <Field label="Portal password" wide
+                 hint={form.portal_login_ref?.trim()
+                   ? `for the login ${form.portal_login_ref.trim()}; stored in the OS keychain, never in the database`
+                   : "optional; stored in the OS keychain, never in the database"}>
+            <input className="input" type="password" autoComplete="new-password" value={password}
+                   onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+        ) : null}
         {!existing ? (
           <div className="field wide client-add-history">
             <label className="check">
